@@ -1,22 +1,23 @@
 --Der Versuch des Interpreters 2ter Teil
+import Data.Char
 
---die main fliegt mir so aktuell noch um die Ohren, weil er als erstes argument, ne funktion vom typ 
--- string -> irgendwas erwartet, und inferred IO a, versteh ich nicht so wirklich, execute hat doch string als
--- argument
+-- mit do-notation geht es jetzt, yipphie! nr noch rausfinden, warum er am Ende die leere Liste noch ausgibt 
+-- aha, weil ich nicht returned habe, hmm, aber so ganz, ist quasi standardmaessig print eingestellt?? oder wie?
 
 --main = interact (mapM execute lines)
-main = getContents >>= mapM execute lines
+--main = getContents >>= mapM execute lines
+main = do
+     con <-getContents 
+     mapM execute (lines con)
+     return ()
 
--- hmm, hier beschwert er sich, weil ich IO a angegeben habe, also Variable, und er inferred IO (), versteh ich
--- nicht muesste doch passen
-execute :: String -> IO a
+--execute :: String -> IO a
 execute line = execute' (normalize line)
 
--- ja, denke das hier ist ziemlich klar, das ich sonst putStrLn "Leer!" zurueck gebe, und noch nicht
--- IO () oder sowas, ist weil er IO nicht findet, denke dass ich das auch noch importieren muss
+-- ach, das ging natuerlich mit return, ich depp ;D
 execute' string
            | startsWith "print" string = putStrLn (makeOutPutString  string '"')
-	   | otherwise = putStrLn "leer!"
+	   | otherwise = return ()
 
 --diese Funktion benutze ich um mir den ausgabestring zu basteln, indem ich von dem uebergebenen String
 -- alles bis zum ersten auftauchen des uebergebenen Grenzzeichen wegschmeisse, dann mr alles behalte bis zum
@@ -31,14 +32,13 @@ isNotEqual c1 c2 = not (c1 == c2)
 -- auch Bibliotheksfubktionen gibt, aber hab sie noch nicht gefunden
 startsWith begin xs = (take (length begin) xs) == begin
 
---Das Entfernen der Leerzeichen habe ich erstmal rausgenommen, weil ich mir erst nochmal anschauen muss, wie man
---Module importiert
-normalize string = string 
-  	{-let 
-	   str = "3" --dropWhile Char.isSpace string
+--Diese Funktion entfernt fuehrende Leerzeichen, so wie Leerzeilen
+normalize string =  
+  	let 
+	   str = dropWhile isSpace string
         in
 	  if str == "\n" 
 	    then
 	      []
 	    else
-	      str-}
+	      str
