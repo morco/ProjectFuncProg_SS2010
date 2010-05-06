@@ -27,12 +27,8 @@ execute' string
 -- 2ten aftauchen des grenzzeichen (das tail brauche ich, damit er nicht beim ersten delimiter gleich haengt)
 makeOutPutString :: String -> Char -> String 
 makeOutPutString string strDelimiter = 
-		takeWhile (isNotEqual strDelimiter) (tail (dropWhile (isNotEqual strDelimiter) string))
+		takeWhile ((/=) strDelimiter) (tail (dropWhile ((/=) strDelimiter) string))
 
-
---Name sagt eigentlich schon alles, geht sicher schoener, weis aktuell nur leider nicht wie
-isNotEqual :: (Eq a) => a -> a -> Bool
-isNotEqual c1 c2 = not (c1 == c2)
 
 
 --Diese Funktion entfernt fuehrende Leerzeichen, so wie Leerzeilen
