@@ -7,8 +7,7 @@ import Data.List
 
 main = do
      con <-getContents 
-     mapM execute (lines con)
-     return ()
+     mapM_ execute (lines con)
 
 
 execute :: String -> IO ()
