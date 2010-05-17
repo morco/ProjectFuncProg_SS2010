@@ -1,0 +1,4 @@
+let
+ abba = 4
+in
+ 5 * abba
