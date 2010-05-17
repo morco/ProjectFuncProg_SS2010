@@ -1,0 +1,3 @@
+Alex:
+-> Remove quotes from strings
+-> Read Strings with whitespaces

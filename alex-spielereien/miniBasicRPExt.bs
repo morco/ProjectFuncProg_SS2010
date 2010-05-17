@@ -1,0 +1,3 @@
+10 input "Geben Sie \"String  im String \" bitte Ihren Namen ein"; a$
+20 print "Guten Tag "; a$
+

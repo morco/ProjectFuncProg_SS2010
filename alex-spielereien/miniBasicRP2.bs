@@ -1,0 +1,14 @@
+--10 input "Geben Sie bitte Ihren Namen ein"; a$
+--20 print "Guten Tag "; a$
+
+--10 input "Geben Sie bitte Ihren Namen ein" ; a$
+--20 print "Guten Tag " ; a$
+
+--20 print input
+
+--print input
+
+--20 print; input "blaaa VVaaa"; a$
+
+20 print "gutentag"; a$
+
