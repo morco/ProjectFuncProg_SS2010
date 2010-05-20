@@ -11,22 +11,36 @@ tokens :-
 
   $white+				;
   "--".*				;
-  let					{ \s -> Let }
+  let					{ \s -> TkLet }
   in					{ \s -> In }
-  $digit+				{ \s -> Int (read s) }
-  [\=\+\-\*\/\(\)]			{ \s -> Sym (head s) }
-  $alpha [$alpha $digit \_ \']*		{ \s -> Var s }
+  $digit+				{ \s -> TkInt (read s) }
+--  [\=\+\-\*\/\(\)]			{ \s -> Sym (head s) }
+  \=			                { \s -> TkEq }
+  \+             			{ \s -> TkPlus }
+  \-             			{ \s -> TkMinus }
+  \*             			{ \s -> TkTimes }
+  \/             			{ \s -> TkDiv }
+  \(             			{ \s -> TkOB }
+  \)             			{ \s -> TkCB }
+  $alpha [$alpha $digit \_ \']*		{ \s -> TkVar s }
 
 {
 -- Each action has type :: String -> Token
 
 -- The token type:
 data Token =
- 	Let 		|
+ 	TkLet 		|
 	In  		|
-	Sym Char	|
-	Var String	|
-	Int Int
+--	Sym Char	|
+        TkPlus          |
+        TkMinus         |
+        TkEq            |
+        TkTimes         |
+        TkDiv           |
+        TkOB            |
+        TkCB            |
+	TkVar String	|
+	TkInt Int
 	deriving (Eq,Show)
 
 --tokenize str = do

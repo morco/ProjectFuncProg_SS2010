@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 module Main where
 
---import Salex
+import Salex
 import Data.Char
 
 -- parser produced by Happy Version 1.18.4
@@ -133,7 +133,7 @@ happyReduction_1 ((HappyAbsSyn4  happy_var_6) `HappyStk`
 	_ `HappyStk`
 	(HappyAbsSyn4  happy_var_4) `HappyStk`
 	_ `HappyStk`
-	(HappyTerminal (TokenVar happy_var_2)) `HappyStk`
+	(HappyTerminal (TkVar happy_var_2)) `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn4
@@ -198,14 +198,14 @@ happyReduction_8 (HappyAbsSyn7  happy_var_1)
 happyReduction_8 _  = notHappyAtAll 
 
 happyReduce_9 = happySpecReduce_1  7 happyReduction_9
-happyReduction_9 (HappyTerminal (TokenInt happy_var_1))
+happyReduction_9 (HappyTerminal (TkInt happy_var_1))
 	 =  HappyAbsSyn7
 		 (Int happy_var_1
 	)
 happyReduction_9 _  = notHappyAtAll 
 
 happyReduce_10 = happySpecReduce_1  7 happyReduction_10
-happyReduction_10 (HappyTerminal (TokenVar happy_var_1))
+happyReduction_10 (HappyTerminal (TkVar happy_var_1))
 	 =  HappyAbsSyn7
 		 (Var happy_var_1
 	)
@@ -226,17 +226,17 @@ happyNewToken action sts stk [] =
 happyNewToken action sts stk (tk:tks) =
 	let cont i = action i i tk (HappyState action) sts stk tks in
 	case tk of {
-	TokenLet -> cont 8;
-	TokenIn -> cont 9;
-	TokenInt happy_dollar_dollar -> cont 10;
-	TokenVar happy_dollar_dollar -> cont 11;
-	TokenEq -> cont 12;
-	TokenPlus -> cont 13;
-	TokenMinus -> cont 14;
-	TokenTimes -> cont 15;
-	TokenDiv -> cont 16;
-	TokenOB -> cont 17;
-	TokenCB -> cont 18;
+	TkLet -> cont 8;
+	In -> cont 9;
+	TkInt happy_dollar_dollar -> cont 10;
+	TkVar happy_dollar_dollar -> cont 11;
+	TkEq -> cont 12;
+	TkPlus -> cont 13;
+	TkMinus -> cont 14;
+	TkTimes -> cont 15;
+	TkDiv -> cont 16;
+	TkOB -> cont 17;
+	TkCB -> cont 18;
 	_ -> happyError' (tk:tks)
 	}
 
@@ -292,7 +292,7 @@ data Factor
       | Brack Exp
       deriving Show
 
-
+{-
 data Token
       = TokenLet
       | TokenIn
@@ -306,9 +306,9 @@ data Token
       | TokenOB
       | TokenCB
  deriving Show
+-}
 
-
-
+{-
 lexer :: String -> [Token]
 lexer [] = []
 lexer (c:cs) 
@@ -331,10 +331,10 @@ lexVar cs =
       ("let",rest) -> TokenLet : lexer rest
       ("in",rest)  -> TokenIn : lexer rest
       (var,rest)   -> TokenVar var : lexer rest
+-}
 
-
-main = getContents >>= print . calc . lexer
---main = getContents >>= print . calc . alexScanTokens
+--main = getContents >>= print . calc . lexer
+main = getContents >>= print . calc . alexScanTokens
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

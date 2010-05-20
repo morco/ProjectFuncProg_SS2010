@@ -1,7 +1,7 @@
 {
 module Main where
 
---import Salex
+import Salex
 import Data.Char
 }
 
@@ -9,11 +9,9 @@ import Data.Char
 %tokentype { Token }
 %error { parseError }
 
+{-
 %token 
       let             { TokenLet }
-      in              { TokenIn }
-      int             { TokenInt $$ }
-      var             { TokenVar $$ }
       '='             { TokenEq }
       '+'             { TokenPlus }
       '-'             { TokenMinus }
@@ -21,6 +19,20 @@ import Data.Char
       '/'             { TokenDiv }
       '('             { TokenOB }
       ')'             { TokenCB }
+
+-}
+%token
+      let             { TkLet }
+      in              { In }
+      int             { TkInt $$ }
+      var             { TkVar $$ }
+      '='             { TkEq }
+      '+'             { TkPlus }
+      '-'             { TkMinus }
+      '*'             { TkTimes }
+      '/'             { TkDiv }
+      '('             { TkOB }
+      ')'             { TkCB }
 
 %%
 
@@ -68,7 +80,7 @@ data Factor
       | Brack Exp
       deriving Show
 
-
+{-
 data Token
       = TokenLet
       | TokenIn
@@ -82,9 +94,9 @@ data Token
       | TokenOB
       | TokenCB
  deriving Show
+-}
 
-
-
+{-
 lexer :: String -> [Token]
 lexer [] = []
 lexer (c:cs) 
@@ -107,9 +119,9 @@ lexVar cs =
       ("let",rest) -> TokenLet : lexer rest
       ("in",rest)  -> TokenIn : lexer rest
       (var,rest)   -> TokenVar var : lexer rest
+-}
 
-
-main = getContents >>= print . calc . lexer
---main = getContents >>= print . calc . alexScanTokens 
+--main = getContents >>= print . calc . lexer
+main = getContents >>= print . calc . alexScanTokens 
 }
 
