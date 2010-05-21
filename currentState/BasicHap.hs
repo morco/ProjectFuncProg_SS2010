@@ -168,7 +168,7 @@ data IOCommand
       deriving Show
 
 data Vars 
-      = Var String
+      = Var String                      --- Pos (*2)
       | Vars [String]
       deriving Show
 
