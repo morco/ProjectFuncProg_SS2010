@@ -2,5 +2,5 @@
 20 print "Guten Tag "; a$
 
 
-10 input "Geben Sie bitte Ihren Namen ein"; a$
-20 print "Guten Tag "; a$
+10 input "Geben Sie bitte Ihren Namen ein"; a$ b% c
+20 print "Guten Tag "; a$ b% c

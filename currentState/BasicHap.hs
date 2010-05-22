@@ -106,9 +106,9 @@ happyReduction_5 (HappyAbsSyn7  happy_var_3)
 happyReduction_5 _ _ _  = notHappyAtAll 
 
 happyReduce_6 = happySpecReduce_1  7 happyReduction_6
-happyReduction_6 (HappyTerminal (TkVar happy_var_1))
+happyReduction_6 (HappyTerminal (TkVars happy_var_1))
 	 =  HappyAbsSyn7
-		 (Var happy_var_1
+		 (Vars happy_var_1
 	)
 happyReduction_6 _  = notHappyAtAll 
 
@@ -121,7 +121,7 @@ happyNewToken action sts stk (tk:tks) =
 	TkPrint -> cont 8;
 	TkInput -> cont 9;
 	MyString happy_dollar_dollar -> cont 10;
-	TkVar happy_dollar_dollar -> cont 11;
+	TkVars happy_dollar_dollar -> cont 11;
 	_ -> happyError' (tk:tks)
 	}
 
@@ -170,8 +170,8 @@ data IOCommand
       deriving Show
 
 data Vars 
-      = Var String                      --- Pos (*2)
-      | Vars [String]
+      = Vars [String]                
+--      | Vars [String]
       deriving Show
 
 
@@ -180,7 +180,7 @@ data Vars
 --getParseTree = getContents >>= return . basicParse . alexScanTokens 
 getParseTree = 
       do
-       handle <- openFile "miniBasiProg.bs" ReadMode
+       handle <- openFile "miniBasiProg2.bs" ReadMode
        contents <- hGetContents handle
        putStr contents
        --print (alexScanTokens contents)

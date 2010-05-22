@@ -31,15 +31,23 @@ interpret (StartRek (Command x) otherCommands) map =
               interpret otherCommands map
 
 
-evalCommand (Input str (Var var)) map = 
+evalCommand (Input str (Vars vars)) map = 
                    do
                      putStrLn str
-                     inp <- getLine
-                     return (insert var inp map)
+                     listInsert vars getLine map
+             where
+                listInsert [] _ map = return map
+                listInsert (x:xs) ioAct map = 
+                          do
+                            val <- ioAct
+                            listInsert xs ioAct (insert x val map)
 
 
-evalCommand (Print str (Var var)) map = 
-                   do
-                     let val = getValue var map
-                     putStrLn (str ++ val)
-                     return map
+evalCommand (Print str (Vars vars)) map = 
+                    do 
+                      let vals = foldr (++) "" (buildHitList vars map)
+                      putStrLn (str ++ vals)
+                      return map
+              where
+                 buildHitList [] _ = []
+                 buildHitList (x:xs) map = (getValue x map) : buildHitList xs map

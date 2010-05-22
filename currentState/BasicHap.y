@@ -16,7 +16,7 @@ import IO
       print           { TkPrint }
       input           { TkInput }
       string          { MyString $$ }
-      var             { TkVar $$ }
+      vars             { TkVars $$ }
 %%
 
 
@@ -31,12 +31,7 @@ IOCommand  : print string Vars   {Print $2 $3}
            | input string Vars   {Input $2 $3}
 
 
-Vars     : var                  {Var $1} -- an dieser Stelle bzw an Pos (*2) muesste ich ja sowas sagen, wie lege an/
-                                         -- bzw hole mir in meiner Map den Eintrag a$ 
-                                         -- Das Problem ist, wenn ich das einfach in data packe als Konstruktor bzw.
-                                         -- Wert, dann haette der erste input-Befehl ja ne andere Map als der nach
-                                         -- nachfolgende print-Befehl, aber die muessen ja auf der selben Map
-                                         -- operieren
+Vars     : vars                  {Vars $1} 
 --         | Vars                 {Vars $1}
 
 {
@@ -60,8 +55,8 @@ data IOCommand
       deriving Show
 
 data Vars 
-      = Var String                      --- Pos (*2)
-      | Vars [String]
+      = Vars [String]                
+--      | Vars [String]
       deriving Show
 
 
@@ -70,7 +65,7 @@ data Vars
 --getParseTree = getContents >>= return . basicParse . alexScanTokens 
 getParseTree = 
       do
-       handle <- openFile "miniBasiProg.bs" ReadMode
+       handle <- openFile "miniBasiProg2.bs" ReadMode
        contents <- hGetContents handle
        putStr contents
        --print (alexScanTokens contents)
