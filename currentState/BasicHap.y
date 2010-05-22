@@ -1,11 +1,14 @@
 {
-module Main where
+--module BasicHap(getParseTree,SyntaxTree, Command, IOCommand, Vars) where
+module BasicHap where
 
 import BasicAlex
 import Data.Char
+import IO
+
 }
 
-%name calc
+%name basicParse
 %tokentype { Token }
 %error { parseError }
 
@@ -17,8 +20,8 @@ import Data.Char
 %%
 
 
-S        : Command             {Start $1}
-         | Command S           {StartRek $1 $2}
+SyntaxTree        : Command                     {Start $1}
+                  | Command SyntaxTree          {StartRek $1 $2}
 
 
 Command : IOCommand           {Command $1}
@@ -42,9 +45,9 @@ parseError :: [Token] -> a
 parseError _ = error "Parse error"
 
 
-data S  
+data SyntaxTree  
       = Start Command
-      | StartRek Command S
+      | StartRek Command SyntaxTree
       deriving Show
 
 data Command
@@ -63,6 +66,17 @@ data Vars
 
 
 --main = getContents >>= print . calc . lexer
-main = getContents >>= print . calc . alexScanTokens 
+--main = getContents >>= print . calc . alexScanTokens 
+--getParseTree = getContents >>= return . basicParse . alexScanTokens 
+getParseTree = 
+      do
+       handle <- openFile "miniBasiProg.bs" ReadMode
+       contents <- hGetContents handle
+       putStr contents
+       --print (alexScanTokens contents)
+       let parse =  (basicParse . alexScanTokens) contents
+       hClose handle
+       return parse
+
 }
 

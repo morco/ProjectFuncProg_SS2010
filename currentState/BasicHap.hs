@@ -1,8 +1,10 @@
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
-module Main where
+--module BasicHap(getParseTree,SyntaxTree, Command, IOCommand, Vars) where
+module BasicHap where
 
 import BasicAlex
 import Data.Char
+import IO
 
 -- parser produced by Happy Version 1.18.4
 
@@ -143,7 +145,7 @@ happyReturn1 = \a tks -> (return) a
 happyError' :: () => [(Token)] -> HappyIdentity a
 happyError' = HappyIdentity . parseError
 
-calc tks = happyRunIdentity happySomeParser where
+basicParse tks = happyRunIdentity happySomeParser where
   happySomeParser = happyThen (happyParse action_0 tks) (\x -> case x of {HappyAbsSyn4 z -> happyReturn z; _other -> notHappyAtAll })
 
 happySeq = happyDontSeq
@@ -153,9 +155,9 @@ parseError :: [Token] -> a
 parseError _ = error "Parse error"
 
 
-data S  
+data SyntaxTree  
       = Start Command
-      | StartRek Command S
+      | StartRek Command SyntaxTree
       deriving Show
 
 data Command
@@ -174,7 +176,17 @@ data Vars
 
 
 --main = getContents >>= print . calc . lexer
-main = getContents >>= print . calc . alexScanTokens
+--main = getContents >>= print . calc . alexScanTokens 
+--getParseTree = getContents >>= return . basicParse . alexScanTokens 
+getParseTree = 
+      do
+       handle <- openFile "miniBasiProg.bs" ReadMode
+       contents <- hGetContents handle
+       putStr contents
+       --print (alexScanTokens contents)
+       let parse =  (basicParse . alexScanTokens) contents
+       hClose handle
+       return parse
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}
