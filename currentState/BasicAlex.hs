@@ -125,25 +125,18 @@ alex_accept = listArray (0::Int,28) [[],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAc
 {-# LINE 24 "BasicAlex.x" #-}
 
 
--- 
 -- Each action has type :: String -> Token
 
 -- The token type:
 data Token =
  	TkInput 		|
---	Print  		
 	TkPrint  		|
 	MyString String	|
---	MyString String	
 --	TkVar String	
 	TkVars [String]	
 	deriving (Eq,Show)
-
                    
 
---main = do
---  s <- getContents
---  print (alexScanTokens s)
 
 alex_action_4 =  \s -> TkInput 
 alex_action_5 =  \s -> TkPrint 

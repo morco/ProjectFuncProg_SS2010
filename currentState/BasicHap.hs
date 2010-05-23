@@ -4,7 +4,6 @@ module BasicHap where
 
 import BasicAlex
 import Data.Char
-import IO
 
 -- parser produced by Happy Version 1.18.4
 
@@ -175,10 +174,7 @@ data Vars
       deriving Show
 
 
---main = getContents >>= print . calc . lexer
---main = getContents >>= print . calc . alexScanTokens 
---getParseTree = getContents >>= return . basicParse . alexScanTokens 
-getParseTree = 
+{-getParseTree = 
       do
        handle <- openFile "miniBasiProg2.bs" ReadMode
        contents <- hGetContents handle
@@ -187,6 +183,9 @@ getParseTree =
        let parse =  (basicParse . alexScanTokens) contents
        hClose handle
        return parse
+-}
+
+getParseTree str = basicParse $ alexScanTokens str
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

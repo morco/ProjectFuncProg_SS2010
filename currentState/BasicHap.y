@@ -4,7 +4,6 @@ module BasicHap where
 
 import BasicAlex
 import Data.Char
-import IO
 
 }
 
@@ -60,18 +59,7 @@ data Vars
       deriving Show
 
 
---main = getContents >>= print . calc . lexer
---main = getContents >>= print . calc . alexScanTokens 
---getParseTree = getContents >>= return . basicParse . alexScanTokens 
-getParseTree = 
-      do
-       handle <- openFile "miniBasiProg2.bs" ReadMode
-       contents <- hGetContents handle
-       putStr contents
-       --print (alexScanTokens contents)
-       let parse =  (basicParse . alexScanTokens) contents
-       hClose handle
-       return parse
+getParseTree str = basicParse $ alexScanTokens str
 
 }
 

@@ -23,23 +23,16 @@ tokens :-
 
 {
 
--- 
 -- Each action has type :: String -> Token
 
 -- The token type:
 data Token =
  	TkInput 		|
---	Print  		
 	TkPrint  		|
 	MyString String	|
---	MyString String	
 --	TkVar String	
 	TkVars [String]	
 	deriving (Eq,Show)
-
                    
 
---main = do
---  s <- getContents
---  print (alexScanTokens s)
 }

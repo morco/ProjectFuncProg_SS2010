@@ -1,5 +1,6 @@
 import BasicHap
-
+import IO
+import System( getArgs )
 
 data Map a b 
       = Empty
@@ -20,11 +21,13 @@ getValue key (Map ((k,v):xs)) =
 
 
 main = do
-        synTree <- getParseTree 
-        interpret synTree Empty
+        args <- getArgs
+        handle <- openFile (head args) ReadMode
+        contents <- hGetContents handle
+        interpret (getParseTree contents) Empty
+        hClose handle
 
 interpret (Start (Command x)) map = evalCommand x map >> return ()
---interpret (StartRek (Command x) otherCommands) = evalCommand x >>= (interpret otherCommands)
 interpret (StartRek (Command x) otherCommands) map = 
             do
               map <- evalCommand x map
@@ -45,7 +48,7 @@ evalCommand (Input str (Vars vars)) map =
 
 evalCommand (Print str (Vars vars)) map = 
                     do 
-                      let vals = foldr (++) "" (buildHitList vars map)
+                      let vals = foldr (\x y -> x ++ " " ++ y) "" (buildHitList vars map)
                       putStrLn (str ++ vals)
                       return map
               where
