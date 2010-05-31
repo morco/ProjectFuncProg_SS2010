@@ -1,3 +1,3 @@
 import BasicHap
 
-main = getParseTree >>= print
+main = getContents >>= print . getParseTree 

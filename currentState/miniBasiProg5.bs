@@ -1,0 +1,8 @@
+10 REM ZR = 0
+20 REM ?"COMMODORE 64"
+30 REM ZR = ZR + 1
+40 REM IF ZR% < 5 THEN 20
+40 REM ZR% < 5 
+35 input ZR% 
+40 IF ZR% < 5 THEN print "doll"
+
