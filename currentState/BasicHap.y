@@ -15,34 +15,53 @@ import IO
 %token 
       print           { TkPrint }
       input           { TkInput }
-      string          { MyString $$ }
-      vars             { TkVars $$ }
+      string          { TkString $$ }
+      var             { TkVar $$ }
+      lineNr          { TkLineNumber $$ }
+      ";"             { TkStringConcat }
+      ":"             { TkSingleLineCommandCombinator }
+--      ","             { TkStringConcatWithTab } -- <--- TODO!!!
+
 %%
 
 
-SyntaxTree        : Command                     {Start $1}
-                  | Command SyntaxTree          {StartRek $1 $2}
+SyntaxTree  : lineNr Commands                {Line $1 $2}
+            | lineNr Commands SyntaxTree     {Lines (Line $1 $2) $3}
+
+Commands    : Command                        {[$1]}
+            | Command ":" Commands           {$1:$3}
+
+Command     : IOCommand                      {Command $1}
 
 
-Command : IOCommand           {Command $1}
+IOCommand   : print Output                   {Print $2}
+            | print                          {Print ([], True)}
+            | input Input                    {Input $2}
 
 
-IOCommand  : print string Vars   {Print $2 $3}
-           | input string Vars   {Input $2 $3}
+Output      : string                         {([OutString $1], True)}
+            | string ";"                     {([OutString $1], False)}
+            | Var                            {([OutVar $1], True)}
+            | Var ";"                        {([OutVar $1], False)}
+            | string ";" Output              {((OutString $1):(fst $3), snd ($3))}
+            | Var ";" Output                 {((OutVar $1):(fst $3), snd ($3))}
+
+Input       : string ";" Var                 {(InputStuff [$1] $3, False)}
+            | string Var                     {(InputStuff [$1] $2, True)}
+            | Var                            {(InputStuff [] $1, False)}
 
 
-Vars     : vars                  {Vars $1} 
---         | Vars                 {Vars $1}
+Var         : var                            {$1} 
+
 
 {
 
 parseError :: [Token] -> a
-parseError _ = error "Parse error"
-
+parseError ls = error ("Parse error on: " ++ (show ls))
 
 data SyntaxTree  
-      = Start Command
-      | StartRek Command SyntaxTree
+      = Line Int [Command]
+      | Lines SyntaxTree SyntaxTree
       deriving Show
 
 data Command
@@ -50,28 +69,33 @@ data Command
       deriving Show
 
 data IOCommand 
-      = Print String Vars
-      | Input String Vars
+      = Print ([Output], Bool)
+      | Input (InputStuff, Bool)
       deriving Show
 
-data Vars 
-      = Vars [String]                
---      | Vars [String]
+
+data Output
+      = OutString String  
+      | OutVar Var
+      deriving Show
+
+data InputStuff 
+      = InputStuff [String] Var
       deriving Show
 
 
 --main = getContents >>= print . calc . lexer
 --main = getContents >>= print . calc . alexScanTokens 
---getParseTree = getContents >>= return . basicParse . alexScanTokens 
-getParseTree = 
+getParseTree = basicParse . alexScanTokens 
+{-getParseTree = 
       do
-       handle <- openFile "miniBasiProg2.bs" ReadMode
+       handle <- openFile "miniBasiProg3.bs" ReadMode
        contents <- hGetContents handle
        putStr contents
        --print (alexScanTokens contents)
        let parse =  (basicParse . alexScanTokens) contents
        hClose handle
-       return parse
+       return parse-}
 
 }
 
