@@ -1,4 +1,5 @@
 {
+
 module BasicAlex where
 
 import Data.List
@@ -6,85 +7,140 @@ import Data.Char
 
 }
 
+-- ToDO:
+--   -> Make Strings in Strings and more than one String per Line work together
+--   -> end delimiter strings directly over context (really useful?)
+
 %wrapper "basic"
 
 $digit = 0-9			-- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
+@varOrResWord = $alpha [$alpha $digit ]* (\$ | \%)?  -- seems not possible to distinguish between reserved 
+                                                     --  words and variables with regular expressions alone, 
+                                                     --   so further processing is handled by myself 
+ @string = \" [. # \"]* \"                            -- " 
+--@string = [. # \"]*                             -- " 
 
--- @reservedWords = print | input | for | to | next | if | then  -- wird so wohl nicht gehen, 
-                                                                 -- da ich reguläre ausdrücke nicht negieren kann
-@varOrResWord = $alpha [$alpha $digit ]* (\$ | \%)? 
-@string = \" [. # \"]* \"                                     -- " 
 
 tokens :-
 
+---------------------------------------- <Ignores> --------------------------------------------------------
   $white+				                    ;
---  "--".*				                    ;
-  [. # \n]^ "REM".*				                    ;  -- Commentar
-  ^ $digit+ $white+ "REM".*				            ;
-  ^ $digit+ 				                    {\s -> TkLineNumber (read s)}
-  [.]^ \; /.*                                                       {\s -> TkStringConcat }
+  [. # \n]^ "REM".*				            ;  -- Commentary (whole line)
+  ^ $digit+ $white+ "REM".*				    ;  -- Commentary (line part)
+---------------------------------------- </Ignores> -------------------------------------------------------
 
---  [$white \;]^ @varOrResWord / ($white+ | \; | \n)  {\s -> buildVarOrResWord s }
-  [$white \; :]^ @varOrResWord  / ($white+ | \; )  {\s -> buildVarOrResWord s }
---  @varOrResWord   {\s -> buildVarOrResWord s }
+
+--------------------------<Strings, Number, Vars and Reserved Words> --------------------------------------
+  $digit+                                                   {\s -> TkConst (TkIntConst (read s))}
+  [$white \; :]^ @varOrResWord  / ($white+ | \; )           {\s -> buildVarOrResWord s }
   @string                                                   {\s -> buildString s '"'}
+--  [\"]^ @string / \"                                                  {\s -> TkString s}
+--------------------------</Strings, Number, Vars and Reserved Words> -------------------------------------
 
-  \?                                                         {\s -> TkPrint }
-  \,                                                         {\s -> TkStringConcatWithTab}
+
+---------------------------------------- <Combinators> ----------------------------------------------------
+-- the section before "^" and after "/" means context (Streamcontent before and after matching expression)
+--   seems necessary here because something like this is possible : "";Var;""
+  [.]^ \; /.*                                               {\s -> TkStringConcat }
+  \,                                                        {\s -> TkStringConcatWithTab}
   :                                                         {\s -> TkSingleLineCommandCombinator}
+---------------------------------------- </Combinators> ---------------------------------------------------
+
+
+------------------------------------ <Compare Operators> --------------------------------------------------
   \=                                                        {\s -> TkEqual}
   \<\>                                                      {\s -> TkUnEqual}
-  \<                           {\s -> TkLt}
-  \>                           {\s -> TkGt}
-  \<\=                         {\s -> TkGE}
-  \>\=                         {\s -> TkLE}
+  \<                                                        {\s -> TkLt}
+  \>                                                        {\s -> TkGt}
+  \<\=                                                      {\s -> TkGE}
+  \>\=                                                      {\s -> TkLE}
+------------------------------------ </Compare Operators> -------------------------------------------------
 
-  $digit+                      {\s -> TkConst (TkIntConst (read s))}
+
+----------------------------------------- <Aliases> -------------------------------------------------------
+  \?                                                        {\s -> TkPrint }
+----------------------------------------- </Aliases> ------------------------------------------------------
+
+
+-------------------------------- <Additional Stuff> -------------------------------------------------------
+-- the line number, essential for gotos, "^" is a special pre context and stands for newline
+  ^ $digit+ 				                    {\s -> TkLineNumber (read s)}
+-------------------------------- </Additional Stuff> ------------------------------------------------------
 
 {
 
  
 -- Each action has type :: String -> Token
 
+------------------------------------ <Datatypes> ----------------------------------------------------------
+
 -- The token type:
-data Token =
-        TkLineNumber Int         |
-        TkPrint                  |
-        TkInput                  |
-        TkStringConcat           |
-        TkStringConcatWithTab    |
-        TkFor                    |
-        TkTo                     |
-        TkNext                   |
-        TkIf                     |
-        TkThen                   |
-        TkString String          |
-        TkSingleLineCommandCombinator |
-        TkEqual                       |
-        TkLt                          |
-        TkGt                          |
-        TkUnEqual                     |
-        TkGE                          |
-        TkLE                          |
-        TkConst Constant              |
-	TkVar Var
-     deriving (Eq,Show)
+data Token 
+     = TkLineNumber Int         
+
+------ <Reserved words> ---------------
+
+     | TkPrint                  
+     | TkInput                  
+     | TkFor                    
+     | TkTo                     
+     | TkNext                   
+     | TkIf                     
+     | TkThen                   
+
+------ </Reserved words> ---------------
+
+------ <Combinators> ---------------
+
+     | TkSingleLineCommandCombinator
+     | TkStringConcatWithTab    
+     | TkStringConcat           
+
+------ </Combinators> ---------------
+
+------ <Compare Operators> ---------------
+
+     | TkEqual                       
+     | TkLt                          
+     | TkGt                          
+     | TkUnEqual                      
+     | TkGE                          
+     | TkLE                          
+
+------ </Compare Operators> ---------------
+
+------ <Variables, Strings, Numbers> ---------------
+
+     | TkString String          
+     | TkConst Constant              
+     | TkVar Var
+
+------ </Variables, Strings, Numbers> --------------
+
+   deriving (Eq,Show)
 
 
-data Constant = 
-       TkIntConst Int  |
-       TkFloatConst Float
-     deriving (Eq, Show)
-
-data Var =
-       TkStringVar String |
-       TkIntVar String    |
-       TkFloatVar String
-     deriving (Eq, Show)
+data Constant 
+     = TkIntConst Int  
+     | TkFloatConst Float
+   deriving (Eq, Show)
 
 
+data Var 
+     = TkStringVar String 
+     | TkIntVar String    
+     | TkFloatVar String
+   deriving (Eq, Show)
 
+
+------------------------------------ </Datatypes> ---------------------------------------------------------
+
+-- The idea for this function is simple, first check against all reserved words, if the input is one of them,
+-- if not successful, it should be a variable
+-- ToDO:
+--    -> Use Maybe or Either instead of list donkey chain (??)
+buildVarOrResWord :: String -> Token
 buildVarOrResWord str = 
       let
         bresw = buildResWord str
@@ -93,19 +149,22 @@ buildVarOrResWord str =
             then TkVar $ buildVar str
             else head bresw
 
+
+buildVar :: String -> Var 
 buildVar str 
      | isSuffixOf "$" str = (TkStringVar str)
      | isSuffixOf "%" str = (TkIntVar str) 
      | otherwise          = (TkFloatVar str) 
 
 
+buildResWord :: String -> [Token] 
 buildResWord str = 
     let
       nmstr = map toLower str
     in
       buildResWord' nmstr
     where
-     buildResWord' str
+      buildResWord' str
           | str == "print" = [TkPrint]
           | str == "input" = [TkInput]
           | str == "for"   = [TkFor]
@@ -115,10 +174,9 @@ buildResWord str =
           | str == "then"  = [TkThen]
           | otherwise      = [] 
 
-
                 
+buildString :: String -> Char -> Token
 buildString str del = TkString (takeWhile ((/=) del) $ tail $ dropWhile ((/=) del) str)
---buildString str del = TkString (tail $ dropWhile ((/=) del) str)
 
 
 }
