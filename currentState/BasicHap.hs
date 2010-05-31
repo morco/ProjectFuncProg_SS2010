@@ -796,10 +796,7 @@ data InputStuff
       deriving Show
 
 
-<<<<<<< HEAD
-=======
 getParseTree = basicParse . alexScanTokens 
->>>>>>> redesign_alexHappy
 {-getParseTree = 
       do
        handle <- openFile "miniBasiProg3.bs" ReadMode
@@ -808,14 +805,7 @@ getParseTree = basicParse . alexScanTokens
        --print (alexScanTokens contents)
        let parse =  (basicParse . alexScanTokens) contents
        hClose handle
-<<<<<<< HEAD
-       return parse
--}
-
-getParseTree str = basicParse $ alexScanTokens str
-=======
        return parse-}
->>>>>>> redesign_alexHappy
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

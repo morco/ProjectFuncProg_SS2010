@@ -129,29 +129,11 @@ alex_accept = listArray (0::Int,34) [[],[(AlexAccSkip)],[(AlexAccSkipPred  (alex
 {-# LINE 45 "BasicAlex.x" #-}
 
 
-<<<<<<< HEAD
-=======
  
->>>>>>> redesign_alexHappy
 -- Each action has type :: String -> Token
 
 -- The token type:
 data Token =
-<<<<<<< HEAD
- 	TkInput 		|
-	TkPrint  		|
-	MyString String	|
---	TkVar String	
-	TkVars [String]	
-	deriving (Eq,Show)
-                   
-
-
-alex_action_4 =  \s -> TkInput 
-alex_action_5 =  \s -> TkPrint 
-alex_action_6 =  \s -> MyString (tail $ take ((length s) - 1) s) 
-alex_action_7 =  \s -> TkVars $ words s 
-=======
         TkLineNumber Int         |
         TkPrint                  |
         TkInput                  |
@@ -239,7 +221,6 @@ alex_action_13 = \s -> TkGt
 alex_action_14 = \s -> TkGE
 alex_action_15 = \s -> TkLE
 alex_action_16 = \s -> TkConst (TkIntConst (read s))
->>>>>>> redesign_alexHappy
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

@@ -188,9 +188,6 @@ data InputStuff
       deriving Show
 
 
-<<<<<<< HEAD
-getParseTree str = basicParse $ alexScanTokens str
-=======
 getParseTree = basicParse . alexScanTokens 
 {-getParseTree = 
       do
@@ -201,7 +198,6 @@ getParseTree = basicParse . alexScanTokens
        let parse =  (basicParse . alexScanTokens) contents
        hClose handle
        return parse-}
->>>>>>> redesign_alexHappy
 
 }
 

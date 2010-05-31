@@ -1,10 +1,6 @@
 ----------------------------------------------------- <Imports> ------------------------------------------------------
 
 import BasicHap
-<<<<<<< HEAD
-import IO
-import System( getArgs )
-=======
 import BasicAlex
 import IO
 import System ( getArgs )
@@ -14,7 +10,6 @@ import System ( getArgs )
 
 
 ---------------------------------------------------- <Data types> ----------------------------------------------------
->>>>>>> redesign_alexHappy
 
 -- This type is for recording the state of the programm, which means currently the values of the variables
 data State =
@@ -67,14 +62,6 @@ main = do
         args <- getArgs
         handle <- openFile (head args) ReadMode
         contents <- hGetContents handle
-<<<<<<< HEAD
-        interpret (getParseTree contents) Empty
-        hClose handle
-
-interpret (Start (Command x)) map = evalCommand x map >> return ()
-interpret (StartRek (Command x) otherCommands) map = 
-=======
-
         let state = State { 
                        stringVars = Empty, 
                        intVars    = Empty, 
@@ -93,7 +80,6 @@ interpret (Line _ []) state = return state
 interpret (Line ln (x:xs)) state = evalCommand x state >>= interpret (Line ln xs) 
 --interpret (Line ln ((Command x):xs)) state = interpret (Line ln xs) state 
 interpret (Lines x otherCommands) state = 
->>>>>>> redesign_alexHappy
             do
               newState <- interpret x state
               interpret otherCommands newState
@@ -149,18 +135,12 @@ evalCommand (Command (Input ((InputStuff lsComment var), printLn))) state = -- r
 
 evalCommand (Command (Print (list, printLn))) state = 
                     do 
-<<<<<<< HEAD
-                      let vals = foldr (\x y -> x ++ " " ++ y) "" (buildHitList vars map)
-                      putStrLn (str ++ vals)
-                      return map
-=======
                       if printLn
                         then
                           putStrLn (buildOutString list state)
                         else
                           putStr (buildOutString list state)
                       return state
->>>>>>> redesign_alexHappy
               where
                  buildOutString [] _ = ""
                  buildOutString ((OutString x):xs) state = x ++ (buildOutString xs state)

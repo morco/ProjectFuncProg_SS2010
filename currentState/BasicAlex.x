@@ -44,23 +44,11 @@ tokens :-
 
 {
 
-<<<<<<< HEAD
-=======
  
->>>>>>> redesign_alexHappy
 -- Each action has type :: String -> Token
 
 -- The token type:
 data Token =
-<<<<<<< HEAD
- 	TkInput 		|
-	TkPrint  		|
-	MyString String	|
---	TkVar String	
-	TkVars [String]	
-	deriving (Eq,Show)
-                   
-=======
         TkLineNumber Int         |
         TkPrint                  |
         TkInput                  |
@@ -132,7 +120,6 @@ buildResWord str =
 buildString str del = TkString (takeWhile ((/=) del) $ tail $ dropWhile ((/=) del) str)
 --buildString str del = TkString (tail $ dropWhile ((/=) del) str)
 
->>>>>>> redesign_alexHappy
 
 }
 
