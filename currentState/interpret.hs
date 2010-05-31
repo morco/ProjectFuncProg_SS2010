@@ -34,7 +34,8 @@ insert key val (Map xs) = Map (xs ++ [(key,val)])
 
 
 getValue :: (Eq a, Show a) => a -> Map a b -> b
-getValue key Empty = error "Map is empty!"
+--getValue key Empty = error ("Map is empty! with key " ++ (show key))
+getValue key Empty = error "Map is empty! with key "
 getValue key (Map []) = error ("key not found " ++ show key)
 getValue key (Map ((k,v):xs)) = 
          if key == k
@@ -73,10 +74,12 @@ main = do
 
 ------------------------------------------------------- </Main> ------------------------------------------------------
 
-
+interpret :: SyntaxTree -> State -> IO State
 interpret (Line _ []) state = return state
+--interpret (Line ln ((ControlStructure x):xs)) state = evalCommand x state >>= interpret (Line ln xs) 
 --interpret (Line ln ((Command x):xs)) state = evalCommand x state >>= interpret (Line ln xs) 
-interpret (Line ln ((Command x):xs)) state = interpret (Line ln xs) state 
+interpret (Line ln (x:xs)) state = evalCommand x state >>= interpret (Line ln xs) 
+--interpret (Line ln ((Command x):xs)) state = interpret (Line ln xs) state 
 interpret (Lines x otherCommands) state = 
             do
               newState <- interpret x state
@@ -87,16 +90,20 @@ interpret (Lines x otherCommands) state =
 
 -- TODO: 
 --     -> action is very, very ugly!!! (Generalizing things seems possible)
---evalCommand :: Token -> State -> IO State
-evalCommand (Input ((InputStuff lsComment var), printLn)) state = state 
-               {-    do
-                     case lsComment of
+--     -> putStr before getLine in same Line (how ???)
+--evalCommand :: Command -> State -> IO State
+evalCommand (Command (Input ((InputStuff lsComment var), printLn))) state = -- return state 
+--evalCommand (Input ((InputStuff [x] var), printLn)) state = -- return state 
+                   do
+                     mapM_ putStrLn lsComment
+                     --mapM_ putStr lsComment
+                     {-case lsComment of
                         []  -> return ()
                         [x] -> if printLn
                                   then
                                     putStrLn x
                                   else
-                                    putStr x
+                                    putStr x-}
                      
                      let vars = [var]
                      listInsert vars getLine state
@@ -125,18 +132,18 @@ evalCommand (Input ((InputStuff lsComment var), printLn)) state = state
                                                 }
                        
                        listInsert xs ioAct newState
--}
 
-evalCommand (Print (list, printLn)) state = 
+
+evalCommand (Command (Print (list, printLn))) state = 
                     do 
                       if printLn
                         then
-                          putStrLn $ buildOutString list state
+                          putStrLn (buildOutString list state)
                         else
-                          putStr $ buildOutString list state
+                          putStr (buildOutString list state)
                       return state
               where
-                 buildOutString [] _ = []
+                 buildOutString [] _ = ""
                  buildOutString ((OutString x):xs) state = x ++ (buildOutString xs state)
                  buildOutString ((OutVar x):xs) state =                               
                               let
@@ -148,3 +155,74 @@ evalCommand (Print (list, printLn)) state =
                               in
                                 stringVal ++ (buildOutString xs state)
 
+
+evalCommand (ControlStructure (IF boolExpr commands)) state = 
+            do
+              let bVal = case boolExpr of
+                           BoolExprVarConst _ _ _ -> 
+                                 case (var boolExpr) of
+                                   TkStringVar _ ->  
+                                     --let
+                                      --  f = (getBoolFunc (infixBoolFunc boolExpr)) (getConstant (const' boolExpr))
+                                     --in
+                                       -- f (getValue (var boolExpr) (stringVars state))
+                                     evalBoolFunc (infixBoolFunc boolExpr) (getValue (var boolExpr) (stringVars state)) (show $ getConstant (const' boolExpr))
+                                   TkIntVar _    ->  
+                                     --let
+                                       -- f = (getBoolFunc (infixBoolFunc boolExpr)) (getConstant (const' boolExpr))
+                                     --in
+                                       -- f (getValue var (intVars state))
+                                     evalBoolFunc (infixBoolFunc boolExpr) (getValue (var boolExpr) (intVars state)) (getConstant $ const' boolExpr)
+                                   TkFloatVar _  -> 
+                                     --let
+                                       -- f = (getBoolFunc (infixBoolFunc boolExpr)) (getConstant (const' boolExpr))
+                                     --in
+                                       -- f (getValue var (floatVars state))
+                                     --evalBoolFunc (infixBoolFunc boolExpr) (getValue (var boolExpr) (floatVars state)) (getConstant $ const' boolExpr)
+                                     evalBoolFunc (infixBoolFunc boolExpr) (getValue (var boolExpr) (floatVars state)) 5
+              if bVal
+                then
+                   evalAllCommands commands state
+                else
+                   return state
+                                      
+
+evalCommand NOOP state = return state            
+
+
+
+evalAllCommands [] state = return state
+--evalAllCommands ((ControlStructure x):xs) state = evalCommand x state >>= evalAllCommands xs
+evalAllCommands (x:xs) state = evalCommand x state >>= evalAllCommands xs
+
+
+--getConstant (TkIntConst x) = read (show x)
+--getConstant (TkFloatConst x) = read (show x)
+getConstant (TkIntConst x) = x
+getConstant (TkFloatConst x) = -1
+
+-- geht so leider nicht
+{-useOnVariableContent var func state =
+                   case var of
+                      TkStringVar _ -> func getValue var (stringVars state)
+                      TkIntVar _    -> func getValue var (intVars state)
+                      TkFloatVar _  -> func getValue var (floatVars state)
+-}
+
+{-
+getBoolFunc str
+        | str == "==" = (==)
+        | str == "/=" = (/=)
+        | str == "<" = (<)
+        | str == ">" = (>)
+        | str == "<=" = (<=)
+        | str == ">=" = (>=)
+-}
+
+evalBoolFunc str arg1 arg2
+        | str == "==" = arg1 == arg2
+        | str == "/=" = arg1 /= arg2
+        | str == "<" = arg1 < arg2
+        | str == ">" = arg1 > arg2
+        | str == "<=" = arg1 <= arg2
+        | str == ">=" = arg1 >= arg2

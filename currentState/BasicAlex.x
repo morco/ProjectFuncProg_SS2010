@@ -14,24 +14,33 @@ $alpha = [a-zA-Z]		-- alphabetic characters
 -- @reservedWords = print | input | for | to | next | if | then  -- wird so wohl nicht gehen, 
                                                                  -- da ich reguläre ausdrücke nicht negieren kann
 @varOrResWord = $alpha [$alpha $digit ]* (\$ | \%)? 
-@string = \" .* \"                                     -- " 
+@string = \" [. # \"]* \"                                     -- " 
 
 tokens :-
 
   $white+				                    ;
 --  "--".*				                    ;
-  "REM".*				                    ;  -- Commentar
+  [. # \n]^ "REM".*				                    ;  -- Commentar
   ^ $digit+ $white+ "REM".*				            ;
   ^ $digit+ 				                    {\s -> TkLineNumber (read s)}
   [.]^ \; /.*                                                       {\s -> TkStringConcat }
 
---  [$white \;]^ @varOrResWord   {\s -> buildVarOrResWord s }
-  @varOrResWord   {\s -> buildVarOrResWord s }
+--  [$white \;]^ @varOrResWord / ($white+ | \; | \n)  {\s -> buildVarOrResWord s }
+  [$white \; :]^ @varOrResWord  / ($white+ | \; )  {\s -> buildVarOrResWord s }
+--  @varOrResWord   {\s -> buildVarOrResWord s }
   @string                                                   {\s -> buildString s '"'}
 
   \?                                                         {\s -> TkPrint }
   \,                                                         {\s -> TkStringConcatWithTab}
   :                                                         {\s -> TkSingleLineCommandCombinator}
+  \=                                                        {\s -> TkEqual}
+  \<\>                                                      {\s -> TkUnEqual}
+  \<                           {\s -> TkLt}
+  \>                           {\s -> TkGt}
+  \<\=                         {\s -> TkGE}
+  \>\=                         {\s -> TkLE}
+
+  $digit+                      {\s -> TkConst (TkIntConst (read s))}
 
 {
 
@@ -52,9 +61,21 @@ data Token =
         TkThen                   |
         TkString String          |
         TkSingleLineCommandCombinator |
+        TkEqual                       |
+        TkLt                          |
+        TkGt                          |
+        TkUnEqual                     |
+        TkGE                          |
+        TkLE                          |
+        TkConst Constant              |
 	TkVar Var
      deriving (Eq,Show)
 
+
+data Constant = 
+       TkIntConst Int  |
+       TkFloatConst Float
+     deriving (Eq, Show)
 
 data Var =
        TkStringVar String |
@@ -97,6 +118,7 @@ buildResWord str =
 
                 
 buildString str del = TkString (takeWhile ((/=) del) $ tail $ dropWhile ((/=) del) str)
+--buildString str del = TkString (tail $ dropWhile ((/=) del) str)
 
 
 }
