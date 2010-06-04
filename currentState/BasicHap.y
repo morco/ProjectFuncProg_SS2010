@@ -4,6 +4,7 @@ module BasicHap where
 
 import BasicAlex
 import Data.Char
+--import qualified Data.Map as M
 
 }
 
@@ -22,6 +23,11 @@ import Data.Char
 --      ","             { TkStringConcatWithTab } -- <--- TODO!!!
       if              { TkIf }
       then            { TkThen }
+      goto            { TkGoto }
+      for             { TkFor }
+      to              { TkTo }
+      next            { TkNext }
+      step            { TkStep }
 --      float           { TkConst (TkFloatConst $$) }
 --      int             { TkConst (TkIntConst $$) }
       int             { TkConst $$ }
@@ -33,26 +39,41 @@ import Data.Char
       "<="            { TkLE }
       ">="            { TkGE }
 
+      "+"             { TkPlus }
+
 %%
 
+{-
+SyntaxTree     : lineNr Commands                {[Line $1 $2]}
+               | lineNr Commands SyntaxTree     {(Line $1 $2):$3} -}
 
-SyntaxTree     : lineNr Commands                {Line $1 $2}
-               | lineNr Commands SyntaxTree     {Lines (Line $1 $2) $3}
+SyntaxTree     : lineNr Commands                {[($1,$2)]}
+               | lineNr Commands SyntaxTree     {($1,$2):$3}
 
 Commands       : Command                        {[$1]}
                | Command ":" Commands           {$1:$3}
 
 Command        : IOCommand                      {Command $1}
                | ControlStruct                  {ControlStructure $1}
+               | goto int                         {Goto ((\(TkIntConst x) -> x)$2)}
+               | next Var                       {NOOP}
+               | Assignment                     {$1}
 --               | BoolExpr                       {NOOP}
 
-ControlStruct  : if BoolExpr then IfBody        {IF $2 $4}
---ControlStruct  : if BoolExpr then IfBody        {Empty}
---ControlStruct  : if         {} -- so gehts !!
+Assignment      : Var "=" NumExpr     {Assignment $1 $3}
+--               | Var "=" string      {}
+
+NumExpr        : Operand "+" Operand  {NumExpr ($1,$3) "+"}
+               | Operand              {NumOp $1}
+
+Operand        : var     {makeOperandVar $1}
+               | int     {makeOperandConstant $1}
+
+ControlStruct  : if BoolExpr then IfBody        {If $2 $4}
+               | for Var "=" int to int step int SyntaxTree  {For $2 ($4,$8,$6) $9} 
 
 --IfBody       : int                               {GoTO ...}
 IfBody         : Commands                          {$1} --  <--- verursacht shift/red conflicts
---IfBody         : Commands                          {[NOOP]} --  <--- verursacht shift/red conflicts
 IfBody         : int                          {[NOOP]}
 
 {-
@@ -133,23 +154,34 @@ Var            : var                            {$1}
 
 {
 
+makeOperandVar (TkIntVar x) = IntVar x
+makeOperandVar (TkFloatVar x) = FloatVar x
+makeOperandVar _ = error "String vars not allowed!"
+
+makeOperandConstant (TkIntConst x) = IntConst x
+makeOperandConstant _ = error "invalid makeOperandConstant call"
+
 parseError :: [Token] -> a
 parseError ls = error ("Parse error on: " ++ (show ls))
 
 data SyntaxTree  
       = Line Int [Command]
       | Lines SyntaxTree SyntaxTree
+--      | []
       deriving Show
 
 data Command
       = Command IOCommand
       | ControlStructure ControlStruct
+      | Goto Int
       | NOOP
+      | Assignment Var NumExpr
       deriving Show
 
 
 data ControlStruct
-      = IF BoolExpr [Command]
+      = If BoolExpr [Command]
+      | For Var (Constant,Constant,Constant) [(Int,[Command])]
 --      | Empty
       deriving Show
 
@@ -171,12 +203,6 @@ data IOCommand
       = Print ([Output], Bool)
       | Input (InputStuff, Bool)
       deriving Show
-{-
-data PaConstant
-      = IntConst Int
-      | FloatConst Float
-      deriving Show
--}
 
 data Output
       = OutString String  
@@ -187,17 +213,20 @@ data InputStuff
       = InputStuff [String] Var
       deriving Show
 
+data NumExpr
+      = NumExpr (Operand,Operand) String
+      | NumOp Operand
+      deriving Show
+
+data Operand
+      = IntVar String
+      | FloatVar String
+      | IntConst Int
+      | FloatConst Float
+      deriving Show
 
 getParseTree = basicParse . alexScanTokens 
-{-getParseTree = 
-      do
-       handle <- openFile "miniBasiProg3.bs" ReadMode
-       contents <- hGetContents handle
-       putStr contents
-       --print (alexScanTokens contents)
-       let parse =  (basicParse . alexScanTokens) contents
-       hClose handle
-       return parse-}
+
 
 }
 

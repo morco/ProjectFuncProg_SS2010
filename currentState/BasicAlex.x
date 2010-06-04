@@ -1,6 +1,6 @@
 {
 
-module BasicAlex where
+module BasicAlex( alexScanTokens, Token(..), Constant(..), Var(..)) where
 
 import Data.List
 import Data.Char
@@ -31,8 +31,17 @@ tokens :-
 ---------------------------------------- </Ignores> -------------------------------------------------------
 
 
+-------------------------------- <Additional Stuff> -------------------------------------------------------
+-- the line number, essential for gotos, "^" is a special pre context and stands for newline, have to stand
+--  before the Number expression to make sure, to be not mistaken
+  ^ $digit+ 				                    {\s -> TkLineNumber (read s)}
+-------------------------------- </Additional Stuff> ------------------------------------------------------
+
+
 --------------------------<Strings, Number, Vars and Reserved Words> --------------------------------------
   $digit+                                                   {\s -> TkConst (TkIntConst (read s))}
+  ~$digit \. $digit+                                        {\s -> TkConst (TkFloatConst (read ("0"++s)))}
+--  $digit+\.$digit+                                          {\s -> TkConst (TkFloatConst (read s))}
   [$white \; :]^ @varOrResWord  / ($white+ | \; )           {\s -> buildVarOrResWord s }
   @string                                                   {\s -> buildString s '"'}
 --  [\"]^ @string / \"                                                  {\s -> TkString s}
@@ -57,16 +66,13 @@ tokens :-
   \>\=                                                      {\s -> TkLE}
 ------------------------------------ </Compare Operators> -------------------------------------------------
 
+  \+                               {\s -> TkPlus}
 
 ----------------------------------------- <Aliases> -------------------------------------------------------
   \?                                                        {\s -> TkPrint }
 ----------------------------------------- </Aliases> ------------------------------------------------------
 
 
--------------------------------- <Additional Stuff> -------------------------------------------------------
--- the line number, essential for gotos, "^" is a special pre context and stands for newline
-  ^ $digit+ 				                    {\s -> TkLineNumber (read s)}
--------------------------------- </Additional Stuff> ------------------------------------------------------
 
 {
 
@@ -88,6 +94,8 @@ data Token
      | TkNext                   
      | TkIf                     
      | TkThen                   
+     | TkGoto              
+     | TkStep     
 
 ------ </Reserved words> ---------------
 
@@ -110,6 +118,8 @@ data Token
 
 ------ </Compare Operators> ---------------
 
+     | TkPlus
+
 ------ <Variables, Strings, Numbers> ---------------
 
      | TkString String          
@@ -131,7 +141,7 @@ data Var
      = TkStringVar String 
      | TkIntVar String    
      | TkFloatVar String
-   deriving (Eq, Show)
+   deriving (Eq, Show, Ord)
 
 
 ------------------------------------ </Datatypes> ---------------------------------------------------------
@@ -172,6 +182,8 @@ buildResWord str =
           | str == "next"  = [TkNext]
           | str == "if"    = [TkIf]
           | str == "then"  = [TkThen]
+          | str == "goto"  = [TkGoto]
+          | str == "step"  = [TkStep]
           | otherwise      = [] 
 
                 
