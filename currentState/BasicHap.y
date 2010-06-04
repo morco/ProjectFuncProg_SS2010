@@ -49,6 +49,8 @@ SyntaxTree     : lineNr Commands                {[Line $1 $2]}
 
 SyntaxTree     : lineNr Commands                {[($1,$2)]}
                | lineNr Commands SyntaxTree     {($1,$2):$3}
+               | lineNr next Var                {[($1, [NOOP])]} -- muss aktuell so hier extra stehen, sonst parst
+                                                                 --  er das ganze Programm als Inhalt des 1. for
 
 Commands       : Command                        {[$1]}
                | Command ":" Commands           {$1:$3}
@@ -56,7 +58,7 @@ Commands       : Command                        {[$1]}
 Command        : IOCommand                      {Command $1}
                | ControlStruct                  {ControlStructure $1}
                | goto int                         {Goto ((\(TkIntConst x) -> x)$2)}
-               | next Var                       {NOOP}
+--               | next Var                       {NOOP}
                | Assignment                     {$1}
 --               | BoolExpr                       {NOOP}
 
@@ -70,7 +72,7 @@ Operand        : var     {makeOperandVar $1}
                | int     {makeOperandConstant $1}
 
 ControlStruct  : if BoolExpr then IfBody        {If $2 $4}
-               | for Var "=" int to int step int SyntaxTree  {For $2 ($4,$8,$6) $9} 
+               | for Var "=" int to int step int SyntaxTree {For $2 ($4,$8,$6) $9} 
 
 --IfBody       : int                               {GoTO ...}
 IfBody         : Commands                          {$1} --  <--- verursacht shift/red conflicts

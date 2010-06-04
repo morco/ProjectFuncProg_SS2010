@@ -22,29 +22,6 @@ data State =
          completeProgramm :: [(Int, [Command])]
       }
 
--- TODO: 
---    ->  Use a bibliography type ??
---    ->  make a instance of Eq
--- A simple map type used for variables (var-name -> var-value)
-{-data Map a b 
-      = Empty
-      | Map [(a,b)]
-
-
-insert :: a -> b -> Map a b -> Map a b
-insert key val Empty = Map [(key,val)]
-insert key val (Map xs) = Map ([(key,val)] ++ xs)
-
-
-getValue :: (Eq a, Show a) => a -> Map a b -> b
---getValue key Empty = error ("Map is empty! with key " ++ (show key))
-getValue key Empty = error "Map is empty! with key "
-getValue key (Map []) = error ("key not found " ++ show key)
-getValue key (Map ((k,v):xs)) = 
-         if key == k
-             then v
-             else getValue key (Map xs)
--}                                 
 
 ---------------------------------------------------- </Data types> ---------------------------------------------------
 
@@ -52,16 +29,18 @@ getValue key (Map ((k,v):xs)) =
 -------------------------------------------------------- <Main> ------------------------------------------------------
 
 -- TODO: 
---    -> Use Happy?? (Alex seems to do the trick)
 --    -> Speed it up, awfully slow even for very small examples
+--    -> Handle types!!! (Vars, Constants (only one type of constant!!))
 
 -- main principle:
 --            -> get basic programm file path from arguments
 --            -> open file
---            -> parse (currently only Alex!!)
+--            -> parse 
 --            -> interprete
 
 main = do
+        hSetBuffering stdout NoBuffering  -- needed to have output and getLine in the same line   
+
         args <- getArgs
         handle <- openFile (head args) ReadMode
         contents <- hGetContents handle
@@ -89,24 +68,21 @@ interpret ((_,commands):xs) state =
 
 -- TODO: 
 --     -> action is very, very ugly!!! (Generalizing things seems possible)
---     -> putStr before getLine in same Line (how ???)
---evalCommand :: Command -> State -> IO State
-evalCommand (Command (Input ((InputStuff lsComment var), printLn))) state = -- return state 
---evalCommand (Input ((InputStuff [x] var), printLn)) state = -- return state 
+evalCommand :: Command -> State -> IO State
+evalCommand (Command (Input ((InputStuff lsComment var), printLn))) state =  
       do
-         mapM_ putStrLn lsComment
-                     --mapM_ putStr lsComment
-                     {-case lsComment of
-                        []  -> return ()
-                        [x] -> if printLn
-                                  then
-                                    putStrLn x
-                                  else
-                                    putStr x-}
+         case lsComment of
+           []  -> return ()
+           [x] -> if printLn
+                       then
+                         putStrLn x
+                       else
+                         putStr x
                      
          let vars = [var]
-         listInsert vars getLine state
+         listInsert vars (putStr "? " >> getLine) state
       where
+         -- TODO: input seems to have only one var at max, so maybe simplify
          listInsert [] _ state = return state
          listInsert (x:xs) ioAct state = 
               do
@@ -138,7 +114,7 @@ evalCommand (Command (Print (list, printLn))) state =
                in
                  stringVal ++ (buildOutString xs state)
 
-
+-- TODO: Only on case of BoolExpr is handled currently, extend!
 evalCommand (ControlStructure (If boolExpr commands)) state = 
        do
          let bVal = 
@@ -146,23 +122,10 @@ evalCommand (ControlStructure (If boolExpr commands)) state =
                  BoolExprVarConst _ _ _ -> 
                      case (var boolExpr) of
                        TkStringVar _ ->  
-                                     --let
-                                      --  f = (getBoolFunc (infixBoolFunc boolExpr)) (getConstant (const' boolExpr))
-                                     --in
-                                       -- f (getValue (var boolExpr) (stringVars state))
                           evalBoolFunc (infixBoolFunc boolExpr) (getMapVal $ M.lookup (var boolExpr) (stringVars state)) (show $ getConstant (const' boolExpr))
                        TkIntVar _    ->  
-                                     --let
-                                       -- f = (getBoolFunc (infixBoolFunc boolExpr)) (getConstant (const' boolExpr))
-                                     --in
-                                       -- f (getValue var (intVars state))
                           evalBoolFunc (infixBoolFunc boolExpr) (getMapVal $ M.lookup (var boolExpr) (intVars state)) (getConstant $ const' boolExpr)
                        TkFloatVar _  -> 
-                                     --let
-                                       -- f = (getBoolFunc (infixBoolFunc boolExpr)) (getConstant (const' boolExpr))
-                                     --in
-                                       -- f (getValue var (floatVars state))
-                                     --evalBoolFunc (infixBoolFunc boolExpr) (getValue (var boolExpr) (floatVars state)) (getConstant $ const' boolExpr)
                           evalBoolFunc (infixBoolFunc boolExpr) (getMapVal $ M.lookup (var boolExpr) (floatVars state)) 5
          if bVal
            then
@@ -189,47 +152,27 @@ evalCommand (ControlStructure (For var (start,step,end) commands)) state =
     where
       evalFor var start step end commands state isFirst = 
           do
-          --  print "Start"
-            let state1 = --state
+            let state1 = 
                  if isFirst
                    then 
                      updateVar var (show start) state
                    else
                      state 
-            
-        --    print ("After first: " ++ (show $ M.toList $ floatVars state1))
-        --    print ("After send: " ++ (show $ M.lookup var (floatVars state1)))
 
-            let varVal = --4 
+            let varVal =  
                  case var of
                    TkIntVar _   -> fromIntegral $ getMapVal $ M.lookup var (intVars state1)
                    TkFloatVar _ -> getMapVal $ M.lookup var (floatVars state1)
                    _            -> error "No String vars allowed as for var!"
-
-          --  let state4 = 
-      --      print "Before equals"
           
             if (varVal > end)
-            --if 3 == 5
                  then
                    return state
                  else
                    do
-    --                 print "Start Rek"
                      state2 <- evalAllCommands commands state1
---                     print "end eval all"
                      let state3 = updateVar var (show $ varVal + step) state2
-                     
-  --                   print "Pre Rek"
- 
                      evalFor var start step end commands state3 False
-
-         --   return state
-          {-  if varVal > end
-               then 
-                 return state
-               else
-                 return state-}
       
      
       makeFloat (TkIntConst x) = fromIntegral x
@@ -237,8 +180,8 @@ evalCommand (ControlStructure (For var (start,step,end) commands)) state =
 
 
 
+evalAllCommands :: [Command] -> State -> IO State
 evalAllCommands [] state = return state
---evalAllCommands ((ControlStructure x):xs) state = evalCommand x state >>= evalAllCommands xs
 evalAllCommands (x:xs) state = evalCommand x state >>= evalAllCommands xs
 
 
@@ -270,6 +213,7 @@ evalExpression (NumExpr (op1,op2) op) state =
      makeFloatConst (IntConst x) = FloatConst $ fromIntegral x
      makeFloatConst flconst = flconst
 
+evalArithFunc :: (Num a) => String -> a -> a -> a
 evalArithFunc str arg1 arg2 
         | str == "+" = arg1 + arg2
 
@@ -279,16 +223,8 @@ evalArithFunc str arg1 arg2
 --makeFloat (IntConst x) = FloatConst $ fromIntegral x
 --makeFloat () = flconst
 
-{-
-getBoolFunc str
-        | str == "==" = (==)
-        | str == "/=" = (/=)
-        | str == "<" = (<)
-        | str == ">" = (>)
-        | str == "<=" = (<=)
-        | str == ">=" = (>=)
--}
 
+evalBoolFunc :: (Ord a) => String -> a -> a -> Bool
 evalBoolFunc str arg1 arg2
         | str == "==" = arg1 == arg2
         | str == "/=" = arg1 /= arg2

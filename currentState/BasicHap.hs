@@ -39,7 +39,6 @@ action_2 (21) = happyShift action_13
 action_2 (25) = happyShift action_14
 action_2 (27) = happyShift action_15
 action_2 (28) = happyShift action_16
-action_2 (30) = happyShift action_17
 action_2 (5) = happyGoto action_18
 action_2 (6) = happyGoto action_6
 action_2 (7) = happyGoto action_7
@@ -71,13 +70,13 @@ action_5 (4) = happyGoto action_34
 action_5 _ = happyReduce_1
 
 action_6 (24) = happyShift action_33
-action_6 _ = happyReduce_3
+action_6 _ = happyReduce_4
 
 action_7 _ = happyReduce_9
 
-action_8 _ = happyReduce_6
+action_8 _ = happyReduce_7
 
-action_9 _ = happyReduce_5
+action_9 _ = happyReduce_6
 
 action_10 (33) = happyShift action_32
 action_10 _ = happyFail
@@ -116,12 +115,12 @@ action_17 _ = happyFail
 
 action_18 _ = happyFail
 
-action_19 _ = happyReduce_8
+action_19 _ = happyReduce_3
 
 action_20 (33) = happyShift action_57
 action_20 _ = happyFail
 
-action_21 _ = happyReduce_7
+action_21 _ = happyReduce_8
 
 action_22 (26) = happyShift action_56
 action_22 _ = happyFail
@@ -173,7 +172,6 @@ action_33 (21) = happyShift action_13
 action_33 (25) = happyShift action_14
 action_33 (27) = happyShift action_15
 action_33 (28) = happyShift action_16
-action_33 (30) = happyShift action_17
 action_33 (5) = happyGoto action_35
 action_33 (6) = happyGoto action_6
 action_33 (7) = happyGoto action_7
@@ -184,7 +182,7 @@ action_33 _ = happyFail
 
 action_34 _ = happyReduce_2
 
-action_35 _ = happyReduce_4
+action_35 _ = happyReduce_5
 
 action_36 _ = happyReduce_10
 
@@ -291,7 +289,6 @@ action_56 (21) = happyShift action_13
 action_56 (25) = happyShift action_14
 action_56 (27) = happyShift action_15
 action_56 (28) = happyShift action_16
-action_56 (30) = happyShift action_17
 action_56 (32) = happyShift action_61
 action_56 (5) = happyGoto action_59
 action_56 (6) = happyGoto action_6
@@ -407,50 +404,52 @@ happyReduction_2 (HappyAbsSyn4  happy_var_3)
 	)
 happyReduction_2 _ _ _  = notHappyAtAll 
 
-happyReduce_3 = happySpecReduce_1  5 happyReduction_3
-happyReduction_3 (HappyAbsSyn6  happy_var_1)
+happyReduce_3 = happySpecReduce_3  4 happyReduction_3
+happyReduction_3 _
+	_
+	(HappyTerminal (TkLineNumber happy_var_1))
+	 =  HappyAbsSyn4
+		 ([(happy_var_1, [NOOP])]
+	)
+happyReduction_3 _ _ _  = notHappyAtAll 
+
+happyReduce_4 = happySpecReduce_1  5 happyReduction_4
+happyReduction_4 (HappyAbsSyn6  happy_var_1)
 	 =  HappyAbsSyn5
 		 ([happy_var_1]
 	)
-happyReduction_3 _  = notHappyAtAll 
+happyReduction_4 _  = notHappyAtAll 
 
-happyReduce_4 = happySpecReduce_3  5 happyReduction_4
-happyReduction_4 (HappyAbsSyn5  happy_var_3)
+happyReduce_5 = happySpecReduce_3  5 happyReduction_5
+happyReduction_5 (HappyAbsSyn5  happy_var_3)
 	_
 	(HappyAbsSyn6  happy_var_1)
 	 =  HappyAbsSyn5
 		 (happy_var_1:happy_var_3
 	)
-happyReduction_4 _ _ _  = notHappyAtAll 
+happyReduction_5 _ _ _  = notHappyAtAll 
 
-happyReduce_5 = happySpecReduce_1  6 happyReduction_5
-happyReduction_5 (HappyAbsSyn14  happy_var_1)
+happyReduce_6 = happySpecReduce_1  6 happyReduction_6
+happyReduction_6 (HappyAbsSyn14  happy_var_1)
 	 =  HappyAbsSyn6
 		 (Command happy_var_1
 	)
-happyReduction_5 _  = notHappyAtAll 
+happyReduction_6 _  = notHappyAtAll 
 
-happyReduce_6 = happySpecReduce_1  6 happyReduction_6
-happyReduction_6 (HappyAbsSyn10  happy_var_1)
+happyReduce_7 = happySpecReduce_1  6 happyReduction_7
+happyReduction_7 (HappyAbsSyn10  happy_var_1)
 	 =  HappyAbsSyn6
 		 (ControlStructure happy_var_1
 	)
-happyReduction_6 _  = notHappyAtAll 
+happyReduction_7 _  = notHappyAtAll 
 
-happyReduce_7 = happySpecReduce_2  6 happyReduction_7
-happyReduction_7 (HappyTerminal (TkConst happy_var_2))
+happyReduce_8 = happySpecReduce_2  6 happyReduction_8
+happyReduction_8 (HappyTerminal (TkConst happy_var_2))
 	_
 	 =  HappyAbsSyn6
 		 (Goto ((\(TkIntConst x) -> x)happy_var_2)
 	)
-happyReduction_7 _ _  = notHappyAtAll 
-
-happyReduce_8 = happySpecReduce_2  6 happyReduction_8
-happyReduction_8 _
-	_
-	 =  HappyAbsSyn6
-		 (NOOP
-	)
+happyReduction_8 _ _  = notHappyAtAll 
 
 happyReduce_9 = happySpecReduce_1  6 happyReduction_9
 happyReduction_9 (HappyAbsSyn7  happy_var_1)
