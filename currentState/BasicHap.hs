@@ -884,6 +884,7 @@ basicParse tks = happyRunIdentity happySomeParser where
 happySeq = happyDontSeq
 
 
+{-
 checkNumberVar (TkIntVar x) = TkIntVar x
 checkNumberVar (TkFloatVar x) = TkFloatVar x
 checkNumberVar _ = error "String Variable not allowed, have to be number variable!"
@@ -896,6 +897,7 @@ makeStringOperandVar _ = error "Variable musst have type String!"
 makeArithOperandVar (TkIntVar x) = IntVar x
 makeArithOperandVar (TkFloatVar x) = FloatVar x
 makeArithOperandVar _ = error "String vars not allowed!"
+-}
 
 -- TODO: FLoat COnstants
 makeArithOperandConstant (TkIntConst x) = IntConst x
@@ -907,7 +909,6 @@ parseError ls = error ("Parse error on: " ++ (show ls))
 data SyntaxTree  
       = Line Int [Command]
       | Lines SyntaxTree SyntaxTree
---      | []
       deriving Show
 
 data Command
@@ -938,23 +939,11 @@ data NumFunction
 
 data ControlStruct
       = If BoolExpr [Command]
---      | For Var (Constant,Constant,Constant) [(Int,[Command])]
       | For NumVar (Operand,Operand,Operand) [(Int,[Command])]
---      | Empty
       deriving Show
 
-{-
-data BoolExpr
-      = BoolExprVarConst   { var :: Var , infixBoolFunc :: (Ord a) => a -> a -> Bool , const' :: Constant }
-      | BoolExprVarVar     { var1 :: Var , infixBoolFunc :: (Ord a) => a -> a -> Bool , var2 :: Var }
-      | BoolExprConstConst { const1 :: Constant , infixBoolFunc :: (Ord a) => a -> a -> Bool , const2 :: Constant }
-      deriving Show
--}
 
 data BoolExpr
---      = BoolExprVarConst   { var :: Var , infixBoolFunc :: String , const' :: Constant }
---      | BoolExprVarVar     { var1 :: Var , infixBoolFunc :: String , var2 :: Var }
---      | BoolExprConstConst { const1 :: Constant , infixBoolFunc :: String , const2 :: Constant }
       = BoolExprString (StringExpr,StringExpr) String
       | BoolExprNum (NumExpr,NumExpr) String
       deriving Show
@@ -980,8 +969,6 @@ data NumExpr
       deriving Show
 
 data Operand
---      = IntVar String
---      | FloatVar String
       = OpVar NumVar
       | IntConst Int
       | FloatConst Float

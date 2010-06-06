@@ -1,7 +1,6 @@
 ----------------------------------------------------- <Imports> ------------------------------------------------------
 
 import BasicHap
-import BasicAlex
 import IO
 import System ( getArgs )
 import qualified Data.Map as M
@@ -64,27 +63,6 @@ main = do
 interpret [] state = return state
 interpret ((lnNr,commands):xs) state = 
       do
-        {-let curPos = currentPos state
-        print ("CurPos: " ++ (show curPos))
-        print ("LineNr: " ++ (show lnNr))
-        if lnNr == curPos
-           then
-             do
-               let newState1 = modState xs state
-               print ("preCurpOs: " ++ (show $ currentPos newState1))
-                  {- case xs of
-                     ((lnNrNext,_):_) -> state { currentPos = lnNrNext }
-                     []               -> state-}
-               newState2 <- evalAllCommands commands newState1
-               print ("postCurPos: " ++ (show $ currentPos newState2))
-               interpret xs newState2
-           else
-             do
-               print "in else!"
-               let newList = dropWhile (\(a,_) -> a /= curPos) (completeProgramm state)
-               let newPos = fst $ head newList
-               let newState = state {currentPos = newPos}
-               interpret newList newState-}
         let newState1 = modState xs state
         newState2 <- evalAllCommands commands newState1
         let realNextPos = (nextPos newState2)
@@ -149,7 +127,7 @@ evalCommand (Command (Print (list, printLn))) state =
                in
                  stringVal ++ (buildOutString xs state)
 
--- TODO: Only on case of BoolExpr is handled currently, extend!
+
 evalCommand (ControlStructure (If boolExpr commands)) state = 
        do
          let bVal = 
@@ -166,11 +144,8 @@ evalCommand (ControlStructure (If boolExpr commands)) state =
 evalCommand NOOP state = return state            
 
 
-evalCommand (Goto nr) state = 
-    {-let
-      newPos = fst $ head $ dropWhile (\(x,_) -> x /= nr ) (completeProgramm state)
-    in-}
-      return state { nextPos = nr }         
+evalCommand (Goto nr) state = return state { nextPos = nr }         
+
 
 -- Frage: Zuweisung an String-Variable so ohne weiteres moeglich ???
 evalCommand (ArithAssignment var numExpr) state = return $ updateVar (NumVar_Var var) (show $ evalExpression numExpr state) state
@@ -194,7 +169,6 @@ evalCommand (ControlStructure (For var (start,step,end) commands)) state =
                  case var' of
                    IntVar _   -> fromIntegral $ getMapVal $ M.lookup var (intVars state1)
                    FloatVar _ -> getMapVal $ M.lookup var (floatVars state1)
---                   _            -> error "No String vars allowed as for var!"
           
             if (varVal > end)
                  then
@@ -204,10 +178,7 @@ evalCommand (ControlStructure (For var (start,step,end) commands)) state =
                      state2 <- evalAllCommands commands state1
                      let state3 = updateVar var (show $ varVal + step) state2
                      evalFor var' start step end commands state3 False
-      
      
-    --  makeFloat (TkIntConst x) = fromIntegral x
-    --  makeFloat (TkFloatConst x) = x
 
 
 
@@ -221,13 +192,6 @@ evalAllCommands (x:xs) state = evalCommand x state >>= evalAllCommands xs
 --getConstant (TkIntConst x) = x
 --getConstant (TkFloatConst x) = -1
 
--- geht so leider nicht
-{-useOnVariableContent var func state =
-                   case var of
-                      TkStringVar _ -> func getValue var (stringVars state)
-                      TkIntVar _    -> func getValue var (intVars state)
-                      TkFloatVar _  -> func getValue var (floatVars state)
--}
 
 getMapVal (Just x) = x
 getMapVal _  = error "Var not found!"
@@ -236,16 +200,11 @@ getMapVal _  = error "Var not found!"
 evalExpression (NumFunc x) state = evalNumFunc x state
 evalExpression (NumOp (IntConst x)) _ = fromIntegral x
 evalExpression (NumOp other) state = makeFloat other state
---evalExpression (NumExpr ((IntConst x),(IntConst y)) op) state = evalArithFunc op x y
 evalExpression (NumExpr ((FloatConst x),(FloatConst y)) op) state = evalArithFunc op x y
 evalExpression (NumExpr (op1,op2) op) state =
       evalExpression (NumExpr (FloatConst $ makeFloat op1 state,FloatConst $ makeFloat op2 state) op) state 
-{-     
-makeFloatConst (OpVar (IntVar x)) state = FloatConst $ fromIntegral $ getMapVal $ M.lookup (NumVar_Var (IntVar x)) (intVars state)
-makeFloatConst (OpVar (FloatVar x)) state = FloatConst $ getMapVal $ M.lookup (NumVar_Var (FloatVar x)) (floatVars state)
-makeFloatConst (IntConst x) _ = FloatConst $ fromIntegral x
-makeFloatConst flconst _ = flconst
--}
+
+
 makeFloat (OpVar (IntVar x)) state = fromIntegral $ getMapVal $ M.lookup (NumVar_Var (IntVar x)) (intVars state)
 makeFloat (OpVar (FloatVar x)) state = getMapVal $ M.lookup (NumVar_Var (FloatVar x)) (floatVars state)
 makeFloat (IntConst x) _ = fromIntegral x
@@ -261,10 +220,6 @@ evalArithFunc str arg1 arg2
         | str == "+" = arg1 + arg2
 
 
---makeFloat (IntVar x) = FloatConst $ fromIntegral $ getMapVal $ M.lookup (TkIntVar x) (intVars state)
---makeFloat (FloatVar x) = FloatConst $ getMapVal $ M.lookup (TkFloatVar x) (floatVars state)
---makeFloat (IntConst x) = FloatConst $ fromIntegral x
---makeFloat () = flconst
 
 evalStringExpression (StringOp x) state = evalBasicString x state
 evalStringExpression (StringExpr (bstr1,bstr2) strOp) state = evalStringFunc strOp (evalBasicString bstr1 state) (evalBasicString bstr2 state)

@@ -1,0 +1,10 @@
+Ist für Step bei for auch Variablen erlaubt?
+
+Was passiert genau, wenn bei next die Variable weggelassen wird?
+
+Benutzung von Variablen ohne Init gestattet(z.B. S$ = S$ + "*")?
+
+Vergleich von int und floats (cast)??
+
+kann beim if das then weggelassen werden?
+

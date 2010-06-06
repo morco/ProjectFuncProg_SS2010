@@ -1,0 +1,10 @@
+Typen ordentlich:
+  -> Int/Float/String Konstanten und Vars !!
+  -> Typechecking ordentlich (Achtung: Durch allg. updateVar können floats nach int geparst werden!!)
+
+Wenn möglich Datenstruktur flatten, scheint mir unglaublich viel zu kompliziert tief verschachtelt, auch wenn ich aktuell nicht weis, wie es besser gehen sollte
+
+für if:
+   Klammerung erlauben, or, and ...
+
+Arithmetische Grammatik (beliebig geschachtelte Audsdrücke, Operatoren mit unterschiedlicher Priorität)

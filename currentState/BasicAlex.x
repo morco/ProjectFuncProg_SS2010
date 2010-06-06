@@ -154,13 +154,6 @@ data Constant
      | TkFloatConst Float
    deriving (Eq, Show)
 
-{-
-data Var 
-     = TkStringVar String 
-     | TkIntVar String    
-     | TkFloatVar String
-   deriving (Eq, Show, Ord)
--}
 
 ------------------------------------ </Datatypes> ---------------------------------------------------------
 
