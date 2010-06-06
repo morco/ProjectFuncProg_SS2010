@@ -1,6 +1,7 @@
 {
 
-module BasicAlex( alexScanTokens, Token(..), Constant(..), Var(..)) where
+--module BasicAlex( alexScanTokens, Token(..), Constant(..), Var(..)) where
+module BasicAlex( alexScanTokens, Token(..), Constant(..)) where
 
 import Data.List
 import Data.Char
@@ -15,12 +16,17 @@ import Data.Char
 
 $digit = 0-9			-- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
-@varOrResWord = $alpha [$alpha $digit ]* (\$ | \%)?  -- seems not possible to distinguish between reserved 
+
+$varOrRW_PreContext = [$white \; : \( \)]
+
+@varOrResWord = $alpha [$alpha $digit ]*   -- seems not possible to distinguish between reserved 
                                                      --  words and variables with regular expressions alone, 
                                                      --   so further processing is handled by myself 
  @string = \" [. # \"]* \"                            -- " 
 --@string = [. # \"]*                             -- " 
-
+@varOrRW_PostContext = ($white+ | \; | \) | \()
+@intVar = @varOrResWord \%
+@stringVar = @varOrResWord \$
 
 tokens :-
 
@@ -28,12 +34,14 @@ tokens :-
   $white+				                    ;
   [. # \n]^ "REM".*				            ;  -- Commentary (whole line)
   ^ $digit+ $white+ "REM".*				    ;  -- Commentary (line part)
+  "--".*                                                    ;  -- Unoff comments (for debugging)
 ---------------------------------------- </Ignores> -------------------------------------------------------
 
 
 -------------------------------- <Additional Stuff> -------------------------------------------------------
 -- the line number, essential for gotos, "^" is a special pre context and stands for newline, have to stand
 --  before the Number expression to make sure, to be not mistaken
+--  ^ $white* $digit+ 				                    {\s -> TkLineNumber (read s)}
   ^ $digit+ 				                    {\s -> TkLineNumber (read s)}
 -------------------------------- </Additional Stuff> ------------------------------------------------------
 
@@ -42,7 +50,9 @@ tokens :-
   $digit+                                                   {\s -> TkConst (TkIntConst (read s))}
   ~$digit \. $digit+                                        {\s -> TkConst (TkFloatConst (read ("0"++s)))}
 --  $digit+\.$digit+                                          {\s -> TkConst (TkFloatConst (read s))}
-  [$white \; :]^ @varOrResWord  / ($white+ | \; )           {\s -> buildVarOrResWord s }
+  $varOrRW_PreContext ^ @varOrResWord  /  @varOrRW_PostContext          {\s -> buildVarOrResWord s }
+  $varOrRW_PreContext ^ @intVar  /  @varOrRW_PostContext          {\s -> TkIntVar s }
+  $varOrRW_PreContext ^ @stringVar  /  @varOrRW_PostContext          {\s -> TkStringVar s }
   @string                                                   {\s -> buildString s '"'}
 --  [\"]^ @string / \"                                                  {\s -> TkString s}
 --------------------------</Strings, Number, Vars and Reserved Words> -------------------------------------
@@ -67,6 +77,9 @@ tokens :-
 ------------------------------------ </Compare Operators> -------------------------------------------------
 
   \+                               {\s -> TkPlus}
+  \(                               {\s -> TkBracketOpen }
+  \)                               {\s -> TkBracketClose }
+
 
 ----------------------------------------- <Aliases> -------------------------------------------------------
   \?                                                        {\s -> TkPrint }
@@ -96,6 +109,7 @@ data Token
      | TkThen                   
      | TkGoto              
      | TkStep     
+     | TkLen
 
 ------ </Reserved words> ---------------
 
@@ -124,9 +138,13 @@ data Token
 
      | TkString String          
      | TkConst Constant              
-     | TkVar Var
+     | TkStringVar String
+     | TkIntVar String
+     | TkFloatVar String
 
 ------ </Variables, Strings, Numbers> --------------
+     | TkBracketOpen
+     | TkBracketClose
 
    deriving (Eq,Show)
 
@@ -136,13 +154,13 @@ data Constant
      | TkFloatConst Float
    deriving (Eq, Show)
 
-
+{-
 data Var 
      = TkStringVar String 
      | TkIntVar String    
      | TkFloatVar String
    deriving (Eq, Show, Ord)
-
+-}
 
 ------------------------------------ </Datatypes> ---------------------------------------------------------
 
@@ -156,11 +174,12 @@ buildVarOrResWord str =
         bresw = buildResWord str
       in
         if bresw == []
-            then TkVar $ buildVar str
+            -- then TkVar $ buildVar str
+            then buildVar str
             else head bresw
 
 
-buildVar :: String -> Var 
+-- buildVar :: String -> Var 
 buildVar str 
      | isSuffixOf "$" str = (TkStringVar str)
      | isSuffixOf "%" str = (TkIntVar str) 
@@ -184,6 +203,7 @@ buildResWord str =
           | str == "then"  = [TkThen]
           | str == "goto"  = [TkGoto]
           | str == "step"  = [TkStep]
+          | str == "len"  = [TkLen]
           | otherwise      = [] 
 
                 
