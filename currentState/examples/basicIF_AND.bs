@@ -1,0 +1,5 @@
+30 print "Zurück in die Zukunft!!"
+80 input l$                                     
+90 input g$                                     
+100 if (l$ = "J") and (g$ = "j") then goto 30
+

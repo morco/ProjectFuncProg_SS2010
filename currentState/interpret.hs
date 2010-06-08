@@ -6,12 +6,16 @@ import System ( getArgs )
 import qualified Data.Map as M
 import Data.List
 
+import Strings
+import ProgrammState
+import Nums
+
 ----------------------------------------------------- </Imports> -----------------------------------------------------
 
 
 
 ---------------------------------------------------- <Data types> ----------------------------------------------------
-
+{-
 -- This type is for recording the state of the programm, which means currently the values of the variables
 data State =
       State {
@@ -21,7 +25,7 @@ data State =
          completeProgramm :: [(Int, [Command])],
          nextPos :: Int
       }
-
+-}
 
 ---------------------------------------------------- </Data types> ---------------------------------------------------
 
@@ -45,16 +49,17 @@ main = do
         handle <- openFile (head args) ReadMode
         contents <- hGetContents handle
         let pTree = getParseTree contents
-        let state = State { 
+        let state = getNewState pTree
+        {-let state = State { 
                        stringVars = M.empty, 
                        intVars    = M.empty, 
                        floatVars  = M.empty,
                        completeProgramm = pTree,
                        nextPos = 0
                      }
-
+-}
        -- interpret pTree state
-        interpret pTree (modState pTree state)
+        interpret pTree (updateStateNextPos pTree state)
         hClose handle
 
 ------------------------------------------------------- </Main> ------------------------------------------------------
@@ -63,7 +68,8 @@ main = do
 interpret [] state = return state
 interpret ((lnNr,commands):xs) state = 
       do
-        let newState1 = modState xs state
+        --let newState1 = modState xs state
+        let newState1 = updateStateNextPos xs state
         newState2 <- evalAllCommands commands newState1
         let realNextPos = (nextPos newState2)
         if (nextPos newState1) == realNextPos 
@@ -74,10 +80,10 @@ interpret ((lnNr,commands):xs) state =
                let newList = dropWhile (\(a,_) -> a /= realNextPos) (completeProgramm state)
                interpret newList newState2                  
 
-
+{-
 modState [] state = state
 modState ((lnNrNext,_):_) state = state { nextPos = lnNrNext}
-
+-}
 
 -- TODO: 
 --     -> action is very, very ugly!!! (Generalizing things seems possible)
@@ -130,10 +136,10 @@ evalCommand (Command (Print (list, printLn))) state =
 
 evalCommand (ControlStructure (If boolExpr commands)) state = 
        do
-         let bVal = 
-              case boolExpr of
+         let bVal = evalBoolExpression boolExpr state
+              {- case boolExpr of
                  BoolExprNum (numExpr1,numExpr2) strOp -> evalBoolFunc strOp (evalExpression numExpr1 state) (evalExpression numExpr2 state) 
-                 BoolExprString (strExpr1,strExpr2) strOp -> evalBoolFunc strOp (evalStringExpression strExpr1 state) (evalStringExpression strExpr2 state) 
+                 BoolExprString (strExpr1,strExpr2) strOp -> evalBoolFunc strOp (evalStringExpression strExpr1 state) (evalStringExpression strExpr2 state) -}
          if bVal
            then
               evalAllCommands commands state
@@ -192,44 +198,16 @@ evalAllCommands (x:xs) state = evalCommand x state >>= evalAllCommands xs
 --getConstant (TkIntConst x) = x
 --getConstant (TkFloatConst x) = -1
 
-
-getMapVal (Just x) = x
-getMapVal _  = error "Var not found!"
-
-
-evalExpression (NumFunc x) state = evalNumFunc x state
-evalExpression (NumOp (IntConst x)) _ = fromIntegral x
-evalExpression (NumOp other) state = makeFloat other state
-evalExpression (NumExpr ((FloatConst x),(FloatConst y)) op) state = evalArithFunc op x y
-evalExpression (NumExpr (op1,op2) op) state =
-      evalExpression (NumExpr (FloatConst $ makeFloat op1 state,FloatConst $ makeFloat op2 state) op) state 
+evalBoolExpression (BoolExprNum (numExpr1,numExpr2) strOp) state = evalBoolFunc strOp (evalExpression numExpr1 state) (evalExpression numExpr2 state) 
+evalBoolExpression (BoolExprString (strExpr1,strExpr2) strOp) state = evalBoolFunc strOp (evalStringExpression strExpr1 state) (evalStringExpression strExpr2 state)
+evalBoolExpression (BoolExprLog (boolExpr1,boolExpr2) strOp) state = evalBoolLogic strOp (evalBoolExpression boolExpr1 state) (evalBoolExpression boolExpr2 state)
 
 
-makeFloat (OpVar (IntVar x)) state = fromIntegral $ getMapVal $ M.lookup (NumVar_Var (IntVar x)) (intVars state)
-makeFloat (OpVar (FloatVar x)) state = getMapVal $ M.lookup (NumVar_Var (FloatVar x)) (floatVars state)
-makeFloat (IntConst x) _ = fromIntegral x
-makeFloat (FloatConst x) _ = x
-
-
-evalNumFunc (LenVar strVar) state = fromIntegral $ length $ getMapVal $ M.lookup (StringVar_Var strVar) (stringVars state)
-      
-
-
-evalArithFunc :: (Num a) => String -> a -> a -> a
-evalArithFunc str arg1 arg2 
-        | str == "+" = arg1 + arg2
-
-
-
-evalStringExpression (StringOp x) state = evalBasicString x state
-evalStringExpression (StringExpr (bstr1,bstr2) strOp) state = evalStringFunc strOp (evalBasicString bstr1 state) (evalBasicString bstr2 state)
-
-evalBasicString (StringLiteral x) _ = x
-evalBasicString (StringVar_BString x) state = getMapVal $ M.lookup (StringVar_Var x) (stringVars state)
-
-
-evalStringFunc op op1 op2
-        | op == "+" = op1 ++ op2
+-- Union both following Functions ??
+evalBoolLogic str arg1 arg2
+       | str == "||" = arg1 || arg2
+       | str == "&&" = arg1 && arg2
+--       | str == "neg"
 
 
 evalBoolFunc :: (Ord a) => String -> a -> a -> Bool
@@ -240,26 +218,5 @@ evalBoolFunc str arg1 arg2
         | str == ">" = arg1 > arg2
         | str == "<=" = arg1 <= arg2
         | str == ">=" = arg1 >= arg2
-
-
-
-updateVar var val state =  
-    let
-       --val' = show val
-       val' = val 
-         {-case var of -- hier wuerd ich eigentlich gerne sowas sagen, wie wenn Val vom Typ String
-           TkStringVar _ -> val
-           _      -> show val-}
-    in                  
-      case var of
-        StringVar_Var _ -> state {
-                            stringVars = M.alter (\ _ -> Just val') var (stringVars state)
-                          }
-        NumVar_Var (IntVar _)    -> state {
-                            intVars = M.alter (\ _ -> Just $ truncate (read val' :: Float)) var (intVars state)
-                          }
-        NumVar_Var (FloatVar _)  -> state {
-                            floatVars = M.alter (\ _ -> Just $ read val') var (floatVars state)
-                          }
 
 

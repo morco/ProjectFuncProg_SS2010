@@ -188,6 +188,10 @@ data Token
      | TkBracketOpen
      | TkBracketClose
 
+     | TkLogOr
+     | TkLogAnd
+     | TkLogNeg
+
    deriving (Eq,Show)
 
 
@@ -196,13 +200,6 @@ data Constant
      | TkFloatConst Float
    deriving (Eq, Show)
 
-{-
-data Var 
-     = TkStringVar String 
-     | TkIntVar String    
-     | TkFloatVar String
-   deriving (Eq, Show, Ord)
--}
 
 ------------------------------------ </Datatypes> ---------------------------------------------------------
 
@@ -246,6 +243,8 @@ buildResWord str =
           | str == "goto"  = [TkGoto]
           | str == "step"  = [TkStep]
           | str == "len"  = [TkLen]
+          | str == "or"  = [TkLogOr]
+          | str == "and"  = [TkLogAnd]
           | otherwise      = [] 
 
                 

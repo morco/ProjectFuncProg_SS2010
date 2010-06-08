@@ -46,6 +46,10 @@ import Data.Char
       "("             { TkBracketOpen }
       ")"             { TkBracketClose }
 
+      or              { TkLogOr }
+      and             { TkLogAnd }
+      neg             { TkLogNeg }
+
 %%
 
 
@@ -87,14 +91,23 @@ Operand             : NumVar                                         {OpVar $1}
                     | int                                            {makeArithOperandConstant $1}
 
 ControlStruct       : if BoolExpr then IfBody                        {If $2 $4}
+                    | if BoolExpr IfBody                             {If $2 $3}
                     | for NumVar "=" Operand to Operand step Operand SyntaxTree {For $2 ($4,$8,$6) $9} -- step auch var??
                     | for NumVar "=" Operand to Operand SyntaxTree   {For $2 ($4,(makeArithOperandConstant (TkIntConst 1)),$6) $7} -- step auch var??
 
 IfBody              : int                                            {[Goto ((\(TkIntConst x) -> x)$1)]}
-IfBody              : Commands                                       {$1} --  <--- verursacht shift/red conflicts
+--IfBody              : Commands                                       {$1} --  <--- verursacht shift/red conflicts
+                    | Commands                                       {$1} --  <--- verursacht shift/red conflicts
 
 
-BoolExpr            : StringExpr CompareOperator StringExpr          {BoolExprString ($1,$3) $2}
+BoolExpr            : SimpleBoolExpr                                     {$1}
+                    | "(" BoolExpr ")" LogicOperation "(" BoolExpr ")"   {BoolExprLog ($2,$6) $4}
+
+LogicOperation      : or                                             {"||"} -- Kurzschlussauswertung ???
+                    | and                                            {"&&"}
+                    | neg                                            {"neg"}
+
+SimpleBoolExpr      : StringExpr CompareOperator StringExpr          {BoolExprString ($1,$3) $2}
                     | NumExpr CompareOperator NumExpr                {BoolExprNum ($1,$3) $2}
  
 CompareOperator     : "="                                            {"=="}
@@ -180,6 +193,7 @@ data ControlStruct
 data BoolExpr
       = BoolExprString (StringExpr,StringExpr) String
       | BoolExprNum (NumExpr,NumExpr) String
+      | BoolExprLog (BoolExpr,BoolExpr) String
       deriving Show
 
 data IOCommand 

@@ -146,6 +146,10 @@ data Token
      | TkBracketOpen
      | TkBracketClose
 
+     | TkLogOr
+     | TkLogAnd
+     | TkLogNeg
+
    deriving (Eq,Show)
 
 
@@ -197,6 +201,8 @@ buildResWord str =
           | str == "goto"  = [TkGoto]
           | str == "step"  = [TkStep]
           | str == "len"  = [TkLen]
+          | str == "or"  = [TkLogOr]
+          | str == "and"  = [TkLogAnd]
           | otherwise      = [] 
 
                 
