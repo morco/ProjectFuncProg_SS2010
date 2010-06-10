@@ -3,6 +3,7 @@ module ProgrammState where
 
 import BasicHap( Var(..), Command(..), NumVar(..))
 import qualified Data.Map as M
+import Control.Monad.State
 
 
 ----------------------------------------------------- </Imports> -----------------------------------------------------
@@ -12,12 +13,12 @@ import qualified Data.Map as M
 ---------------------------------------------------- <Data types> ----------------------------------------------------
 
 -- This type is for recording the state of the programm, which means currently the values of the variables
-data State =
-      State {
+data ProgramState =
+      ProgramState {
          stringVars :: (M.Map Var String),
          intVars    :: (M.Map Var Int),
          floatVars  :: (M.Map Var Float),
-         completeProgramm :: [(Int, [Command])],
+         completeProgram :: [(Int, [Command])],
          nextPos :: Int
       }
 
@@ -28,11 +29,11 @@ data State =
 -------------------------------------------------------- <Main> ------------------------------------------------------
 
 
-getNewState parseTree = State { 
+getNewState parseTree = put ProgramState { 
                                 stringVars = M.empty, 
                                 intVars    = M.empty, 
                                 floatVars  = M.empty,
-                                completeProgramm = parseTree,
+                                completeProgram = parseTree,
                                 nextPos = 0
                               }
 
@@ -46,7 +47,7 @@ updateStateNextPos ((lnNrNext,_):_) state = state { nextPos = lnNrNext}
 getMapVal (Just x) = x
 getMapVal _  = error "Var not found!"
 
-
+{-
 updateVar var val state =  
     let
        --val' = show val
@@ -65,5 +66,12 @@ updateVar var val state =
         NumVar_Var (FloatVar _)  -> state {
                             floatVars = M.alter (\ _ -> Just $ read val') var (floatVars state)
                           }
+-}
 
+updateFloatVar var val = do
+    res <- evalState 
+    --modify (M.alter (\ _ -> Just val) var . floatVars )
+    state <- get
+    put state { floatVars = (M.alter (\ _ -> Just val) var $ floatVars state ) }
+    return res
 
