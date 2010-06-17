@@ -72,6 +72,10 @@ updateFloatVar var val = do
     res <- evalState 
     --modify (M.alter (\ _ -> Just val) var . floatVars )
     state <- get
-    put state { floatVars = (M.alter (\ _ -> Just val) var $ floatVars state ) }
+    put (state { floatVars = (M.alter (\ _ -> Just val) var $ floatVars state ) })
     return res
 
+{-testmain = do
+         --nst <- getNewState [(20,[NOOP])]
+         getNewState [(20,[NOOP])]
+         updateFloatVar (NumVar_Var (FloatVar "Bla")) 3.4 -}

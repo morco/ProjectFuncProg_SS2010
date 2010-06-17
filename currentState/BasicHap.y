@@ -41,6 +41,9 @@ import Data.Char
       ">="            { TkGE }
 
       "+"             { TkPlus }
+      "-"             { TkMinus }
+      "*"             { TkTimes }
+      "/"             { TkDiv }
 
       len             { TkLen }
       "("             { TkBracketOpen }
@@ -50,6 +53,8 @@ import Data.Char
       and             { TkLogAnd }
       neg             { TkLogNeg }
 
+      return          { TkReturn }
+      gosub           { TkGoSub }
 %%
 
 
@@ -59,7 +64,9 @@ SyntaxTree          : lineNr Commands                               {[($1,$2)]}
                                                                                      --  stehen, sonst parst er das 
                                                                                      --   ganze Programm als Inhalt 
                                                                                      --    des 1. for
+                    | lineNr return                                  {[($1, [Return])]} 
 
+ 
 Commands            : Command                                        {[$1]}
                     | Command ":" Commands                           {$1:$3}
 
@@ -68,7 +75,8 @@ Command             : IOCommand                                      {Command $1
                     | goto int                                       {Goto ((\(TkIntConst x) -> x)$2)}
 --               | next Var                       {NOOP}
                     | Assignment                                     {$1}
---               | BoolExpr                       {NOOP}
+                    | return                                     {Return}
+
 
 Assignment          : NumVar "=" NumExpr                             {ArithAssignment $1 $3}
                     | stringVar "=" StringExpr                       {StringAssignment (StringVar $1) $3}
@@ -83,9 +91,25 @@ BasicString         : stringLiteral                                  {StringLite
 NumFunction         : len "(" stringLiteral ")"                      {Len $3}
                     | len "(" stringVar ")"                          {LenVar (StringVar $3)}
 
-NumExpr             : Operand "+" Operand                            {NumExpr ($1,$3) "+"}
-                    | Operand                                        {NumOp $1}
+
+NumExpr             : NumExpr NumOperationsLev2 Term                 {NumExpr ($1,$3) $2}
+                    | Term                                           {$1}
                     | NumFunction                                    {NumFunc $1}
+
+
+NumOperationsLev2   : "+"               {"+"}          
+                    | "-"               {"-"}
+
+
+NumOperationsLev1   : "*"               {"*"}
+                    | "/"               {"/"}
+
+
+Term                : Term NumOperationsLev1 Factor          {NumExpr ($1,$3) $2}
+                    | Factor                           {$1}
+
+Factor              : Operand                    {NumOp $1}
+                    | "(" NumExpr ")"            {$2}
 
 Operand             : NumVar                                         {OpVar $1}
                     | int                                            {makeArithOperandConstant $1}
@@ -93,7 +117,8 @@ Operand             : NumVar                                         {OpVar $1}
 ControlStruct       : if BoolExpr then IfBody                        {If $2 $4}
                     | if BoolExpr IfBody                             {If $2 $3}
                     | for NumVar "=" Operand to Operand step Operand SyntaxTree {For $2 ($4,$8,$6) $9} -- step auch var??
-                    | for NumVar "=" Operand to Operand SyntaxTree   {For $2 ($4,(makeArithOperandConstant (TkIntConst 1)),$6) $7} -- step auch var??
+                    | for NumVar "=" Operand to Operand SyntaxTree   {For $2 ($4,(makeArithOperandConstant (TkIntConst 1)),$6) $7} 
+                    | gosub int SyntaxTree          {GoSub ((\(TkIntConst x) -> x)$2) $3}
 
 IfBody              : int                                            {[Goto ((\(TkIntConst x) -> x)$1)]}
 --IfBody              : Commands                                       {$1} --  <--- verursacht shift/red conflicts
@@ -165,6 +190,7 @@ data Command
       | NOOP
       | ArithAssignment NumVar NumExpr
       | StringAssignment StringVar StringExpr
+      | Return
       deriving Show
 
 data StringExpr
@@ -187,6 +213,8 @@ data NumFunction
 data ControlStruct
       = If BoolExpr [Command]
       | For NumVar (Operand,Operand,Operand) [(Int,[Command])]
+      | GoSub Int [(Int,[Command])] 
+-- Ruecksprungpunkt ist ja schon durch die ZeilenNr des gosub Befehls gegeben, und muss eigentlich nicht nochmal extra aufgeschrieben werden
       deriving Show
 
 
@@ -211,7 +239,8 @@ data InputStuff
       deriving Show
 
 data NumExpr
-      = NumExpr (Operand,Operand) String
+     -- = NumExpr (Operand,Operand) String
+      = NumExpr (NumExpr,NumExpr) String
       | NumOp Operand
       | NumFunc NumFunction
       deriving Show

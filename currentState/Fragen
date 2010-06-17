@@ -6,5 +6,23 @@ Benutzung von Variablen ohne Init gestattet(z.B. S$ = S$ + "*")?
 
 Vergleich von int und floats (cast)??
 
-kann beim if das then weggelassen werden?
+kann beim if das then weggelassen werden? - Ja
 
+gosub: 
+  - Rückgabewert? 
+  - localer Scope, Stack?
+  - mehrere returns möglich, z.B. in if?
+
+Allg gotos:
+Wenn Init var in Zeile 100, und dann goto Zeile 30, ist dann var noch da?
+ (hmm, dieser Fall geht eigentlich gar nicht, denn schließlich müsste die Var ja auch im ersten durchgang da sein,
+   wobei, wenn sie da wg nem if übersprungen wurde)? Bsp?
+
+20 n% = 0
+30 if n = 0 then 50
+40 print a$
+50 ...
+...
+90 goto 40
+
+???

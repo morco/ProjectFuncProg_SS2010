@@ -8,3 +8,7 @@ für if:
    Klammerung erlauben, or, and ...
 
 Arithmetische Grammatik (beliebig geschachtelte Audsdrücke, Operatoren mit unterschiedlicher Priorität)
+  - dazu beachte, dass es in C64 Basic es vorgefertigte Exponentation gibt (mit einem nicht ASCII kompatiblem Symbol, ohoh!)
+
+
+goto mit vars ???

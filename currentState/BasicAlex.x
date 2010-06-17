@@ -77,6 +77,9 @@ tokens :-
 ------------------------------------ </Compare Operators> -------------------------------------------------
 
   \+                               {\s -> TkPlus}
+  \-      {\s -> TkMinus }
+  \*      {\s -> TkTimes }
+  \/      {\s -> TkDiv }
   \(                               {\s -> TkBracketOpen }
   \)                               {\s -> TkBracketClose }
 
@@ -133,6 +136,9 @@ data Token
 ------ </Compare Operators> ---------------
 
      | TkPlus
+     | TkMinus
+     | TkTimes
+     | TkDiv
 
 ------ <Variables, Strings, Numbers> ---------------
 
@@ -149,6 +155,9 @@ data Token
      | TkLogOr
      | TkLogAnd
      | TkLogNeg
+
+     | TkReturn
+     | TkGoSub
 
    deriving (Eq,Show)
 
@@ -203,6 +212,8 @@ buildResWord str =
           | str == "len"  = [TkLen]
           | str == "or"  = [TkLogOr]
           | str == "and"  = [TkLogAnd]
+          | str == "return"  = [TkReturn]
+          | str == "gosub"  = [TkGoSub]
           | otherwise      = [] 
 
                 
