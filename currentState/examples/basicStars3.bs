@@ -3,7 +3,7 @@
 
 10 input "Geben Sie bitte Ihren Namen ein"; a$
 --20 print "Guten Tag "; a$
-20 prinf "Guten Tag "; a$
+20 print "Guten Tag "; a$
 30 input "Wieviele Sterne möchten Sie?"; s%
 40 REM for i = 1 to s%                                      REM  --  TODO: Vars in for range!! FOr without step!!
 35 s$ = ""

@@ -18,18 +18,21 @@ data ProgramState =
          stringVars :: (M.Map Var String),
          intVars    :: (M.Map Var Int),
          floatVars  :: (M.Map Var Float),
-         completeProgram :: [(Int, [Command])],
+         --completeProgram :: [(Int, [Command])],
+         completeProgram :: Program,
          nextPos :: Int
       }
 
 
 ---------------------------------------------------- </Data types> ---------------------------------------------------
 
+type Program = [(Int, [Command])]
 
 -------------------------------------------------------- <Main> ------------------------------------------------------
 
 
-getNewState parseTree = put ProgramState { 
+getNewState :: Program -> ProgramState
+getNewState parseTree = ProgramState { 
                                 stringVars = M.empty, 
                                 intVars    = M.empty, 
                                 floatVars  = M.empty,
@@ -40,8 +43,20 @@ getNewState parseTree = put ProgramState {
 
 ------------------------------------------------------- </Main> ------------------------------------------------------
 
-updateStateNextPos [] state = state
-updateStateNextPos ((lnNrNext,_):_) state = state { nextPos = lnNrNext}
+--updateStateNextPos [] state = state
+--updateStateNextPos ((lnNrNext,_):_) state = state { nextPos = lnNrNext}
+
+
+initState :: PState ()
+initState = do
+    state <- get
+    updateStateNextPos (completeProgram state)
+
+updateStateNextPos :: Program -> PState ()
+updateStateNextPos [] = return ()
+updateStateNextPos ((lnNrNext,_):_) = do
+    state <- get
+    put $ state { nextPos = lnNrNext}
 
 
 getMapVal (Just x) = x
@@ -68,14 +83,43 @@ updateVar var val state =
                           }
 -}
 
+updateFloatVar :: Var -> Float -> PState ()
 updateFloatVar var val = do
-    res <- evalState 
-    --modify (M.alter (\ _ -> Just val) var . floatVars )
     state <- get
-    put (state { floatVars = (M.alter (\ _ -> Just val) var $ floatVars state ) })
-    return res
+    put $ state { floatVars = (M.alter (\ _ -> Just val) var $ floatVars state ) }
+--    return ()
 
-{-testmain = do
+
+updateIntVar :: Var -> Int -> PState ()
+updateIntVar var val = do
+    state <- get
+    put $ state { intVars = (M.alter (\ _ -> Just val) var $ intVars state ) }
+--    return ()
+
+
+updateStringVar :: Var -> String -> PState ()
+updateStringVar var val = do
+    state <- get
+    put $ state { stringVars = (M.alter (\ _ -> Just val) var $ stringVars state ) }
+--    return ()
+
+
+type PState a = StateT ProgramState IO a
+
+
+--testmain :: State ProgramState ()
+testmain :: StateT ProgramState IO ()
+testmain = do
          --nst <- getNewState [(20,[NOOP])]
-         getNewState [(20,[NOOP])]
-         updateFloatVar (NumVar_Var (FloatVar "Bla")) 3.4 -}
+         --getNewState [(20,[NOOP])]
+        updateFloatVar (NumVar_Var (FloatVar "Bla")) 3.4 
+	int <- f
+        liftIO $ putStrLn "bla"
+	-- ... 
+	return ()
+
+--f :: State ProgramState Int
+f = do
+	s <- get
+	return (nextPos s)	
+
