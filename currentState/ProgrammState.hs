@@ -1,4 +1,4 @@
------------------------------------------------------ <Imports> ------------------------------------------------------
+------------------------------------------------- <Imports> ------------------------------------------------------
 module ProgrammState where
 
 import BasicHap( Var(..), Command(..), NumVar(..))
@@ -6,11 +6,18 @@ import qualified Data.Map as M
 import Control.Monad.State
 
 
------------------------------------------------------ </Imports> -----------------------------------------------------
+------------------------------------------------- </Imports> -----------------------------------------------------
 
 
 
----------------------------------------------------- <Data types> ----------------------------------------------------
+------------------------------------------------ <Data types> ----------------------------------------------------
+
+type Program = [(Int, [Command])]
+type PState a = StateT ProgramState IO a
+
+-- XXX Starting
+-- What are these awkward </ ... things? Makes things difficult to read and
+-- I see no reason for them. Standard terminal/editor width is 78 chars.
 
 -- This type is for recording the state of the programm, which means currently the values of the variables
 data ProgramState =
@@ -18,20 +25,17 @@ data ProgramState =
          stringVars :: (M.Map Var String),
          intVars    :: (M.Map Var Int),
          floatVars  :: (M.Map Var Float),
-         --completeProgram :: [(Int, [Command])],
          completeProgram :: Program,
-         --currentLine :: Int,
          nextPos :: Int,
          backJumpAdressStack :: [Int]
-      }
+      } deriving Show
 
 
----------------------------------------------------- </Data types> ---------------------------------------------------
 
-type Program = [(Int, [Command])]
+------------------------------------------------ </Data types> ---------------------------------------------------
 
--------------------------------------------------------- <Main> ------------------------------------------------------
 
+---------------------------------------------------- <Main> ------------------------------------------------------
 
 getNewState :: Program -> ProgramState
 getNewState parseTree = ProgramState { 
@@ -39,16 +43,12 @@ getNewState parseTree = ProgramState {
                                 intVars    = M.empty, 
                                 floatVars  = M.empty,
                                 completeProgram = parseTree,
-                                --currentLine = 0,
                                 nextPos = 0,
                                 backJumpAdressStack = []
                               }
 
 
-------------------------------------------------------- </Main> ------------------------------------------------------
-
---updateStateNextPos [] state = state
---updateStateNextPos ((lnNrNext,_):_) state = state { nextPos = lnNrNext}
+--------------------------------------------------- </Main> ------------------------------------------------------
 
 
 initState :: PState ()
@@ -63,6 +63,7 @@ updateStateNextPos ((lnNrNext,_):_) = do
     put $ state { nextPos = lnNrNext}
 
 
+getMapVal :: Maybe a -> a
 getMapVal (Just x) = x
 getMapVal _  = error "Var not found!"
 
@@ -91,40 +92,17 @@ updateFloatVar :: Var -> Float -> PState ()
 updateFloatVar var val = do
     state <- get
     put $ state { floatVars = (M.alter (\ _ -> Just val) var $ floatVars state ) }
---    return ()
-
 
 updateIntVar :: Var -> Int -> PState ()
 updateIntVar var val = do
     state <- get
     put $ state { intVars = (M.alter (\ _ -> Just val) var $ intVars state ) }
---    return ()
 
 
 updateStringVar :: Var -> String -> PState ()
 updateStringVar var val = do
     state <- get
     put $ state { stringVars = (M.alter (\ _ -> Just val) var $ stringVars state ) }
---    return ()
 
-
-type PState a = StateT ProgramState IO a
-
-{-
---testmain :: State ProgramState ()
-testmain :: StateT ProgramState IO ()
-testmain = do
-         --nst <- getNewState [(20,[NOOP])]
-         --getNewState [(20,[NOOP])]
-        updateFloatVar (NumVar_Var (FloatVar "Bla")) 3.4 
-	int <- f
-        liftIO $ putStrLn "bla"
-	-- ... 
-	return ()
-
---f :: State ProgramState Int
-f = do
-	s <- get
-	return (nextPos s)	-}
 
 
