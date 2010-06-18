@@ -45,6 +45,7 @@ data State =
 
 main = do
         hSetBuffering stdout NoBuffering  -- needed to have output and getLine in the same line   
+        hSetBuffering stdin NoBuffering  -- needed to have output and getLine in the same line   
 
         args <- getArgs
         handle <- openFile (head args) ReadMode
@@ -69,19 +70,23 @@ main = do
 interpret :: Program -> PState ()
 interpret [] = return ()
 interpret ((lnNr,commands):xs) = do
-    --state <- get
+    state <- get
     --put $ state { currentLine = lnNr }
     updateStateNextPos xs 
     newState1 <- get
     evalAllCommands commands
     newState2 <- get
-    let realNextPos = (nextPos newState2)
-    if (nextPos newState1) == realNextPos 
-       then 
-         interpret xs
-       else do
-         let newList = dropWhile (\(a,_) -> a /= realNextPos) (completeProgram newState2)
-         interpret newList                 
+    if (progFinished newState2)
+      then
+        return ()
+      else
+        let realNextPos = (nextPos newState2) in
+        if (nextPos newState1) == realNextPos 
+          then 
+            interpret xs
+          else 
+            let newList = dropWhile (\(a,_) -> a /= realNextPos) (completeProgram newState2) in
+            interpret newList                 
 
 
 
@@ -105,22 +110,27 @@ evalCommand (Command (Input ((InputStuff lsComment var), printLn))) = do
     let vars = [var]
     listInsert vars (putStr "? " >> getLine)
 
-    where
+{-    where
          -- TODO: input seems to have only one var at max, so maybe simplify
-      listInsert :: [Var] -> IO String -> PState ()
-      listInsert [] _ = return ()
-      listInsert (x:xs) ioAct = do
-          --liftIO $ val <- ioAct
-          val <- liftIO $ ioAct
-          --val <- ioAct
+         listInsert :: [Var] -> IO String -> PState ()
+         listInsert [] _ = return ()
+         listInsert (x:xs) ioAct = do
+             val <- liftIO $ ioAct
 
-          case x of
-            StringVar_Var _         -> updateStringVar x val
-            NumVar_Var (IntVar _)   -> updateIntVar x (read val)
-            NumVar_Var (FloatVar _) -> updateFloatVar x (read val)
+             case x of
+               StringVar_Var _         -> updateStringVar x val
+               NumVar_Var (IntVar _)   -> updateIntVar x (read val)
+               NumVar_Var (FloatVar _) -> updateFloatVar x (read val)
                        
-          listInsert xs ioAct
+         listInsert xs ioAct
+-}
 
+
+evalCommand (Command (Get var)) = do 
+    let vars = [var]
+    --listInsert vars (putStr "? " >> getChar)
+    listInsert vars (putStr "? " >> myGetChar)
+    --listInsert vars (putStr "? " >> getLine)
 
 evalCommand (Command (Print (list, printLn))) = do 
    -- ka, wie es so gehen wuerde, weil igrendwie muesste man da ja den Value daraus haben, und nicht den STate
@@ -173,6 +183,11 @@ evalCommand (Command (Print (list, printLn))) = do
 evalCommand NOOP = return ()            
 
 
+evalCommand End = do
+    state <- get
+    put $ state { progFinished = True }           
+
+
 evalCommand (Goto nr) = do
     state <- get
     put $ state { nextPos = nr }      
@@ -181,7 +196,9 @@ evalCommand (Goto nr) = do
 
 evalCommand (ControlStructure (If boolExpr commands)) = do
     state <- get
-    let bVal = evalBoolExpression boolExpr state
+    --let bVal = evalBoolExpression boolExpr state
+    let (bVal,nstate) = evalBoolExpression boolExpr state
+    put nstate
     if bVal
       then
         evalAllCommands commands
@@ -192,7 +209,10 @@ evalCommand (ControlStructure (If boolExpr commands)) = do
 
 evalCommand (ArithAssignment var numExpr) = do
     state <- get
-    let res = evalExpression numExpr state
+    --let res = evalExpression numExpr state
+    --let (res,nstate) = runState (evalExpression numExpr) state
+    let (res,nstate) = evalExpression numExpr state
+    put nstate
     case var of
        FloatVar _ -> updateFloatVar (NumVar_Var var) res 
        IntVar   _ -> updateIntVar (NumVar_Var var) (truncate res) 
@@ -207,7 +227,11 @@ evalCommand (StringAssignment var stringExpr) = do
 
 evalCommand (ControlStructure (For var (start,step,end) commands)) = do
     state <- get
-    evalFor var (makeFloat start state) (makeFloat step state) (makeFloat end state) (concat $ map snd commands) True
+    -- only reading, should not change state
+    let start' = makeFloat start state -- evalState (makeFloat start) state
+    let step'  = makeFloat step state   -- evalState (makeFloat step) state
+    let stop'  = makeFloat end state   -- evalState (makeFloat stop) state
+    evalFor var  start' step' stop' (concat $ map snd commands) True
     
    where
       evalFor var' start step end commands isFirst = do
@@ -257,6 +281,26 @@ evalCommand (Return) = do
 --getConstant (TkIntConst x) = x
 --getConstant (TkFloatConst x) = -1
 
+
+myGetChar :: IO String
+myGetChar = do
+          ch <- getChar
+          return [ch]
+
+listInsert :: [Var] -> IO String -> PState ()
+listInsert [] _ = return ()
+listInsert (x:xs) ioAct = do
+    val <- liftIO $ ioAct
+
+    case x of
+      StringVar_Var _         -> updateStringVar x val
+      NumVar_Var (IntVar _)   -> updateIntVar x (read val)
+      NumVar_Var (FloatVar _) -> updateFloatVar x (read val)
+                       
+    listInsert xs ioAct
+
+
+{-
 evalBoolExpression :: BoolExpr -> ProgramState -> Bool 
 evalBoolExpression (BoolExprNum (numExpr1,numExpr2) strOp) state = 
     evalBoolFunc strOp (evalExpression numExpr1 state) (evalExpression numExpr2 state) 
@@ -264,6 +308,41 @@ evalBoolExpression (BoolExprString (strExpr1,strExpr2) strOp) state =
     evalBoolFunc strOp (evalStringExpression strExpr1 state) (evalStringExpression strExpr2 state)
 evalBoolExpression (BoolExprLog (boolExpr1,boolExpr2) strOp) state = 
     evalBoolLogic strOp (evalBoolExpression boolExpr1 state) (evalBoolExpression boolExpr2 state)
+-}
+
+
+evalBoolExpression :: BoolExpr -> ProgramState -> (Bool,ProgramState) 
+evalBoolExpression (BoolExprNum (numExpr1,numExpr2) strOp) state = 
+    let 
+       (val1,nstate1) = evalExpression numExpr1 state 
+       (val2,nstate2) = evalExpression numExpr2 nstate1
+    in (evalBoolFunc strOp val1 val2,nstate2)
+evalBoolExpression (BoolExprString (strExpr1,strExpr2) strOp) state = 
+    (evalBoolFunc strOp (evalStringExpression strExpr1 state) (evalStringExpression strExpr2 state),state)
+evalBoolExpression (BoolExprLog (boolExpr1,boolExpr2) strOp) state = 
+    let
+       (val1,nstate1) = evalBoolExpression boolExpr1 state 
+       (val2,nstate2) = evalBoolExpression boolExpr2 nstate1
+    in (evalBoolLogic strOp val1 val2,nstate2)
+
+
+{-
+evalBoolExpression :: BoolExpr -> PState Bool 
+evalBoolExpression (BoolExprNum (numExpr1,numExpr2) strOp) = do
+    state <- get
+    let (nstate,res1) = runState (evalExpression numExpr1) state
+    let (nstate',res2) = runState (evalExpression numExpr2) state
+    put nstate'
+    return $ evalBoolFunc strOp res1 res2
+evalBoolExpression (BoolExprString (strExpr1,strExpr2) strOp) = 
+    return $ evalBoolFunc strOp (evalStringExpression strExpr1 state) (evalStringExpression strExpr2 state)
+evalBoolExpression (BoolExprLog (boolExpr1,boolExpr2) strOp) = do
+    state <- get
+    let (nstate,res1) = runState (evalBoolExpression boolExpr1) state
+    let (nstate',res2) = runState (evalBoolExpression boolExpr2) state
+    put nstate'
+    return $ evalBoolLogic strOp res1 res2
+-}
 
 
 -- Union both following Functions ??

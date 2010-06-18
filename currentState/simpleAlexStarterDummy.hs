@@ -1,7 +1,7 @@
---import BasicAlex
-import BasicAlexMonad
+import BasicAlex
+--import BasicAlexMonad
 
 main = do
         con <- getContents 
-        --print (alexScanTokens con)
-        print (scanner con)
+        print (alexScanTokens con)
+        --print (scanner con)

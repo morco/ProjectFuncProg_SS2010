@@ -55,6 +55,12 @@ import Data.Char
 
       return          { TkReturn }
       gosub           { TkGoSub }
+
+      end             { TkEnd }
+      
+      rand             { TkRandom }
+      get             { TkGet }
+      intfunc             { TkIntFunc }
 %%
 
 
@@ -76,6 +82,7 @@ Command             : IOCommand                                      {Command $1
 --               | next Var                       {NOOP}
                     | Assignment                                     {$1}
                     | return                                     {Return}
+                    | end                                        {End}
 
 
 Assignment          : NumVar "=" NumExpr                             {ArithAssignment $1 $3}
@@ -90,6 +97,9 @@ BasicString         : stringLiteral                                  {StringLite
 
 NumFunction         : len "(" stringLiteral ")"                      {Len $3}
                     | len "(" stringVar ")"                          {LenVar (StringVar $3)}
+                    | rand "(" int ")"                               {Random ((\(TkIntConst x) -> x)$3)} 
+                                                                        -- TODO: Argument
+                    | intfunc "(" NumExpr ")"                        {IntFunc $3} 
 
 
 NumExpr             : NumExpr NumOperationsLev2 Term                 {NumExpr ($1,$3) $2}
@@ -110,6 +120,7 @@ Term                : Term NumOperationsLev1 Factor          {NumExpr ($1,$3) $2
 
 Factor              : Operand                    {NumOp $1}
                     | "(" NumExpr ")"            {$2}
+                    |  NumFunction               {NumFunc $1}
 
 Operand             : NumVar                                         {OpVar $1}
                     | int                                            {makeArithOperandConstant $1}
@@ -148,6 +159,7 @@ Constant            : int                                            {$1}
 IOCommand           : print Output                                   {Print $2}
                     | print                                          {Print ([], True)}
                     | input Input                                    {Input $2}
+                    | get Var                                  {Get $2}
 
 
 Output              : stringLiteral                                  {([OutString $1], True)}
@@ -191,6 +203,7 @@ data Command
       | ArithAssignment NumVar NumExpr
       | StringAssignment StringVar StringExpr
       | Return
+      | End
       deriving Show
 
 data StringExpr
@@ -207,6 +220,8 @@ data BasicString
 data NumFunction
       = Len String
       | LenVar StringVar
+      | Random Int
+      | IntFunc NumExpr
       deriving Show
 
 
@@ -228,6 +243,7 @@ data BoolExpr
 data IOCommand 
       = Print ([Output], Bool)
       | Input (InputStuff, Bool)
+      | Get Var
       deriving Show
 
 data Output

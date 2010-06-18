@@ -24,7 +24,9 @@ $varOrRW_PreContext = [$white \; : \( \)]
                                                      --   so further processing is handled by myself 
  @string = \" [. # \"]* \"                            -- " 
 --@string = [. # \"]*                             -- " 
-@varOrRW_PostContext = ($white+ | \; | \) | \()
+@varOrRW_PostContext = ($white+ | \; | \) | \( | \= ) -- bin mir nicht mehr ganz sicher, warum ich dachte, dass 
+                                                      -- ich den brauche, aber aktuell scheint es nicht noetig 
+                                                      -- und er ist eher hinderlich als nuetzlich 
 @intVar = @varOrResWord \%
 @stringVar = @varOrResWord \$
 
@@ -50,9 +52,12 @@ tokens :-
   $digit+                                                   {\s -> TkConst (TkIntConst (read s))}
   ~$digit \. $digit+                                        {\s -> TkConst (TkFloatConst (read ("0"++s)))}
 --  $digit+\.$digit+                                          {\s -> TkConst (TkFloatConst (read s))}
-  $varOrRW_PreContext ^ @varOrResWord  /  @varOrRW_PostContext          {\s -> buildVarOrResWord s }
+  --$varOrRW_PreContext ^ @varOrResWord  /  @varOrRW_PostContext          {\s -> buildVarOrResWord s }
+  --$varOrRW_PreContext ^ @varOrResWord            {\s -> buildVarOrResWord s }
+  @varOrResWord            {\s -> buildVarOrResWord s }
   $varOrRW_PreContext ^ @intVar  /  @varOrRW_PostContext          {\s -> TkIntVar s }
-  $varOrRW_PreContext ^ @stringVar  /  @varOrRW_PostContext          {\s -> TkStringVar s }
+  --$varOrRW_PreContext ^ @stringVar  /  @varOrRW_PostContext          {\s -> TkStringVar s }
+  $varOrRW_PreContext ^ @stringVar            {\s -> TkStringVar s }
   @string                                                   {\s -> buildString s '"'}
 --  [\"]^ @string / \"                                                  {\s -> TkString s}
 --------------------------</Strings, Number, Vars and Reserved Words> -------------------------------------
@@ -68,6 +73,7 @@ tokens :-
 
 
 ------------------------------------ <Compare Operators> --------------------------------------------------
+--  [.]^ \= /.*                                               {\s -> TkEqual}
   \=                                                        {\s -> TkEqual}
   \<\>                                                      {\s -> TkUnEqual}
   \<                                                        {\s -> TkLt}
@@ -158,6 +164,12 @@ data Token
 
      | TkReturn
      | TkGoSub
+     
+     | TkEnd
+     
+     | TkGet
+     | TkRandom
+     | TkIntFunc
 
    deriving (Eq,Show)
 
@@ -214,6 +226,10 @@ buildResWord str =
           | str == "and"  = [TkLogAnd]
           | str == "return"  = [TkReturn]
           | str == "gosub"  = [TkGoSub]
+          | str == "end"  = [TkEnd]
+          | str == "get"  = [TkGet]
+          | str == "rnd"  = [TkRandom]
+          | str == "int"  = [TkIntFunc]
           | otherwise      = [] 
 
                 

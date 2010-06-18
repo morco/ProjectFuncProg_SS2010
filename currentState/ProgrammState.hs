@@ -5,6 +5,7 @@ import BasicHap( Var(..), Command(..), NumVar(..))
 import qualified Data.Map as M
 import Control.Monad.State
 
+import Random
 
 ------------------------------------------------- </Imports> -----------------------------------------------------
 
@@ -27,13 +28,16 @@ data ProgramState =
          floatVars  :: (M.Map Var Float),
          completeProgram :: Program,
          nextPos :: Int,
-         backJumpAdressStack :: [Int]
+         backJumpAdressStack :: [Int],
+         progFinished :: Bool,
+         randomNumbers :: [Float]
       } deriving Show
 
 
 
 ------------------------------------------------ </Data types> ---------------------------------------------------
 
+-- TODO: make Seed variable
 
 ---------------------------------------------------- <Main> ------------------------------------------------------
 
@@ -44,12 +48,25 @@ getNewState parseTree = ProgramState {
                                 floatVars  = M.empty,
                                 completeProgram = parseTree,
                                 nextPos = 0,
-                                backJumpAdressStack = []
+                                backJumpAdressStack = [],
+                                progFinished = False,
+                                randomNumbers = randoms (mkStdGen 1)
                               }
 
 
 --------------------------------------------------- </Main> ------------------------------------------------------
 
+{-
+getNextRandomNumber = do
+    state <- get
+    dropWhile ((==) 0) randomNumbers state
+  where 
+    nextNumberNotNull [] = error "random val list empty!"
+    nextNumberNotNull (x:xs) = 
+        if x /= 0 
+          then x
+          else nextNumberNotNull xs-}
+            
 
 initState :: PState ()
 initState = do
