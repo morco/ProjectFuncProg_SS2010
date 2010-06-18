@@ -20,7 +20,9 @@ data ProgramState =
          floatVars  :: (M.Map Var Float),
          --completeProgram :: [(Int, [Command])],
          completeProgram :: Program,
-         nextPos :: Int
+         --currentLine :: Int,
+         nextPos :: Int,
+         backJumpAdressStack :: [Int]
       }
 
 
@@ -37,7 +39,9 @@ getNewState parseTree = ProgramState {
                                 intVars    = M.empty, 
                                 floatVars  = M.empty,
                                 completeProgram = parseTree,
-                                nextPos = 0
+                                --currentLine = 0,
+                                nextPos = 0,
+                                backJumpAdressStack = []
                               }
 
 
@@ -106,7 +110,7 @@ updateStringVar var val = do
 
 type PState a = StateT ProgramState IO a
 
-
+{-
 --testmain :: State ProgramState ()
 testmain :: StateT ProgramState IO ()
 testmain = do
@@ -121,5 +125,6 @@ testmain = do
 --f :: State ProgramState Int
 f = do
 	s <- get
-	return (nextPos s)	
+	return (nextPos s)	-}
+
 

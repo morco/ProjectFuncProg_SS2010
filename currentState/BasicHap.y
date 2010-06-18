@@ -118,7 +118,7 @@ ControlStruct       : if BoolExpr then IfBody                        {If $2 $4}
                     | if BoolExpr IfBody                             {If $2 $3}
                     | for NumVar "=" Operand to Operand step Operand SyntaxTree {For $2 ($4,$8,$6) $9} -- step auch var??
                     | for NumVar "=" Operand to Operand SyntaxTree   {For $2 ($4,(makeArithOperandConstant (TkIntConst 1)),$6) $7} 
-                    | gosub int SyntaxTree          {GoSub ((\(TkIntConst x) -> x)$2) $3}
+                    | gosub int           {GoSub ((\(TkIntConst x) -> x)$2)}
 
 IfBody              : int                                            {[Goto ((\(TkIntConst x) -> x)$1)]}
 --IfBody              : Commands                                       {$1} --  <--- verursacht shift/red conflicts
@@ -213,7 +213,8 @@ data NumFunction
 data ControlStruct
       = If BoolExpr [Command]
       | For NumVar (Operand,Operand,Operand) [(Int,[Command])]
-      | GoSub Int [(Int,[Command])] 
+--    | GoSub Int [(Int,[Command])] 
+      | GoSub Int 
 -- Ruecksprungpunkt ist ja schon durch die ZeilenNr des gosub Befehls gegeben, und muss eigentlich nicht nochmal extra aufgeschrieben werden
       deriving Show
 

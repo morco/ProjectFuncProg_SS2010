@@ -69,6 +69,8 @@ main = do
 interpret :: Program -> PState ()
 interpret [] = return ()
 interpret ((lnNr,commands):xs) = do
+    --state <- get
+    --put $ state { currentLine = lnNr }
     updateStateNextPos xs 
     newState1 <- get
     evalAllCommands commands
@@ -236,8 +238,18 @@ evalCommand (ControlStructure (For var (start,step,end) commands)) = do
               evalFor var' start step end commands False
      
 
+evalCommand (ControlStructure (GoSub lnNr)) = do
+    state <- get
+    --put $ state { backJumpAdressStack = (currentLine state) : (backJumpAdressStack state) }
+    put $ state { backJumpAdressStack = (nextPos state) : (backJumpAdressStack state) }
+    evalCommand (Goto lnNr)
 
 
+evalCommand (Return) = do
+    state <- get
+    let backJumpPoint = head $ backJumpAdressStack state
+    put $ state { backJumpAdressStack = tail $ backJumpAdressStack state }
+    evalCommand (Goto backJumpPoint)
 
 
 --getConstant (TkIntConst x) = read (show x)
