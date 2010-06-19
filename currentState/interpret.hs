@@ -1,6 +1,7 @@
 ------------------------------------------------- <Imports> ------------------------------------------------------
 
-import BasicHap
+--import BasicHap
+import BasicHapMonad
 import IO
 import System ( getArgs )
 import qualified Data.Map as M

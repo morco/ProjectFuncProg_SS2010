@@ -1,7 +1,7 @@
 {
 
---module BasicAlex( alexScanTokens, Token(..), Constant(..), Var(..)) where
-module BasicAlex( alexScanTokens, Token(..), Constant(..)) where
+--module BasicAlex( alexScanTokens, Token(..), Constant(..)) where
+module BasicAlexMonad where
 
 import Data.List
 import Data.Char
@@ -12,7 +12,6 @@ import Data.Char
 --   -> Make Strings in Strings and more than one String per Line work together
 --   -> end delimiter strings directly over context (really useful?)
 
---%wrapper "basic"
 %wrapper "monad"
 
 $digit = 0-9			-- digits
@@ -25,17 +24,19 @@ $varOrRW_PreContext = [$white \; : \( \)]
                                                      --   so further processing is handled by myself 
  @string = \" [. # \"]* \"                            -- " 
 --@string = [. # \"]*                             -- " 
-@varOrRW_PostContext = ($white+ | \; | \) | \()
+@varOrRW_PostContext = ($white+ | \; | \) | \( | \= ) -- bin mir nicht mehr ganz sicher, warum ich dachte, dass 
+                                                      -- ich den brauche, aber aktuell scheint es nicht noetig 
+                                                      -- und er ist eher hinderlich als nuetzlich 
 @intVar = @varOrResWord \%
 @stringVar = @varOrResWord \$
 
 tokens :-
 
 ---------------------------------------- <Ignores> --------------------------------------------------------
---  $white+				                    ;
---  [. # \n]^ "REM".*				            ;  -- Commentary (whole line)
---  ^ $digit+ $white+ "REM".*				    ;  -- Commentary (line part)
---  "--".*                                                    ;  -- Unoff comments (for debugging)
+  $white+				                    ;
+  [. # \n]^ "REM".*				            ;  -- Commentary (whole line)
+  ^ $digit+ $white+ "REM".*				    ;  -- Commentary (line part)
+  "--".*                                                    ;  -- Unoff comments (for debugging)
 ---------------------------------------- </Ignores> -------------------------------------------------------
 
 
@@ -44,31 +45,36 @@ tokens :-
 --  before the Number expression to make sure, to be not mistaken
 --  ^ $white* $digit+ 				                    {\s -> TkLineNumber (read s)}
 --  ^ $digit+ 				                    {\s -> TkLineNumber (read s)}
+  ^ $digit+ 				         {\inp len -> wrapMonadic inp len (TkLineNumber . read)}
 -------------------------------- </Additional Stuff> ------------------------------------------------------
+
+
 
 
 --------------------------<Strings, Number, Vars and Reserved Words> --------------------------------------
 --  $digit+                                                   {\s -> TkConst (TkIntConst (read s))}
 --  ~$digit \. $digit+                                        {\s -> TkConst (TkFloatConst (read ("0"++s)))}
 --  $digit+\.$digit+                                          {\s -> TkConst (TkFloatConst (read s))}
---  $varOrRW_PreContext ^ @varOrResWord  /  @varOrRW_PostContext          {\s -> buildVarOrResWord s }
---  $varOrRW_PreContext ^ @intVar  /  @varOrRW_PostContext          {\s -> TkIntVar s }
---  $varOrRW_PreContext ^ @stringVar  /  @varOrRW_PostContext          {\s -> TkStringVar s }
---  @string                                                   {\s -> buildString s '"'}
---  [\"]^ @string / \"                                                  {\s -> TkString s}
+  
+  @varOrResWord               {\inp len -> wrapMonadic inp len buildVarOrResWord }
+
+  @intVar            {\inp len -> wrapMonadic inp len TkIntVar }
+  @stringVar         {\inp len -> wrapMonadic inp len TkStringVar }
+  @string                                        {\inp len -> wrapMonadic inp len (flip buildString '"') }
 --------------------------</Strings, Number, Vars and Reserved Words> -------------------------------------
 
 
 ---------------------------------------- <Combinators> ----------------------------------------------------
 -- the section before "^" and after "/" means context (Streamcontent before and after matching expression)
 --   seems necessary here because something like this is possible : "";Var;""
---  [.]^ \; /.*                                               {\s -> TkStringConcat }
---  \,                                                        {\s -> TkStringConcatWithTab}
+  [.]^ \; /.*                   {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) }
+  \,                            {\inp len -> wrapMonadic inp len (\s -> TkKomma)}
 --  :                                                         {\s -> TkSingleLineCommandCombinator}
 ---------------------------------------- </Combinators> ---------------------------------------------------
 
 
 ------------------------------------ <Compare Operators> --------------------------------------------------
+--  [.]^ \= /.*                                               {\s -> TkEqual}
 --  \=                                                        {\s -> TkEqual}
 --  \<\>                                                      {\s -> TkUnEqual}
 --  \<                                                        {\s -> TkLt}
@@ -78,6 +84,9 @@ tokens :-
 ------------------------------------ </Compare Operators> -------------------------------------------------
 
 --  \+                               {\s -> TkPlus}
+--  \-      {\s -> TkMinus }
+--  \*      {\s -> TkTimes }
+--  \/      {\s -> TkDiv }
 --  \(                               {\s -> TkBracketOpen }
 --  \)                               {\s -> TkBracketClose }
 
@@ -87,8 +96,6 @@ tokens :-
 ----------------------------------------- </Aliases> ------------------------------------------------------
 
 
-$white+  {skip}
-[A-Za-z0-9\'\-]+	{ word }
 
 {
 
@@ -119,7 +126,8 @@ data Token
 ------ <Combinators> ---------------
 
      | TkSingleLineCommandCombinator
-     | TkStringConcatWithTab    
+     -- | TkStringConcatWithTab    
+     | TkKomma  
      | TkStringConcat           
 
 ------ </Combinators> ---------------
@@ -136,6 +144,9 @@ data Token
 ------ </Compare Operators> ---------------
 
      | TkPlus
+     | TkMinus
+     | TkTimes
+     | TkDiv
 
 ------ <Variables, Strings, Numbers> ---------------
 
@@ -152,6 +163,17 @@ data Token
      | TkLogOr
      | TkLogAnd
      | TkLogNeg
+
+     | TkReturn
+     | TkGoSub
+     
+     | TkEnd
+     
+     | TkGet
+     | TkRandom
+     | TkIntFunc
+
+     | TkError
 
    deriving (Eq,Show)
 
@@ -206,25 +228,43 @@ buildResWord str =
           | str == "len"  = [TkLen]
           | str == "or"  = [TkLogOr]
           | str == "and"  = [TkLogAnd]
+          | str == "return"  = [TkReturn]
+          | str == "gosub"  = [TkGoSub]
+          | str == "end"  = [TkEnd]
+          | str == "get"  = [TkGet]
+          | str == "rnd"  = [TkRandom]
+          | str == "int"  = [TkIntFunc]
           | otherwise      = [] 
 
                 
 buildString :: String -> Char -> Token
 buildString str del = TkString (takeWhile ((/=) del) $ tail $ dropWhile ((/=) del) str)
 
-word (_,_,input) len = return (take len input)
 
 -- In this version scanner returns a list of all read tokens
+scanner :: String -> Either String [Token]
 scanner str = runAlex str $ do
   let loop i = do tok <- alexMonadScan;
-                  if tok == "stopped." || tok == "error."
+                  if tok == TkError -- || tok == "error."
                       then return i
                       else do let i' = i++[tok] in i' `seq` loop i'
   loop []
 
-alexEOF = return "stopped."
+--alexEOF = return "stopped."
+alexEOF = return TkError
 
 
+--uneither :: Either a b -> a 
+uneither :: Either String b -> b 
+uneither (Right x) = x
+uneither (Left _) = error "lex error"
+
+
+getTokens :: String -> [Token]
+getTokens str = uneither $ scanner str
+
+wrapMonadic :: AlexInput -> Int -> (String -> Token) -> Alex Token
+wrapMonadic (_,_,inp) len f = return $ f (take len inp)
 
 
 }

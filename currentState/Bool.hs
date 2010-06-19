@@ -2,7 +2,8 @@ module Bool (evalBoolExpression) where
 
 ------------------------------------------------- <Imports> ------------------------------------------------------
 
-import BasicHap(BoolExpr(..))
+--import BasicHap(BoolExpr(..))
+import BasicHapMonad(BoolExpr(..))
 --import Control.Monad.State
 
 import Strings

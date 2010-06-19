@@ -1,6 +1,7 @@
 module Strings (evalStringExpression) where
 
-import BasicHap ( StringExpr(..), BasicString(..), Var(StringVar_Var))
+--import BasicHap ( StringExpr(..), BasicString(..), Var(StringVar_Var))
+import BasicHapMonad ( StringExpr(..), BasicString(..), Var(StringVar_Var))
 import ProgrammState
 import qualified Data.Map as M
 

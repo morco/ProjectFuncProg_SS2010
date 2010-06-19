@@ -7,7 +7,8 @@ where
 
 ------------------------------------------------- <Imports> ------------------------------------------------------
 
-import BasicHap(NumExpr(..), Var(..), NumVar(..), NumFunction(..), Operand(..))
+--import BasicHap(NumExpr(..), Var(..), NumVar(..), NumFunction(..), Operand(..))
+import BasicHapMonad(NumExpr(..), Var(..), NumVar(..), NumFunction(..), Operand(..))
 import qualified Data.Map as M
 
 import ProgrammState
