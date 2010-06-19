@@ -55,9 +55,11 @@ tokens :-
   --$varOrRW_PreContext ^ @varOrResWord  /  @varOrRW_PostContext          {\s -> buildVarOrResWord s }
   --$varOrRW_PreContext ^ @varOrResWord            {\s -> buildVarOrResWord s }
   @varOrResWord            {\s -> buildVarOrResWord s }
-  $varOrRW_PreContext ^ @intVar  /  @varOrRW_PostContext          {\s -> TkIntVar s }
+  --$varOrRW_PreContext ^ @intVar  /  @varOrRW_PostContext          {\s -> TkIntVar s }
+  @intVar            {\s -> TkIntVar s }
   --$varOrRW_PreContext ^ @stringVar  /  @varOrRW_PostContext          {\s -> TkStringVar s }
-  $varOrRW_PreContext ^ @stringVar            {\s -> TkStringVar s }
+  --$varOrRW_PreContext ^ @stringVar            {\s -> TkStringVar s }
+  @stringVar            {\s -> TkStringVar s }
   @string                                                   {\s -> buildString s '"'}
 --  [\"]^ @string / \"                                                  {\s -> TkString s}
 --------------------------</Strings, Number, Vars and Reserved Words> -------------------------------------
@@ -67,7 +69,8 @@ tokens :-
 -- the section before "^" and after "/" means context (Streamcontent before and after matching expression)
 --   seems necessary here because something like this is possible : "";Var;""
   [.]^ \; /.*                                               {\s -> TkStringConcat }
-  \,                                                        {\s -> TkStringConcatWithTab}
+  --\,                                                        {\s -> TkStringConcatWithTab}
+  \,                                                        {\s -> TkKomma}
   :                                                         {\s -> TkSingleLineCommandCombinator}
 ---------------------------------------- </Combinators> ---------------------------------------------------
 
@@ -125,7 +128,8 @@ data Token
 ------ <Combinators> ---------------
 
      | TkSingleLineCommandCombinator
-     | TkStringConcatWithTab    
+     -- | TkStringConcatWithTab    
+     | TkKomma  
      | TkStringConcat           
 
 ------ </Combinators> ---------------

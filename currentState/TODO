@@ -5,7 +5,7 @@ Typen ordentlich:
 Wenn möglich Datenstruktur flatten, scheint mir unglaublich viel zu kompliziert tief verschachtelt, auch wenn ich aktuell nicht weis, wie es besser gehen sollte
 
 für if:
-   Klammerung erlauben, or, and ...
+   Klammerung aller möglichen Art + beliebig Verschachtelte BoolAusdrücke + Neg
 
 Arithmetische Grammatik (beliebig geschachtelte Audsdrücke, Operatoren mit unterschiedlicher Priorität)
   - dazu beachte, dass es in C64 Basic es vorgefertigte Exponentation gibt (mit einem nicht ASCII kompatiblem Symbol, ohoh!)

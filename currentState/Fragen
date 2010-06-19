@@ -26,3 +26,7 @@ Wenn Init var in Zeile 100, und dann goto Zeile 30, ist dann var noch da?
 90 goto 40
 
 ???
+
+
+String vergleich mit numerical ?
+

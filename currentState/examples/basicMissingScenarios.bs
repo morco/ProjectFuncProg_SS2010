@@ -3,7 +3,8 @@
 
 30 print "Zurück in die Zukunft!!"
 
-80 input l$                                     REM -- TODO: left !!
+80 input l$                                     
+90 input d$                                     
 -- 90 REM l$ = left$(q$, 1)                                    REM -- TODO: left !!
-100 if (l$ = "J") or (l$ = "j") then goto 30
+100 if ((l$ = "J") or (l$ = "j")) and (d$ = bla) then goto 30
 

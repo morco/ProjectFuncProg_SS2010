@@ -1,4 +1,4 @@
------------------------------------------------------ <Imports> ------------------------------------------------------
+------------------------------------------------- <Imports> ------------------------------------------------------
 
 import BasicHap
 import IO
@@ -10,28 +10,12 @@ import Control.Monad.State
 import Strings
 import ProgrammState
 import Nums
+import Bool
 
------------------------------------------------------ </Imports> -----------------------------------------------------
-
-
-
----------------------------------------------------- <Data types> ----------------------------------------------------
-{-
--- This type is for recording the state of the programm, which means currently the values of the variables
-data State =
-      State {
-         stringVars :: (M.Map Var String),
-         intVars    :: (M.Map Var Int),
-         floatVars  :: (M.Map Var Float),
-         completeProgramm :: [(Int, [Command])],
-         nextPos :: Int
-      }
--}
-
----------------------------------------------------- </Data types> ---------------------------------------------------
+------------------------------------------------- </Imports> -----------------------------------------------------
 
 
--------------------------------------------------------- <Main> ------------------------------------------------------
+---------------------------------------------------- <Main> ------------------------------------------------------
 
 -- TODO: 
 --    -> Speed it up, awfully slow even for very small examples
@@ -44,37 +28,36 @@ data State =
 --            -> interprete
 
 main = do
-        hSetBuffering stdout NoBuffering  -- needed to have output and getLine in the same line   
-        hSetBuffering stdin NoBuffering  -- needed to have output and getLine in the same line   
+    hSetBuffering stdout NoBuffering  -- needed to have output and getLine in the same line   
+    hSetBuffering stdin NoBuffering  -- needed for getChar to read at once   
 
-        args <- getArgs
-        handle <- openFile (head args) ReadMode
-        contents <- hGetContents handle
-        let pTree = getParseTree contents
-        let state = getNewState pTree
-        {-let state = State { 
-                       stringVars = M.empty, 
-                       intVars    = M.empty, 
-                       floatVars  = M.empty,
-                       completeProgramm = pTree,
-                       nextPos = 0
-                     }
--}
-       -- interpret pTree state
-        runStateT (initState >> interpret pTree ) state
-        hClose handle
+    args <- getArgs
+    handle <- openFile (head args) ReadMode
+    contents <- hGetContents handle
+    let pTree = getParseTree contents
+    let state = getNewState pTree
+    runStateT (initState >> interpret pTree ) state
+    hClose handle
 
-------------------------------------------------------- </Main> ------------------------------------------------------
+--------------------------------------------------- </Main> ------------------------------------------------------
 
-
+-- The main interpret function, works on a Program, which means a list of pairs linenumbers with a list of commands
+--  Because commands like goto and end can change the program flow end even let terminate the program at once,
+--   there have to be some checkings done here, which works like this:
+--     1. Update the nextPos of state, which is in the normal case the following line in the program list 
+--         (Caution, this means not, it has the line number + 1 !)
+--     2. Evaluate all commands of the current line
+--     3. Check if a command set the program finished flag true, if so, terminate at once
+--     4. Check if a command changed the nextPos pointer, if set the current working program list to this position,
+--         else, go on normally
 interpret :: Program -> PState ()
 interpret [] = return ()
 interpret ((lnNr,commands):xs) = do
     state <- get
-    --put $ state { currentLine = lnNr }
     updateStateNextPos xs 
     newState1 <- get
-    evalAllCommands commands
+    --evalAllCommands commands
+    mapM_ evalCommand commands
     newState2 <- get
     if (progFinished newState2)
       then
@@ -88,17 +71,18 @@ interpret ((lnNr,commands):xs) = do
             let newList = dropWhile (\(a,_) -> a /= realNextPos) (completeProgram newState2) in
             interpret newList                 
 
-
-
+{-
+-- well a simple map should do it
 evalAllCommands :: [Command] -> PState ()
 evalAllCommands [] = return ()
 evalAllCommands (x:xs) = evalCommand x >> evalAllCommands xs 
+-}
 
-
+-- This Function handles the hole work, it evaluates all commands in their right way
 -- TODO: 
---     -> action is very, very ugly!!! (Generalizing things seems possible)
+--     -> action is very, very ugly!!! (Generalizing things seems possible
 evalCommand :: Command -> PState ()
-evalCommand (Command (Input ((InputStuff lsComment var), printLn))) = do 
+evalCommand (Command (Input ((InputStuff lsComment vars), printLn))) = do 
     liftIO $ case lsComment of
                []  -> return ()
                [x] -> if printLn
@@ -107,8 +91,9 @@ evalCommand (Command (Input ((InputStuff lsComment var), printLn))) = do
                          else
                            putStr x
                      
-    let vars = [var]
-    listInsert vars (putStr "? " >> getLine)
+    --let vars = [var]
+    --listInsert vars (putStr "? " >> getLine)
+    mapM_ (flip insertIOValue (putStr "? " >> getLine)) vars
 
 {-    where
          -- TODO: input seems to have only one var at max, so maybe simplify
@@ -127,10 +112,9 @@ evalCommand (Command (Input ((InputStuff lsComment var), printLn))) = do
 
 
 evalCommand (Command (Get var)) = do 
-    let vars = [var]
-    --listInsert vars (putStr "? " >> getChar)
-    listInsert vars (putStr "? " >> myGetChar)
-    --listInsert vars (putStr "? " >> getLine)
+    --let vars = [var]
+    --listInsert vars (putStr "? " >> myGetChar)
+    insertIOValue var (putStr "? " >> myGetChar)
 
 evalCommand (Command (Print (list, printLn))) = do 
    -- ka, wie es so gehen wuerde, weil igrendwie muesste man da ja den Value daraus haben, und nicht den STate
@@ -159,14 +143,18 @@ evalCommand (Command (Print (list, printLn))) = do
           restString <- "holevalfunc" (buildOutString xs)
           return (stringVal ++ restString) -}
     state <- get
+    let printStr = foldl (++) "" $ map (flip buildOutString state) list
     liftIO $ if printLn
                then
-                 putStrLn (buildOutString list state)
+                 --putStrLn (buildOutString list state)
+                 putStrLn printStr
                else
-                 putStr (buildOutString list state)
-    return ()
+                 --putStr (buildOutString list state)
+                 putStr printStr
+    --return ()
     
     where
+      {-
       buildOutString :: [Output] -> ProgramState -> String
       buildOutString [] _ = ""
       buildOutString ((OutString x):xs) state = x ++ (buildOutString xs state)
@@ -177,17 +165,25 @@ evalCommand (Command (Print (list, printLn))) = do
                   NumVar_Var (IntVar _)    -> show $ getMapVal $ M.lookup x (intVars state)
                   NumVar_Var (FloatVar _)  -> show $ getMapVal $ M.lookup x (floatVars state)
           in
-          stringVal ++ (buildOutString xs state)
+          stringVal ++ (buildOutString xs state)-}
+
+      buildOutString :: Output -> ProgramState -> String
+      buildOutString (OutString x) _ = x 
+      buildOutString (OutVar x) state =                                      
+                case x of
+                  StringVar_Var _          ->        getMapVal $ M.lookup x (stringVars state) 
+                  NumVar_Var (IntVar _)    -> show $ getMapVal $ M.lookup x (intVars state)
+                  NumVar_Var (FloatVar _)  -> show $ getMapVal $ M.lookup x (floatVars state)
 
 
 evalCommand NOOP = return ()            
 
-
+-- end is not right this way, cause in c64 a program can be resumed
 evalCommand End = do
     state <- get
     put $ state { progFinished = True }           
 
-
+-- TODO: jumping to a wrong number should kill the program, maybe check this by parsing ??
 evalCommand (Goto nr) = do
     state <- get
     put $ state { nextPos = nr }      
@@ -201,7 +197,8 @@ evalCommand (ControlStructure (If boolExpr commands)) = do
     put nstate
     if bVal
       then
-        evalAllCommands commands
+        --evalAllCommands commands
+        mapM_ evalCommand commands
       else
         return ()
                                       
@@ -255,7 +252,8 @@ evalCommand (ControlStructure (For var (start,step,end) commands)) = do
             then
               return ()
             else do
-              evalAllCommands commands
+              --evalAllCommands commands
+              mapM_ evalCommand commands
               case var of
                 NumVar_Var (FloatVar _ ) -> updateFloatVar var (varVal + step)
                 NumVar_Var (IntVar _ )   -> updateIntVar var (truncate (varVal + step))
@@ -284,9 +282,10 @@ evalCommand (Return) = do
 
 myGetChar :: IO String
 myGetChar = do
-          ch <- getChar
-          return [ch]
+    ch <- getChar
+    return [ch]
 
+{-
 listInsert :: [Var] -> IO String -> PState ()
 listInsert [] _ = return ()
 listInsert (x:xs) ioAct = do
@@ -298,68 +297,16 @@ listInsert (x:xs) ioAct = do
       NumVar_Var (FloatVar _) -> updateFloatVar x (read val)
                        
     listInsert xs ioAct
-
-
-{-
-evalBoolExpression :: BoolExpr -> ProgramState -> Bool 
-evalBoolExpression (BoolExprNum (numExpr1,numExpr2) strOp) state = 
-    evalBoolFunc strOp (evalExpression numExpr1 state) (evalExpression numExpr2 state) 
-evalBoolExpression (BoolExprString (strExpr1,strExpr2) strOp) state = 
-    evalBoolFunc strOp (evalStringExpression strExpr1 state) (evalStringExpression strExpr2 state)
-evalBoolExpression (BoolExprLog (boolExpr1,boolExpr2) strOp) state = 
-    evalBoolLogic strOp (evalBoolExpression boolExpr1 state) (evalBoolExpression boolExpr2 state)
 -}
 
 
-evalBoolExpression :: BoolExpr -> ProgramState -> (Bool,ProgramState) 
-evalBoolExpression (BoolExprNum (numExpr1,numExpr2) strOp) state = 
-    let 
-       (val1,nstate1) = evalExpression numExpr1 state 
-       (val2,nstate2) = evalExpression numExpr2 nstate1
-    in (evalBoolFunc strOp val1 val2,nstate2)
-evalBoolExpression (BoolExprString (strExpr1,strExpr2) strOp) state = 
-    (evalBoolFunc strOp (evalStringExpression strExpr1 state) (evalStringExpression strExpr2 state),state)
-evalBoolExpression (BoolExprLog (boolExpr1,boolExpr2) strOp) state = 
-    let
-       (val1,nstate1) = evalBoolExpression boolExpr1 state 
-       (val2,nstate2) = evalBoolExpression boolExpr2 nstate1
-    in (evalBoolLogic strOp val1 val2,nstate2)
+insertIOValue :: Var -> IO String -> PState ()
+insertIOValue x ioAct = do
+    val <- liftIO $ ioAct
 
-
-{-
-evalBoolExpression :: BoolExpr -> PState Bool 
-evalBoolExpression (BoolExprNum (numExpr1,numExpr2) strOp) = do
-    state <- get
-    let (nstate,res1) = runState (evalExpression numExpr1) state
-    let (nstate',res2) = runState (evalExpression numExpr2) state
-    put nstate'
-    return $ evalBoolFunc strOp res1 res2
-evalBoolExpression (BoolExprString (strExpr1,strExpr2) strOp) = 
-    return $ evalBoolFunc strOp (evalStringExpression strExpr1 state) (evalStringExpression strExpr2 state)
-evalBoolExpression (BoolExprLog (boolExpr1,boolExpr2) strOp) = do
-    state <- get
-    let (nstate,res1) = runState (evalBoolExpression boolExpr1) state
-    let (nstate',res2) = runState (evalBoolExpression boolExpr2) state
-    put nstate'
-    return $ evalBoolLogic strOp res1 res2
--}
-
-
--- Union both following Functions ??
-evalBoolLogic :: String -> Bool -> Bool -> Bool
-evalBoolLogic str arg1 arg2
-       | str == "||" = arg1 || arg2
-       | str == "&&" = arg1 && arg2
---       | str == "neg"
-
-
-evalBoolFunc :: (Ord a) => String -> a -> a -> Bool
-evalBoolFunc str arg1 arg2
-        | str == "==" = arg1 == arg2
-        | str == "/=" = arg1 /= arg2
-        | str == "<" = arg1 < arg2
-        | str == ">" = arg1 > arg2
-        | str == "<=" = arg1 <= arg2
-        | str == ">=" = arg1 >= arg2
-
+    case x of
+      StringVar_Var _         -> updateStringVar x val
+      NumVar_Var (IntVar _)   -> updateIntVar x (read val)
+      NumVar_Var (FloatVar _) -> updateFloatVar x (read val)
+    
 

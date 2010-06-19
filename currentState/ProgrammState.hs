@@ -5,7 +5,7 @@ import BasicHap( Var(..), Command(..), NumVar(..))
 import qualified Data.Map as M
 import Control.Monad.State
 
-import Random
+import Random(randoms, mkStdGen)
 
 ------------------------------------------------- </Imports> -----------------------------------------------------
 
@@ -22,16 +22,16 @@ type PState a = StateT ProgramState IO a
 
 -- This type is for recording the state of the programm, which means currently the values of the variables
 data ProgramState =
-      ProgramState {
-         stringVars :: (M.Map Var String),
-         intVars    :: (M.Map Var Int),
-         floatVars  :: (M.Map Var Float),
-         completeProgram :: Program,
-         nextPos :: Int,
-         backJumpAdressStack :: [Int],
-         progFinished :: Bool,
-         randomNumbers :: [Float]
-      } deriving Show
+    ProgramState {
+       stringVars :: (M.Map Var String),
+       intVars    :: (M.Map Var Int),
+       floatVars  :: (M.Map Var Float),
+       completeProgram :: Program,
+       nextPos :: Int,
+       backJumpAdressStack :: [Int],
+       progFinished :: Bool,
+       randomNumbers :: [Float]
+    } deriving Show
 
 
 
@@ -42,16 +42,17 @@ data ProgramState =
 ---------------------------------------------------- <Main> ------------------------------------------------------
 
 getNewState :: Program -> ProgramState
-getNewState parseTree = ProgramState { 
-                                stringVars = M.empty, 
-                                intVars    = M.empty, 
-                                floatVars  = M.empty,
-                                completeProgram = parseTree,
-                                nextPos = 0,
-                                backJumpAdressStack = [],
-                                progFinished = False,
-                                randomNumbers = randoms (mkStdGen 1)
-                              }
+getNewState parseTree = 
+    ProgramState { 
+       stringVars = M.empty, 
+       intVars    = M.empty, 
+       floatVars  = M.empty,
+       completeProgram = parseTree,
+       nextPos = 0,
+       backJumpAdressStack = [],
+       progFinished = False,
+       randomNumbers = randoms (mkStdGen 1)
+    }
 
 
 --------------------------------------------------- </Main> ------------------------------------------------------
@@ -66,13 +67,17 @@ getNextRandomNumber = do
         if x /= 0 
           then x
           else nextNumberNotNull xs-}
-            
-
+   
+         
+-- This action is only used to set the nextPos pointer to the right start value at the beginning
 initState :: PState ()
 initState = do
     state <- get
     updateStateNextPos (completeProgram state)
 
+
+-- Set the nextPos pointer to the next line number to execute by peeking in the head of the list.
+--  This relative seemingly unpractical approach is needed, cause commands like goto can change execution order
 updateStateNextPos :: Program -> PState ()
 updateStateNextPos [] = return ()
 updateStateNextPos ((lnNrNext,_):_) = do

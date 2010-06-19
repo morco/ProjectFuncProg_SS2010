@@ -21,7 +21,7 @@ import Data.Char
       lineNr          { TkLineNumber $$ }
       ";"             { TkStringConcat }
       ":"             { TkSingleLineCommandCombinator }
---      ","             { TkStringConcatWithTab } -- <--- TODO!!!
+      ","             { TkKomma } -- <--- TODO!!! use bei print
       if              { TkIf }
       then            { TkThen }
       goto            { TkGoto }
@@ -169,10 +169,12 @@ Output              : stringLiteral                                  {([OutStrin
                     | stringLiteral";" Output                        {((OutString $1):(fst $3), snd ($3))}
                     | Var ";" Output                                 {((OutVar $1):(fst $3), snd ($3))}
 
-Input               : stringLiteral";" Var                           {(InputStuff [$1] $3, False)}
-                    | stringLiteral Var                              {(InputStuff [$1] $2, True)}
-                    | Var                                            {(InputStuff [] $1, False)}
+Input               : stringLiteral";" Vars                           {(InputStuff [$1] $3, False)}
+                    | stringLiteral Vars                              {(InputStuff [$1] $2, True)}
+                    | Vars                                            {(InputStuff [] $1, False)}
 
+Vars                : Var                                            {[$1]}
+                    | Var "," Vars                                   {$1:$3}
 
 Var                 : stringVar                                      {StringVar_Var (StringVar $1)} 
                     | NumVar                                         {NumVar_Var $1}
@@ -252,7 +254,8 @@ data Output
       deriving Show
 
 data InputStuff 
-      = InputStuff [String] Var
+      -- = InputStuff [String] Var
+      = InputStuff [String] [Var]
       deriving Show
 
 data NumExpr
