@@ -1,6 +1,5 @@
 ------------------------------------------------- <Imports> ------------------------------------------------------
 
---import BasicHap
 import BasicHapMonad
 import IO
 import System ( getArgs )
@@ -57,7 +56,6 @@ interpret ((lnNr,commands):xs) = do
     state <- get
     updateStateNextPos xs 
     newState1 <- get
-    --evalAllCommands commands
     mapM_ evalCommand commands
     newState2 <- get
     if (progFinished newState2)
@@ -72,12 +70,6 @@ interpret ((lnNr,commands):xs) = do
             let newList = dropWhile (\(a,_) -> a /= realNextPos) (completeProgram newState2) in
             interpret newList                 
 
-{-
--- well a simple map should do it
-evalAllCommands :: [Command] -> PState ()
-evalAllCommands [] = return ()
-evalAllCommands (x:xs) = evalCommand x >> evalAllCommands xs 
--}
 
 -- This Function handles the hole work, it evaluates all commands in their right way
 -- TODO: 
@@ -92,82 +84,23 @@ evalCommand (Command (Input ((InputStuff lsComment vars), printLn))) = do
                          else
                            putStr x
                      
-    --let vars = [var]
-    --listInsert vars (putStr "? " >> getLine)
     mapM_ (flip insertIOValue (putStr "? " >> getLine)) vars
 
-{-    where
-         -- TODO: input seems to have only one var at max, so maybe simplify
-         listInsert :: [Var] -> IO String -> PState ()
-         listInsert [] _ = return ()
-         listInsert (x:xs) ioAct = do
-             val <- liftIO $ ioAct
-
-             case x of
-               StringVar_Var _         -> updateStringVar x val
-               NumVar_Var (IntVar _)   -> updateIntVar x (read val)
-               NumVar_Var (FloatVar _) -> updateFloatVar x (read val)
-                       
-         listInsert xs ioAct
--}
 
 
-evalCommand (Command (Get var)) = do 
-    --let vars = [var]
-    --listInsert vars (putStr "? " >> myGetChar)
+evalCommand (Command (Get var)) = 
     insertIOValue var (putStr "? " >> myGetChar)
 
 evalCommand (Command (Print (list, printLn))) = do 
-   -- ka, wie es so gehen wuerde, weil igrendwie muesste man da ja den Value daraus haben, und nicht den STate
-   {- liftIO $ if printLn
-               then
-                 putStrLn $ "hvalfunc" (buildOutString list)
-               else
-                 putStr $ "hvalfunc" (buildOutString list)
-    return ()
-    
-    where
-      
-      buildOutString :: ... -> PState String
-      buildOutString [] _ = return ""
-      buildOutString ((OutString x):xs) state = do
-          restString <- "holeValueFunc" (buildOutString xs)
-          return (x ++ restString)
-      buildOutString ((OutVar x):xs) = do  
-          state <- get                            
-          let stringVal = 
-                case x of
-                  StringVar_Var _          ->        getMapVal $ M.lookup x (stringVars state) 
-                  NumVar_Var (IntVar _)    -> show $ getMapVal $ M.lookup x (intVars state)
-                  NumVar_Var (FloatVar _)  -> show $ getMapVal $ M.lookup x (floatVars state)
-          
-          restString <- "holevalfunc" (buildOutString xs)
-          return (stringVal ++ restString) -}
     state <- get
     let printStr = foldl (++) "" $ map (flip buildOutString state) list
     liftIO $ if printLn
                then
-                 --putStrLn (buildOutString list state)
                  putStrLn printStr
                else
-                 --putStr (buildOutString list state)
                  putStr printStr
-    --return ()
     
     where
-      {-
-      buildOutString :: [Output] -> ProgramState -> String
-      buildOutString [] _ = ""
-      buildOutString ((OutString x):xs) state = x ++ (buildOutString xs state)
-      buildOutString ((OutVar x):xs) state =                                      
-          let stringVal = 
-                case x of
-                  StringVar_Var _          ->        getMapVal $ M.lookup x (stringVars state) 
-                  NumVar_Var (IntVar _)    -> show $ getMapVal $ M.lookup x (intVars state)
-                  NumVar_Var (FloatVar _)  -> show $ getMapVal $ M.lookup x (floatVars state)
-          in
-          stringVal ++ (buildOutString xs state)-}
-
       buildOutString :: Output -> ProgramState -> String
       buildOutString (OutString x) _ = x 
       buildOutString (OutVar x) state =                                      
@@ -193,13 +126,9 @@ evalCommand (Goto nr) = do
 
 evalCommand (ControlStructure (If boolExpr commands)) = do
     state <- get
-    --let bVal = evalBoolExpression boolExpr state
-    --let (bVal,nstate) = evalBoolExpression boolExpr state
-    --put nstate
     bVal <- evalBoolExpression boolExpr
     if bVal
       then
-        --evalAllCommands commands
         mapM_ evalCommand commands
       else
         return ()
@@ -208,10 +137,6 @@ evalCommand (ControlStructure (If boolExpr commands)) = do
 
 evalCommand (ArithAssignment var numExpr) = do
     state <- get
-    --let res = evalExpression numExpr state
-    --let (res,nstate) = runState (evalExpression numExpr) state
-    --let (res,nstate) = evalExpression numExpr state
-    --put nstate
     res <- evalExpression numExpr
     case var of
        FloatVar _ -> updateFloatVar (NumVar_Var var) res 
@@ -220,21 +145,16 @@ evalCommand (ArithAssignment var numExpr) = do
 
 
 evalCommand (StringAssignment var stringExpr) = do
-    --state <- get  
     val <- evalStringExpression stringExpr
     updateStringVar (StringVar_Var var) val
     return ()
 
 
 evalCommand (ControlStructure (For var (start,step,end) commands)) = do
-    --state <- get
     -- only reading, should not change state
-    --let start' = makeFloat start state -- evalState (makeFloat start) state
-    --let step'  = makeFloat step state   -- evalState (makeFloat step) state
-    --let stop'  = makeFloat end state   -- evalState (makeFloat stop) state
-    start' <- makeFloat start -- evalState (makeFloat start) state
-    step'  <- makeFloat step    -- evalState (makeFloat step) state
-    stop'  <- makeFloat end    -- evalState (makeFloat stop) state
+    start' <- makeFloat start 
+    step'  <- makeFloat step   
+    stop'  <- makeFloat end   
     evalFor var  start' step' stop' (concat $ map snd commands) True
     
    where
@@ -259,7 +179,6 @@ evalCommand (ControlStructure (For var (start,step,end) commands)) = do
             then
               return ()
             else do
-              --evalAllCommands commands
               mapM_ evalCommand commands
               case var of
                 NumVar_Var (FloatVar _ ) -> updateFloatVar var (varVal + step)
@@ -269,7 +188,6 @@ evalCommand (ControlStructure (For var (start,step,end) commands)) = do
 
 evalCommand (ControlStructure (GoSub lnNr)) = do
     state <- get
-    --put $ state { backJumpAdressStack = (currentLine state) : (backJumpAdressStack state) }
     put $ state { backJumpAdressStack = (nextPos state) : (backJumpAdressStack state) }
     evalCommand (Goto lnNr)
 
@@ -291,20 +209,6 @@ myGetChar :: IO String
 myGetChar = do
     ch <- getChar
     return [ch]
-
-{-
-listInsert :: [Var] -> IO String -> PState ()
-listInsert [] _ = return ()
-listInsert (x:xs) ioAct = do
-    val <- liftIO $ ioAct
-
-    case x of
-      StringVar_Var _         -> updateStringVar x val
-      NumVar_Var (IntVar _)   -> updateIntVar x (read val)
-      NumVar_Var (FloatVar _) -> updateFloatVar x (read val)
-                       
-    listInsert xs ioAct
--}
 
 
 insertIOValue :: Var -> IO String -> PState ()

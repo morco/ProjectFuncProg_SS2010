@@ -1,6 +1,5 @@
 module Strings (evalStringExpression) where
 
---import BasicHap ( StringExpr(..), BasicString(..), Var(StringVar_Var))
 import BasicHapMonad ( StringExpr(..), BasicString(..), Var(StringVar_Var))
 import ProgrammState
 import qualified Data.Map as M
@@ -23,6 +22,7 @@ evalBasicString (StringVar_BString x) = do
     return $ getMapVal $ M.lookup (StringVar_Var x) (stringVars state)
 
 
+evalStringFunc :: String -> String -> String -> String
 evalStringFunc op op1 op2
     | op == "+" = op1 ++ op2
 
