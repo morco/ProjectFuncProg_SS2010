@@ -13,7 +13,7 @@ import qualified Data.Map as M
 
 import ProgrammState
 
---import Control.Monad.State
+import Control.Monad.State
 
 ------------------------------------------------- </Imports> -----------------------------------------------------
 
@@ -39,18 +39,20 @@ evalExpression (NumExpr (op1, op2) op) state =
 -}
 
 
-{-
+
 evalExpression :: NumExpr -> PState Float
 evalExpression (NumFunc x) = evalNumFunc x 
 evalExpression (NumOp x) = makeFloat x 
 evalExpression (NumExpr (op1, op2) op) = do
-    state <- get
-    (val1,nstate) <- liftIO $ runStateT (evalExpression op1) state
+    -- state <- get
+    --(val1,nstate) <- liftIO $ runStateT (evalExpression op1) state
     --let (nstate',val2) = runStateT (evalExpression op2) nstate
     --val1' <- liftIO val1
     --val2' <- liftIO val2
+    val1 <- evalExpression op1
+    val2 <- evalExpression op2
     return $ evalArithFunc op val1 val2 
--}
+
 
 -- Evaluates a numerical expression, which means...
 --    1. For an Operand, make a float value out of it
@@ -62,6 +64,7 @@ evalExpression (NumExpr (op1, op2) op) = do
 --   numbers, maybe more in the future). Maybe it is resonable to put it into state monad but i see not the 
 --    right way to do this at the moment, so at the moment it returns a pair with the result and the maybe 
 --     changed state
+{-
 evalExpression :: NumExpr -> ProgramState -> (Float,ProgramState)
 evalExpression (NumFunc x) state = evalNumFunc x state
 evalExpression (NumOp x) state = (makeFloat x state,state)
@@ -70,16 +73,30 @@ evalExpression (NumExpr (op1, op2) op) state =
        (val1,nstate1) = evalExpression op1 state
        (val2,nstate2) = evalExpression op2 nstate1
     in (evalArithFunc op val1 val2, nstate2) 
-
+-}
 
 -- Takes an operand an makes it to a float value to have an intern unique base, considering type safety
 --  it is maybe not the best way to deal with int values
+{-
 makeFloat :: Operand -> ProgramState -> Float
 makeFloat (OpVar (IntVar x)) state = fromIntegral $ getMapVal $ M.lookup (NumVar_Var (IntVar x)) (intVars state)
 makeFloat (OpVar (FloatVar x)) state = getMapVal $ M.lookup (NumVar_Var (FloatVar x)) (floatVars state)
 makeFloat (IntConst x) _ = fromIntegral x
 makeFloat (FloatConst x) _ = x
+-}
 
+makeFloat :: Operand -> PState Float
+makeFloat (OpVar (IntVar x)) = do
+    state <- get
+    let val = getMapVal $ M.lookup (NumVar_Var (IntVar x)) (intVars state)
+    return $ fromIntegral val
+
+makeFloat (OpVar (FloatVar x)) = do
+    state <- get 
+    return $ getMapVal $ M.lookup (NumVar_Var (FloatVar x)) (floatVars state)
+
+makeFloat (IntConst x) = return $ fromIntegral x
+makeFloat (FloatConst x) = return x
 
 {-
 makeFloat :: Operand -> PState Float
@@ -99,7 +116,7 @@ evalNumFunc (LenVar strVar) state =
     fromIntegral $ length $ getMapVal $ M.lookup (StringVar_Var strVar) (stringVars state)
   -}    
 
-
+{-
 evalNumFunc :: NumFunction -> ProgramState -> (Float,ProgramState) 
 evalNumFunc (LenVar strVar) state = 
     (fromIntegral $ length $ getMapVal $ M.lookup (StringVar_Var strVar) (stringVars state),state)
@@ -107,6 +124,20 @@ evalNumFunc (Random _) state = getNextRandomValue state
 evalNumFunc (IntFunc numExpr) state = 
     let (res,nstate) = evalExpression numExpr state
     in (fromIntegral $ truncate res ,nstate)
+-}
+
+evalNumFunc :: NumFunction -> PState Float
+evalNumFunc (LenVar strVar) = do
+    state <- get
+    let val = getMapVal $ M.lookup (StringVar_Var strVar) (stringVars state)
+    return $ fromIntegral $ length $ val
+
+evalNumFunc (Random _) = getNextRandomValue
+
+evalNumFunc (IntFunc numExpr) = do
+    res <- evalExpression numExpr
+    return $ fromIntegral $ truncate res
+
 
 {-
 evalNumFunc :: NumFunction -> PState Float 
@@ -130,10 +161,18 @@ evalArithFunc str arg1 arg2
 --
 -- Maybe this function belongs in the Programstate module, but because I see currently no good way to put it in
 --  state monad, and also the use is very arithmetical I put it here for the moment
+{-
 getNextRandomValue :: ProgramState -> (Float,ProgramState)
 getNextRandomValue state = 
     let 
        newRandomList = dropWhile ((==) 0) (randomNumbers state)
        newRandNumber = head newRandomList        
     in (newRandNumber,state{ randomNumbers = tail newRandomList })
-
+-}
+getNextRandomValue :: PState Float
+getNextRandomValue = do
+    state <- get
+    let newRandomList = dropWhile ((==) 0) (randomNumbers state)
+    let newRandNumber = head newRandomList        
+    put $ state { randomNumbers = tail newRandomList }
+    return newRandNumber

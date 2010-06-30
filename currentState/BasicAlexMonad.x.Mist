@@ -47,55 +47,55 @@ tokens :-
 --  before the Number expression to make sure, to be not mistaken
 --  ^ $white* $digit+ 				                    {\s -> TkLineNumber (read s)}
 --  ^ $digit+ 				                    {\s -> TkLineNumber (read s)}
-  ^ $digit+  {\inp len -> wrapMonadic inp len (TkLineNumber . read) "LINENUMBER" }
+  ^ $digit+  {\inp len -> wrapMonadic inp len (TkLineNumber {_type = "LINE_NUMBER"}) (\tk s -> tk { contentInt = trace ("nr: " ++ (intercalate "," $ lines s)) $ read s}) }
 -------------------------------- </Additional Stuff> ------------------------------------------------------
 
 
 
 
 --------------------------<Strings, Number, Vars and Reserved Words> --------------------------------------
-  $digit+                      {\inp len -> wrapMonadic inp len (TkConst . TkIntConst . read) "INT_CSTANT"}
+--  $digit+                      {\inp len -> wrapMonadic inp len (TkConst . TkIntConst . read) "INT_CSTANT"}
 --  ~$digit \. $digit+                                        {\s -> TkConst (TkFloatConst (read ("0"++s)))}
 --  $digit+\.$digit+                                          {\s -> TkConst (TkFloatConst (read s))}
   
-  @varOrResWord               {\inp len -> wrapMonadic inp len buildVarOrResWord "FLOAT_VAR or RESERVED_WORD" }
+--  @varOrResWord               {\inp len -> wrapMonadic inp len buildVarOrResWord "FLOAT_VAR or RESERVED_WORD" }
 
-  @intVar            {\inp len -> wrapMonadic inp len TkIntVar "INT_VAR"}
-  @stringVar         {\inp len -> wrapMonadic inp len TkStringVar "STRING_VAR"}
-  @string                     {\inp len -> wrapMonadic inp len (flip buildString '"') "STRING_LITERAL"}
+--  @intVar            {\inp len -> wrapMonadic inp len TkIntVar "INT_VAR"}
+--  @stringVar         {\inp len -> wrapMonadic inp len TkStringVar "STRING_VAR"}
+--  @string                     {\inp len -> wrapMonadic inp len (flip buildString '"') "STRING_LITERAL"}
 --------------------------</Strings, Number, Vars and Reserved Words> -------------------------------------
 
 
 ---------------------------------------- <Combinators> ----------------------------------------------------
 -- the section before "^" and after "/" means context (Streamcontent before and after matching expression)
 --   seems necessary here because something like this is possible : "";Var;""
-  [.]^ \; /.*                   {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) ""}
-  \;                    {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) "STRING_CONCAT ';'"}
-  \,                            {\inp len -> wrapMonadic inp len (\s -> TkKomma) "KOMMA"}
-  :          {\inp len -> wrapMonadic inp len (\s -> TkSingleLineCommandCombinator) "COMMAND_COMBINATOR ':'"}
+--  [.]^ \; /.*                   {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) ""}
+--  \;                    {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) "STRING_CONCAT ';'"}
+--  \,                            {\inp len -> wrapMonadic inp len (\s -> TkKomma) "KOMMA"}
+--  :          {\inp len -> wrapMonadic inp len (\s -> TkSingleLineCommandCombinator) "COMMAND_COMBINATOR ':'"}
 ---------------------------------------- </Combinators> ---------------------------------------------------
 
 
 ------------------------------------ <Compare Operators> --------------------------------------------------
 --  [.]^ \= /.*                                        {\inp len -> wrapMonadic inp len (\s -> TkEqual)}
-  \=                                                 {\inp len -> wrapMonadic inp len (\s -> TkEqual) "="}
-  \<\>                                               {\inp len -> wrapMonadic inp len (\s -> TkUnEqual) "<>"}
-  \<                                                 {\inp len -> wrapMonadic inp len (\s -> TkLt) "<"}
-  \>                                                 {\inp len -> wrapMonadic inp len (\s -> TkGt) ">"}
-  \<\=                                               {\inp len -> wrapMonadic inp len (\s -> TkGE) "<="}
-  \>\=                                               {\inp len -> wrapMonadic inp len (\s -> TkLE) ">="}
+--  \=                                                 {\inp len -> wrapMonadic inp len (\s -> TkEqual) "="}
+--  \<\>                                               {\inp len -> wrapMonadic inp len (\s -> TkUnEqual) "<>"}
+--  \<                                                 {\inp len -> wrapMonadic inp len (\s -> TkLt) "<"}
+--  \>                                                 {\inp len -> wrapMonadic inp len (\s -> TkGt) ">"}
+--  \<\=                                               {\inp len -> wrapMonadic inp len (\s -> TkGE) "<="}
+--  \>\=                                               {\inp len -> wrapMonadic inp len (\s -> TkLE) ">="}
 ------------------------------------ </Compare Operators> -------------------------------------------------
 
-  \+                               {\inp len -> wrapMonadic inp len (\s -> TkPlus) "+"}
-  \-      {\inp len -> wrapMonadic inp len (\s -> TkMinus) "-"}
-  \*      {\inp len -> wrapMonadic inp len (\s -> TkTimes) "*"}
-  \/      {\inp len -> wrapMonadic inp len (\s -> TkDiv) "/"}
-  \(                               {\inp len -> wrapMonadic inp len (\s -> TkBracketOpen) "("}
-  \)                               {\inp len -> wrapMonadic inp len (\s -> TkBracketClose) ")"}
+--  \+                               {\inp len -> wrapMonadic inp len (\s -> TkPlus) "+"}
+--  \-      {\inp len -> wrapMonadic inp len (\s -> TkMinus) "-"}
+--  \*      {\inp len -> wrapMonadic inp len (\s -> TkTimes) "*"}
+--  \/      {\inp len -> wrapMonadic inp len (\s -> TkDiv) "/"}
+--  \(                               {\inp len -> wrapMonadic inp len (\s -> TkBracketOpen) "("}
+--  \)                               {\inp len -> wrapMonadic inp len (\s -> TkBracketClose) ")"}
 
 
 ----------------------------------------- <Aliases> -------------------------------------------------------
-  \?                                           {\inp len -> wrapMonadic inp len (\s -> TkPrint) "PRINT"}
+--  \?                                           {\inp len -> wrapMonadic inp len (\s -> TkPrint) "PRINT"}
 ----------------------------------------- </Aliases> ------------------------------------------------------
 
 
@@ -109,74 +109,74 @@ tokens :-
 
 -- The token type:
 data Token 
-     = TkLineNumber Int 
+     = TkLineNumber { _type :: String, pos :: (Int,Int), contentInt :: Int }
 
 ------ <Reserved words> ---------------
 
-     | TkPrint  
-     | TkInput  
-     | TkFor   
-     | TkTo    
-     | TkNext 
-     | TkIf     
-     | TkThen   
-     | TkGoto   
-     | TkStep   
-     | TkLen    
+     | TkPrint  { _type :: String, pos :: (Int,Int) }
+     | TkInput  { _type :: String, pos :: (Int,Int) }
+     | TkFor    { _type :: String, pos :: (Int,Int) }
+     | TkTo     { _type :: String, pos :: (Int,Int) }
+     | TkNext   { _type :: String, pos :: (Int,Int) }
+     | TkIf     { _type :: String, pos :: (Int,Int) }
+     | TkThen   { _type :: String, pos :: (Int,Int) }
+     | TkGoto   { _type :: String, pos :: (Int,Int) }
+     | TkStep   { _type :: String, pos :: (Int,Int) }
+     | TkLen    { _type :: String, pos :: (Int,Int) }
 
 ------ </Reserved words> ---------------
 
 ------ <Combinators> ---------------
 
-     | TkSingleLineCommandCombinator  
+     | TkSingleLineCommandCombinator  { _type :: String, pos :: (Int,Int) }
      -- | TkStringConcatWithTab    
-     | TkKomma  
-     | TkStringConcat  
+     | TkKomma  { _type :: String, pos :: (Int,Int) }
+     | TkStringConcat  { _type :: String, pos :: (Int,Int) }
 
 ------ </Combinators> ---------------
 
 ------ <Compare Operators> ---------------
 
-     | TkEqual  
-     | TkLt      
-     | TkGt      
-     | TkUnEqual 
-     | TkGE      
-     | TkLE      
+     | TkEqual   { _type :: String, pos :: (Int,Int) }
+     | TkLt      { _type :: String, pos :: (Int,Int) }
+     | TkGt      { _type :: String, pos :: (Int,Int) }
+     | TkUnEqual { _type :: String, pos :: (Int,Int) }
+     | TkGE      { _type :: String, pos :: (Int,Int) }
+     | TkLE      { _type :: String, pos :: (Int,Int) }
 
 ------ </Compare Operators> ---------------
 
-     | TkPlus  
-     | TkMinus 
-     | TkTimes 
-     | TkDiv   
+     | TkPlus  { _type :: String, pos :: (Int,Int) }
+     | TkMinus { _type :: String, pos :: (Int,Int) }
+     | TkTimes { _type :: String, pos :: (Int,Int) }
+     | TkDiv   { _type :: String, pos :: (Int,Int) }
 
 ------ <Variables, Strings, Numbers> ---------------
 
-     | TkString String 
-     | TkConst  Constant 
-     | TkStringVar String 
-     | TkIntVar    String 
-     | TkFloatVar  String 
+     | TkString { _type :: String, pos :: (Int,Int), contentString :: String }
+     | TkConst  { _type :: String, pos :: (Int,Int), contentConst :: Constant }
+     | TkStringVar { _type :: String, pos :: (Int,Int), contentString :: String }
+     | TkIntVar    { _type :: String, pos :: (Int,Int), contentString :: String }
+     | TkFloatVar  { _type :: String, pos :: (Int,Int), contentString :: String }
 
 ------ </Variables, Strings, Numbers> --------------
-     | TkBracketOpen  
-     | TkBracketClose  
+     | TkBracketOpen  { _type :: String, pos :: (Int,Int) }
+     | TkBracketClose  { _type :: String, pos :: (Int,Int) }
 
-     | TkLogOr  
-     | TkLogAnd  
-     | TkLogNeg  
+     | TkLogOr  { _type :: String, pos :: (Int,Int) }
+     | TkLogAnd  { _type :: String, pos :: (Int,Int) }
+     | TkLogNeg  { _type :: String, pos :: (Int,Int) }
 
-     | TkReturn  
-     | TkGoSub  
+     | TkReturn  { _type :: String, pos :: (Int,Int) }
+     | TkGoSub  { _type :: String, pos :: (Int,Int) }
      
-     | TkEnd  
+     | TkEnd  { _type :: String, pos :: (Int,Int) }
      
-     | TkGet  
-     | TkRandom  
-     | TkIntFunc  
+     | TkGet  { _type :: String, pos :: (Int,Int) }
+     | TkRandom  { _type :: String, pos :: (Int,Int) }
+     | TkIntFunc  { _type :: String, pos :: (Int,Int) }
 
- --    | TkEOF
+     | TkEOF
 
    deriving (Eq,Show)
 
@@ -186,14 +186,14 @@ data Constant
      | TkFloatConst Float
    deriving (Eq, Show)
 
-
+{-
 data TokenWrap 
     = TokenWrap { _type :: String, pos :: (Int,Int), _token :: Token }
     | TkEOF
     -- = TokenWrap { pos :: (Int,Int), token :: Token , _type :: String }
     -- = TokenWrap String (Int,Int) Token
     deriving (Show,Eq)
-
+-}
 
 ------------------------------------ </Datatypes> ---------------------------------------------------------
 
@@ -201,8 +201,8 @@ data TokenWrap
 -- if not successful, it should be a variable
 -- ToDO:
 --    -> Use Maybe or Either instead of list donkey chain (??)
-buildVarOrResWord :: String -> Token
-buildVarOrResWord str = 
+--buildVarOrResWord :: String -> Token
+{-buildVarOrResWord str = 
       let
         bresw = buildResWord str
       in
@@ -210,16 +210,16 @@ buildVarOrResWord str =
             -- then TkVar $ buildVar str
             then buildVar str
             else head bresw
+-}
 
-
-buildVar :: String -> Token 
+--buildVar :: String -> Token 
 buildVar str 
-     | isSuffixOf "$" str = (TkStringVar str)
-     | isSuffixOf "%" str = (TkIntVar str) 
-     | otherwise          = (TkFloatVar str) 
+     | isSuffixOf "$" str = (TkStringVar { contentString = str})
+     | isSuffixOf "%" str = (TkIntVar { contentString = str }) 
+     | otherwise          = (TkFloatVar { contentString = str }) 
 
 
-buildResWord :: String -> [Token] 
+buildResWord :: String -> [(String -> (Int,Int) -> Token)] 
 buildResWord str = 
     let
       nmstr = map toLower str
@@ -248,12 +248,12 @@ buildResWord str =
           | otherwise      = [] 
 
                 
-buildString :: String -> Char -> Token
+--buildString :: String -> Char -> Token
 buildString str del = TkString (takeWhile ((/=) del) $ tail $ dropWhile ((/=) del) str)
 
 
 -- In this version scanner returns a list of all read tokens
-scanner :: String -> Either String [TokenWrap]
+scanner :: String -> Either String [Token]
 scanner str = runAlex str $ do
   let loop i = do tok <- alexMonadScan;
                   if tok == TkEOF -- || tok == "error."
@@ -271,20 +271,19 @@ uneither (Right x) = x
 uneither (Left x) = error x
 
 
-getTokens :: String -> [TokenWrap]
+getTokens :: String -> [Token]
 getTokens str = uneither $ scanner str
 
-
+{-
 wrapMonadic :: AlexInput -> Int -> (String -> Token) -> String -> Alex TokenWrap
 wrapMonadic (AlexPn _ lnNr col,_,inp) len f tp = return $ TokenWrap { _type  = tp, 
                                                                      pos   = (lnNr,col), 
                                                                      _token = f (take len inp)}
+-}
 
-
-{-
 wrapMonadic :: AlexInput -> Int -> Token -> (Token -> String -> Token) -> Alex Token
 wrapMonadic (AlexPn _ lnNr col,_,inp) len cons f = return $ f (cons { pos = (lnNr,col) }) inp
--}
+
 
 {-
 alexMonadScan = do

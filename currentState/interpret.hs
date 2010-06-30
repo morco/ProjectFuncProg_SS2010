@@ -194,8 +194,9 @@ evalCommand (Goto nr) = do
 evalCommand (ControlStructure (If boolExpr commands)) = do
     state <- get
     --let bVal = evalBoolExpression boolExpr state
-    let (bVal,nstate) = evalBoolExpression boolExpr state
-    put nstate
+    --let (bVal,nstate) = evalBoolExpression boolExpr state
+    --put nstate
+    bVal <- evalBoolExpression boolExpr
     if bVal
       then
         --evalAllCommands commands
@@ -209,8 +210,9 @@ evalCommand (ArithAssignment var numExpr) = do
     state <- get
     --let res = evalExpression numExpr state
     --let (res,nstate) = runState (evalExpression numExpr) state
-    let (res,nstate) = evalExpression numExpr state
-    put nstate
+    --let (res,nstate) = evalExpression numExpr state
+    --put nstate
+    res <- evalExpression numExpr
     case var of
        FloatVar _ -> updateFloatVar (NumVar_Var var) res 
        IntVar   _ -> updateIntVar (NumVar_Var var) (truncate res) 
@@ -218,17 +220,21 @@ evalCommand (ArithAssignment var numExpr) = do
 
 
 evalCommand (StringAssignment var stringExpr) = do
-    state <- get   
-    updateStringVar (StringVar_Var var) (evalStringExpression stringExpr state)
+    --state <- get  
+    val <- evalStringExpression stringExpr
+    updateStringVar (StringVar_Var var) val
     return ()
 
 
 evalCommand (ControlStructure (For var (start,step,end) commands)) = do
-    state <- get
+    --state <- get
     -- only reading, should not change state
-    let start' = makeFloat start state -- evalState (makeFloat start) state
-    let step'  = makeFloat step state   -- evalState (makeFloat step) state
-    let stop'  = makeFloat end state   -- evalState (makeFloat stop) state
+    --let start' = makeFloat start state -- evalState (makeFloat start) state
+    --let step'  = makeFloat step state   -- evalState (makeFloat step) state
+    --let stop'  = makeFloat end state   -- evalState (makeFloat stop) state
+    start' <- makeFloat start -- evalState (makeFloat start) state
+    step'  <- makeFloat step    -- evalState (makeFloat step) state
+    stop'  <- makeFloat end    -- evalState (makeFloat stop) state
     evalFor var  start' step' stop' (concat $ map snd commands) True
     
    where

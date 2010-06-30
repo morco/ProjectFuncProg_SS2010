@@ -5,12 +5,22 @@ import BasicHapMonad ( StringExpr(..), BasicString(..), Var(StringVar_Var))
 import ProgrammState
 import qualified Data.Map as M
 
-evalStringExpression (StringOp x) state = evalBasicString x state
-evalStringExpression (StringExpr (bstr1,bstr2) strOp) state = 
-    evalStringFunc strOp (evalBasicString bstr1 state) (evalBasicString bstr2 state)
+import Control.Monad.State
 
-evalBasicString (StringLiteral x) _ = x
-evalBasicString (StringVar_BString x) state = getMapVal $ M.lookup (StringVar_Var x) (stringVars state)
+
+evalStringExpression :: StringExpr -> PState String
+evalStringExpression (StringOp x) = evalBasicString x 
+evalStringExpression (StringExpr (bstr1,bstr2) strOp) = do
+    val1 <- evalBasicString bstr1 
+    val2 <- evalBasicString bstr2 
+    return $ evalStringFunc strOp val1 val2
+
+
+evalBasicString :: BasicString -> PState String
+evalBasicString (StringLiteral x) = return x
+evalBasicString (StringVar_BString x) = do
+    state <- get
+    return $ getMapVal $ M.lookup (StringVar_Var x) (stringVars state)
 
 
 evalStringFunc op op1 op2
