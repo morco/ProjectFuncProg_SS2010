@@ -1,9 +1,8 @@
 {
---module BasicHap(getParseTree,SyntaxTree, Command, IOCommand, Vars) where
-module BasicHapMonad where
+module Parser.BasicHapMonad(getParseTree) where
 
-import BasicAlexMonad(getTokens)
-import ParserTypes
+import Parser.Lexer.BasicAlexMonad(getTokens)
+import Parser.ParserTypes
 
 import Data.Char
 import Data.List
@@ -12,7 +11,7 @@ import Control.Monad.State
 
 import Debug.Trace
 
-import Error
+import Parser.ParserErrors
 
 }
 
@@ -20,8 +19,6 @@ import Error
 %tokentype { TokenWrap }
 %error { parseError }
 
--- %monad { State {runState :: Int -> (a, Int)} }
--- %monad { State [TokenWrap] }
 %monad { State ParserState }
 
 %token 
@@ -76,15 +73,6 @@ import Error
       intfunc             { TokenWrap _type pos TkIntFunc }
 %%
 
-{-
--- SyntaxTree     -- : lineNr Commands         {% get >>= (\s -> put (s ++ ["Regel1Base"])) >> return [($1,$2)]}
-   --             : lineNr Commands SyntaxTree {% get >>= (\s -> put (s ++ ["Regel1Rek"])) >> return (($1,$2):$3)}
-     --               | lineNr next NumVar                       {[($1, [NOOP])]} -- muss aktuell so hier extra 
-                                                                                --  stehen, sonst parst er das 
-                                                                                --   ganze Programm als Inhalt 
-                                                                                --    des 1. for
-       --             | lineNr return                                  {[($1, [Return])]}
--}
 
 SyntaxTree         : Line                                      {[$1]}
                    | Line SyntaxTree                           {$1:$2}
@@ -226,7 +214,6 @@ NumVar              : intVar                             {IntVar $ getTokenStrin
 {
 
 
--- data ParserState = ParserState { tokenList :: TokenWrap, lineNumbers :: [Int], expectedLineNumbers :: [Int] }
 
 getTokenIntValue (TokenWrap _ _ (TkLineNumber x)) = x
 getTokenIntValue _ = error "Unallowed Token here!"
@@ -258,14 +245,14 @@ buildLineNumber tkWrap = do
 
 
 -- checkAllExpectedLineNumbersGot :: a -> State ParserState a
-checkAllExpectedLineNumbersGot = do
+{-checkAllExpectedLineNumbersGot = do
     state <- get
     if (null $ expectedLineNumbers state)
       then
         return ()
       else
         error ("Missing lines: " ++ (show $ expectedLineNumbers state))
-
+-}
 
 -- TODO: FLoat COnstants
 makeArithOperandConstant (TkIntConst x) = IntConst x
@@ -282,119 +269,25 @@ parseError ls = do
     let cxt = "\n        Context seems to be: " ++ context
     error (posText ++ exp ++ erTk ++ cxt)
 
-{-
-data SyntaxTree  
-      = Line Int [Command]
-      | Lines SyntaxTree SyntaxTree
-      deriving Show
 
-data Command
-      = Command IOCommand
-      | ControlStructure ControlStruct
-      | Goto Int
-      | NOOP
-      | ArithAssignment NumVar NumExpr
-      | StringAssignment StringVar StringExpr
-      | Return
-      | End
-      deriving Show
-
-data StringExpr
-      = StringOp BasicString
-      | StringExpr (BasicString,BasicString) String
-      deriving Show
-
-data BasicString
-      = StringVar_BString StringVar
-      | StringLiteral String
---      | String_Operation StringOperation
-      deriving Show
-
-data NumFunction
-      = Len String
-      | LenVar StringVar
-      | Random Int
-      | IntFunc NumExpr
-      deriving Show
-
-
-data ControlStruct
-      = If BoolExpr [Command]
-      | For NumVar (Operand,Operand,Operand) [(Int,[Command])]
---    | GoSub Int [(Int,[Command])] 
-      | GoSub Int 
--- Ruecksprungpunkt ist ja schon durch die ZeilenNr des gosub Befehls gegeben, und muss eigentlich nicht nochmal extra aufgeschrieben werden
-      deriving Show
-
-
-data BoolExpr
-      = BoolExprString (StringExpr,StringExpr) String
-      | BoolExprNum (NumExpr,NumExpr) String
-      | BoolExprLog (BoolExpr,BoolExpr) String
-      deriving Show
-
-data IOCommand 
-      = Print ([Output], Bool)
-      | Input (InputStuff, Bool)
-      | Get Var
-      deriving Show
-
-data Output
-      = OutString String  
-      | OutVar Var
-      deriving Show
-
-data InputStuff 
-      -- = InputStuff [String] Var
-      = InputStuff [String] [Var]
-      deriving Show
-
-data NumExpr
-     -- = NumExpr (Operand,Operand) String
-      = NumExpr (NumExpr,NumExpr) String
-      | NumOp Operand
-      | NumFunc NumFunction
-      deriving Show
-
-data Operand
-      = OpVar NumVar
-      | IntConst Int
-      | FloatConst Float
-      deriving Show
-
-data NumVar
-      = IntVar String
-      | FloatVar String
-      deriving (Eq, Show, Ord)
-
-data Var
-      = StringVar_Var StringVar
-      | NumVar_Var NumVar
-      deriving (Eq, Show, Ord)
-
-data StringVar
-      = StringVar String
-      deriving (Eq, Show, Ord)
--}
-
--- getParseTree str = evalState (basicParse $ getTokens str) ["Init"]
 
 getParseTree str = 
     let tokens = getTokens str 
-        {- (a,s) = runState (basicParse $ tokens) ParserState { tokenList = tokens, 
+        (a,s) = runState (basicParse $ tokens) ParserState { tokenList = tokens, 
                                                              lineNumbers = [], 
-                                                             expectedLineNumbers = []} -}
-        initState = ParserState { tokenList = tokens, 
+                                                             expectedLineNumbers = []} 
+       {- initState = ParserState { tokenList = tokens, 
                                   lineNumbers = [], 
                                   expectedLineNumbers = []}
         (a,s) = (runState $! ((\ tk -> do
                               psTree <- basicParse tk
                               checkAllExpectedLineNumbersGot
                               return psTree
-                          )tokens)) initState
+                          )tokens)) initState -}
     -- in trace ("the end state: " ++ (intercalate "," s)) a
     -- in map (id $!) a
-    in reverse $! (evalListStrict id a [])
+    -- in reverse $! (evalListStrict id a [] )
+    in a
 
 
 evalListStrict f [] nlList = nlList

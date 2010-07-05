@@ -7,7 +7,7 @@ where
 
 --------------------------------- <Imports> ----------------------------------
 
-import BasicHapMonad(NumExpr(..), Var(..), NumVar(..), NumFunction(..), Operand(..))
+import Parser.ParserTypes(NumExpr(..), Var(..), NumVar(..), NumFunction(..), Operand(..))
 import qualified Data.Map as M
 
 import ProgrammState

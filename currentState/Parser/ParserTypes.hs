@@ -1,4 +1,4 @@
-module ParserTypes where
+module Parser.ParserTypes where
  
 -- This types are used from a variety of modules. Because of this and to 
 --  make the other modules smaller and cleaner i have de

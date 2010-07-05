@@ -2,7 +2,7 @@
 module ProgrammState where
 
 --import BasicHap( Var(..), Command(..), NumVar(..))
-import BasicHapMonad( Var(..), Command(..), NumVar(..))
+import Parser.ParserTypes( Var(..), Command(..), NumVar(..))
 import qualified Data.Map as M
 import Control.Monad.State
 

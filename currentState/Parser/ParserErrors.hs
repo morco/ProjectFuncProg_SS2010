@@ -1,4 +1,4 @@
-module Error where
+module Parser.ParserErrors where
 -- import BasicAlexMonad
 
 -- import ProgrammState -- leads to cyclcic imports!!
@@ -13,7 +13,7 @@ import Control.Monad.State
 
 import Debug.Trace
 
-import ParserTypes(Token(..),Constant(..),TokenWrap(..),ParserState(..))
+import Parser.ParserTypes(Token(..),Constant(..),TokenWrap(..),ParserState(..))
 
 -- data ParserState = ParserState { tokenList :: [TokenWrap], lineNumbers :: [Int], expectedLineNumbers :: [Int] }
 

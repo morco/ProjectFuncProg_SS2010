@@ -1,9 +1,10 @@
 {
 
---module BasicAlex( alexScanTokens, Token(..), Constant(..)) where
-module BasicAlexMonad where
+-- module Parser.Lexer.BasicAlexMonad(getTokens) where -- ka warum er das nicht frisst
+module Parser.Lexer.BasicAlexMonad(getTokens) where -- ka warum er das nicht frisst
+--module BasicAlexMonad(getTokens) where
 
-import ParserTypes(Token(..),TokenWrap(..),Constant(..))
+import Parser.ParserTypes(Token(..),TokenWrap(..),Constant(..))
 
 import Data.List
 import Data.Char

@@ -1,5 +1,5 @@
 --import BasicAlex
-import BasicAlexMonad
+import Parser.Lexer.BasicAlexMonad
 
 main = do
         con <- getContents 

@@ -1,6 +1,7 @@
 --------------------------------- <Imports> --------------------------------
 
-import BasicHapMonad
+import Parser.BasicHapMonad
+import Parser.ParserTypes hiding (Token(..),TokenWrap(..),Constant(..),ParserState(..))
 import IO
 import System ( getArgs )
 import qualified Data.Map as M
