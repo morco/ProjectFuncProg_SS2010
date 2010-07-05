@@ -2,14 +2,12 @@
 {-# LINE 1 "BasicAlexMonad.x" #-}
 
 
--- module Parser.Lexer.BasicAlexMonad(getTokens) where -- ka warum er das nicht frisst
-module Parser.Lexer.BasicAlexMonad(getTokens) where -- ka warum er das nicht frisst
---module BasicAlexMonad(getTokens) where
+module Parser.Lexer.BasicAlexMonad(getTokens) where 
 
 import Parser.ParserTypes(Token(..),TokenWrap(..),Constant(..))
 
-import Data.List
-import Data.Char
+import Data.List(isSuffixOf)
+import Data.Char(toLower)
 
 import Debug.Trace
 
@@ -223,110 +221,13 @@ alex_deflt :: Array Int Int
 alex_deflt = listArray (0,41) [-1,-1,3,3,3,3,3,-1,-1,10,10,-1,-1,-1,-1,16,16,-1,-1,-1,-1,-1,-1,24,24,-1,27,27,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
 alex_accept = listArray (0::Int,41) [[],[(AlexAccSkip)],[(AlexAccSkipPred  (alexPrevCharIsOneOf (array ('\NUL','\255') [('\NUL',True),('\SOH',True),('\STX',True),('\ETX',True),('\EOT',True),('\ENQ',True),('\ACK',True),('\a',True),('\b',True),('\t',True),('\n',False),('\v',True),('\f',True),('\r',True),('\SO',True),('\SI',True),('\DLE',True),('\DC1',True),('\DC2',True),('\DC3',True),('\DC4',True),('\NAK',True),('\SYN',True),('\ETB',True),('\CAN',True),('\EM',True),('\SUB',True),('\ESC',True),('\FS',True),('\GS',True),('\RS',True),('\US',True),(' ',True),('!',True),('"',True),('#',True),('$',True),('%',True),('&',True),('\'',True),('(',True),(')',True),('*',True),('+',True),(',',True),('-',True),('.',True),('/',True),('0',True),('1',True),('2',True),('3',True),('4',True),('5',True),('6',True),('7',True),('8',True),('9',True),(':',True),(';',True),('<',True),('=',True),('>',True),('?',True),('@',True),('A',True),('B',True),('C',True),('D',True),('E',True),('F',True),('G',True),('H',True),('I',True),('J',True),('K',True),('L',True),('M',True),('N',True),('O',True),('P',True),('Q',True),('R',True),('S',True),('T',True),('U',True),('V',True),('W',True),('X',True),('Y',True),('Z',True),('[',True),('\\',True),(']',True),('^',True),('_',True),('`',True),('a',True),('b',True),('c',True),('d',True),('e',True),('f',True),('g',True),('h',True),('i',True),('j',True),('k',True),('l',True),('m',True),('n',True),('o',True),('p',True),('q',True),('r',True),('s',True),('t',True),('u',True),('v',True),('w',True),('x',True),('y',True),('z',True),('{',True),('|',True),('}',True),('~',True),('\DEL',True),('\128',True),('\129',True),('\130',True),('\131',True),('\132',True),('\133',True),('\134',True),('\135',True),('\136',True),('\137',True),('\138',True),('\139',True),('\140',True),('\141',True),('\142',True),('\143',True),('\144',True),('\145',True),('\146',True),('\147',True),('\148',True),('\149',True),('\150',True),('\151',True),('\152',True),('\153',True),('\154',True),('\155',True),('\156',True),('\157',True),('\158',True),('\159',True),('\160',True),('\161',True),('\162',True),('\163',True),('\164',True),('\165',True),('\166',True),('\167',True),('\168',True),('\169',True),('\170',True),('\171',True),('\172',True),('\173',True),('\174',True),('\175',True),('\176',True),('\177',True),('\178',True),('\179',True),('\180',True),('\181',True),('\182',True),('\183',True),('\184',True),('\185',True),('\186',True),('\187',True),('\188',True),('\189',True),('\190',True),('\191',True),('\192',True),('\193',True),('\194',True),('\195',True),('\196',True),('\197',True),('\198',True),('\199',True),('\200',True),('\201',True),('\202',True),('\203',True),('\204',True),('\205',True),('\206',True),('\207',True),('\208',True),('\209',True),('\210',True),('\211',True),('\212',True),('\213',True),('\214',True),('\215',True),('\216',True),('\217',True),('\218',True),('\219',True),('\220',True),('\221',True),('\222',True),('\223',True),('\224',True),('\225',True),('\226',True),('\227',True),('\228',True),('\229',True),('\230',True),('\231',True),('\232',True),('\233',True),('\234',True),('\235',True),('\236',True),('\237',True),('\238',True),('\239',True),('\240',True),('\241',True),('\242',True),('\243',True),('\244',True),('\245',True),('\246',True),('\247',True),('\248',True),('\249',True),('\250',True),('\251',True),('\252',True),('\253',True),('\254',True),('\255',True)]))),(AlexAcc (alex_action_6))],[(AlexAccSkipPred  (alexPrevCharIsOneOf (array ('\NUL','\255') [('\NUL',True),('\SOH',True),('\STX',True),('\ETX',True),('\EOT',True),('\ENQ',True),('\ACK',True),('\a',True),('\b',True),('\t',True),('\n',False),('\v',True),('\f',True),('\r',True),('\SO',True),('\SI',True),('\DLE',True),('\DC1',True),('\DC2',True),('\DC3',True),('\DC4',True),('\NAK',True),('\SYN',True),('\ETB',True),('\CAN',True),('\EM',True),('\SUB',True),('\ESC',True),('\FS',True),('\GS',True),('\RS',True),('\US',True),(' ',True),('!',True),('"',True),('#',True),('$',True),('%',True),('&',True),('\'',True),('(',True),(')',True),('*',True),('+',True),(',',True),('-',True),('.',True),('/',True),('0',True),('1',True),('2',True),('3',True),('4',True),('5',True),('6',True),('7',True),('8',True),('9',True),(':',True),(';',True),('<',True),('=',True),('>',True),('?',True),('@',True),('A',True),('B',True),('C',True),('D',True),('E',True),('F',True),('G',True),('H',True),('I',True),('J',True),('K',True),('L',True),('M',True),('N',True),('O',True),('P',True),('Q',True),('R',True),('S',True),('T',True),('U',True),('V',True),('W',True),('X',True),('Y',True),('Z',True),('[',True),('\\',True),(']',True),('^',True),('_',True),('`',True),('a',True),('b',True),('c',True),('d',True),('e',True),('f',True),('g',True),('h',True),('i',True),('j',True),('k',True),('l',True),('m',True),('n',True),('o',True),('p',True),('q',True),('r',True),('s',True),('t',True),('u',True),('v',True),('w',True),('x',True),('y',True),('z',True),('{',True),('|',True),('}',True),('~',True),('\DEL',True),('\128',True),('\129',True),('\130',True),('\131',True),('\132',True),('\133',True),('\134',True),('\135',True),('\136',True),('\137',True),('\138',True),('\139',True),('\140',True),('\141',True),('\142',True),('\143',True),('\144',True),('\145',True),('\146',True),('\147',True),('\148',True),('\149',True),('\150',True),('\151',True),('\152',True),('\153',True),('\154',True),('\155',True),('\156',True),('\157',True),('\158',True),('\159',True),('\160',True),('\161',True),('\162',True),('\163',True),('\164',True),('\165',True),('\166',True),('\167',True),('\168',True),('\169',True),('\170',True),('\171',True),('\172',True),('\173',True),('\174',True),('\175',True),('\176',True),('\177',True),('\178',True),('\179',True),('\180',True),('\181',True),('\182',True),('\183',True),('\184',True),('\185',True),('\186',True),('\187',True),('\188',True),('\189',True),('\190',True),('\191',True),('\192',True),('\193',True),('\194',True),('\195',True),('\196',True),('\197',True),('\198',True),('\199',True),('\200',True),('\201',True),('\202',True),('\203',True),('\204',True),('\205',True),('\206',True),('\207',True),('\208',True),('\209',True),('\210',True),('\211',True),('\212',True),('\213',True),('\214',True),('\215',True),('\216',True),('\217',True),('\218',True),('\219',True),('\220',True),('\221',True),('\222',True),('\223',True),('\224',True),('\225',True),('\226',True),('\227',True),('\228',True),('\229',True),('\230',True),('\231',True),('\232',True),('\233',True),('\234',True),('\235',True),('\236',True),('\237',True),('\238',True),('\239',True),('\240',True),('\241',True),('\242',True),('\243',True),('\244',True),('\245',True),('\246',True),('\247',True),('\248',True),('\249',True),('\250',True),('\251',True),('\252',True),('\253',True),('\254',True),('\255',True)])))],[(AlexAccSkipPred  (alexPrevCharIsOneOf (array ('\NUL','\255') [('\NUL',True),('\SOH',True),('\STX',True),('\ETX',True),('\EOT',True),('\ENQ',True),('\ACK',True),('\a',True),('\b',True),('\t',True),('\n',False),('\v',True),('\f',True),('\r',True),('\SO',True),('\SI',True),('\DLE',True),('\DC1',True),('\DC2',True),('\DC3',True),('\DC4',True),('\NAK',True),('\SYN',True),('\ETB',True),('\CAN',True),('\EM',True),('\SUB',True),('\ESC',True),('\FS',True),('\GS',True),('\RS',True),('\US',True),(' ',True),('!',True),('"',True),('#',True),('$',True),('%',True),('&',True),('\'',True),('(',True),(')',True),('*',True),('+',True),(',',True),('-',True),('.',True),('/',True),('0',True),('1',True),('2',True),('3',True),('4',True),('5',True),('6',True),('7',True),('8',True),('9',True),(':',True),(';',True),('<',True),('=',True),('>',True),('?',True),('@',True),('A',True),('B',True),('C',True),('D',True),('E',True),('F',True),('G',True),('H',True),('I',True),('J',True),('K',True),('L',True),('M',True),('N',True),('O',True),('P',True),('Q',True),('R',True),('S',True),('T',True),('U',True),('V',True),('W',True),('X',True),('Y',True),('Z',True),('[',True),('\\',True),(']',True),('^',True),('_',True),('`',True),('a',True),('b',True),('c',True),('d',True),('e',True),('f',True),('g',True),('h',True),('i',True),('j',True),('k',True),('l',True),('m',True),('n',True),('o',True),('p',True),('q',True),('r',True),('s',True),('t',True),('u',True),('v',True),('w',True),('x',True),('y',True),('z',True),('{',True),('|',True),('}',True),('~',True),('\DEL',True),('\128',True),('\129',True),('\130',True),('\131',True),('\132',True),('\133',True),('\134',True),('\135',True),('\136',True),('\137',True),('\138',True),('\139',True),('\140',True),('\141',True),('\142',True),('\143',True),('\144',True),('\145',True),('\146',True),('\147',True),('\148',True),('\149',True),('\150',True),('\151',True),('\152',True),('\153',True),('\154',True),('\155',True),('\156',True),('\157',True),('\158',True),('\159',True),('\160',True),('\161',True),('\162',True),('\163',True),('\164',True),('\165',True),('\166',True),('\167',True),('\168',True),('\169',True),('\170',True),('\171',True),('\172',True),('\173',True),('\174',True),('\175',True),('\176',True),('\177',True),('\178',True),('\179',True),('\180',True),('\181',True),('\182',True),('\183',True),('\184',True),('\185',True),('\186',True),('\187',True),('\188',True),('\189',True),('\190',True),('\191',True),('\192',True),('\193',True),('\194',True),('\195',True),('\196',True),('\197',True),('\198',True),('\199',True),('\200',True),('\201',True),('\202',True),('\203',True),('\204',True),('\205',True),('\206',True),('\207',True),('\208',True),('\209',True),('\210',True),('\211',True),('\212',True),('\213',True),('\214',True),('\215',True),('\216',True),('\217',True),('\218',True),('\219',True),('\220',True),('\221',True),('\222',True),('\223',True),('\224',True),('\225',True),('\226',True),('\227',True),('\228',True),('\229',True),('\230',True),('\231',True),('\232',True),('\233',True),('\234',True),('\235',True),('\236',True),('\237',True),('\238',True),('\239',True),('\240',True),('\241',True),('\242',True),('\243',True),('\244',True),('\245',True),('\246',True),('\247',True),('\248',True),('\249',True),('\250',True),('\251',True),('\252',True),('\253',True),('\254',True),('\255',True)]))),(AlexAcc (alex_action_6))],[(AlexAccSkipPred  (alexPrevCharIsOneOf (array ('\NUL','\255') [('\NUL',True),('\SOH',True),('\STX',True),('\ETX',True),('\EOT',True),('\ENQ',True),('\ACK',True),('\a',True),('\b',True),('\t',True),('\n',False),('\v',True),('\f',True),('\r',True),('\SO',True),('\SI',True),('\DLE',True),('\DC1',True),('\DC2',True),('\DC3',True),('\DC4',True),('\NAK',True),('\SYN',True),('\ETB',True),('\CAN',True),('\EM',True),('\SUB',True),('\ESC',True),('\FS',True),('\GS',True),('\RS',True),('\US',True),(' ',True),('!',True),('"',True),('#',True),('$',True),('%',True),('&',True),('\'',True),('(',True),(')',True),('*',True),('+',True),(',',True),('-',True),('.',True),('/',True),('0',True),('1',True),('2',True),('3',True),('4',True),('5',True),('6',True),('7',True),('8',True),('9',True),(':',True),(';',True),('<',True),('=',True),('>',True),('?',True),('@',True),('A',True),('B',True),('C',True),('D',True),('E',True),('F',True),('G',True),('H',True),('I',True),('J',True),('K',True),('L',True),('M',True),('N',True),('O',True),('P',True),('Q',True),('R',True),('S',True),('T',True),('U',True),('V',True),('W',True),('X',True),('Y',True),('Z',True),('[',True),('\\',True),(']',True),('^',True),('_',True),('`',True),('a',True),('b',True),('c',True),('d',True),('e',True),('f',True),('g',True),('h',True),('i',True),('j',True),('k',True),('l',True),('m',True),('n',True),('o',True),('p',True),('q',True),('r',True),('s',True),('t',True),('u',True),('v',True),('w',True),('x',True),('y',True),('z',True),('{',True),('|',True),('}',True),('~',True),('\DEL',True),('\128',True),('\129',True),('\130',True),('\131',True),('\132',True),('\133',True),('\134',True),('\135',True),('\136',True),('\137',True),('\138',True),('\139',True),('\140',True),('\141',True),('\142',True),('\143',True),('\144',True),('\145',True),('\146',True),('\147',True),('\148',True),('\149',True),('\150',True),('\151',True),('\152',True),('\153',True),('\154',True),('\155',True),('\156',True),('\157',True),('\158',True),('\159',True),('\160',True),('\161',True),('\162',True),('\163',True),('\164',True),('\165',True),('\166',True),('\167',True),('\168',True),('\169',True),('\170',True),('\171',True),('\172',True),('\173',True),('\174',True),('\175',True),('\176',True),('\177',True),('\178',True),('\179',True),('\180',True),('\181',True),('\182',True),('\183',True),('\184',True),('\185',True),('\186',True),('\187',True),('\188',True),('\189',True),('\190',True),('\191',True),('\192',True),('\193',True),('\194',True),('\195',True),('\196',True),('\197',True),('\198',True),('\199',True),('\200',True),('\201',True),('\202',True),('\203',True),('\204',True),('\205',True),('\206',True),('\207',True),('\208',True),('\209',True),('\210',True),('\211',True),('\212',True),('\213',True),('\214',True),('\215',True),('\216',True),('\217',True),('\218',True),('\219',True),('\220',True),('\221',True),('\222',True),('\223',True),('\224',True),('\225',True),('\226',True),('\227',True),('\228',True),('\229',True),('\230',True),('\231',True),('\232',True),('\233',True),('\234',True),('\235',True),('\236',True),('\237',True),('\238',True),('\239',True),('\240',True),('\241',True),('\242',True),('\243',True),('\244',True),('\245',True),('\246',True),('\247',True),('\248',True),('\249',True),('\250',True),('\251',True),('\252',True),('\253',True),('\254',True),('\255',True)]))),(AlexAcc (alex_action_7))],[(AlexAccSkipPred  (alexPrevCharIsOneOf (array ('\NUL','\255') [('\NUL',True),('\SOH',True),('\STX',True),('\ETX',True),('\EOT',True),('\ENQ',True),('\ACK',True),('\a',True),('\b',True),('\t',True),('\n',False),('\v',True),('\f',True),('\r',True),('\SO',True),('\SI',True),('\DLE',True),('\DC1',True),('\DC2',True),('\DC3',True),('\DC4',True),('\NAK',True),('\SYN',True),('\ETB',True),('\CAN',True),('\EM',True),('\SUB',True),('\ESC',True),('\FS',True),('\GS',True),('\RS',True),('\US',True),(' ',True),('!',True),('"',True),('#',True),('$',True),('%',True),('&',True),('\'',True),('(',True),(')',True),('*',True),('+',True),(',',True),('-',True),('.',True),('/',True),('0',True),('1',True),('2',True),('3',True),('4',True),('5',True),('6',True),('7',True),('8',True),('9',True),(':',True),(';',True),('<',True),('=',True),('>',True),('?',True),('@',True),('A',True),('B',True),('C',True),('D',True),('E',True),('F',True),('G',True),('H',True),('I',True),('J',True),('K',True),('L',True),('M',True),('N',True),('O',True),('P',True),('Q',True),('R',True),('S',True),('T',True),('U',True),('V',True),('W',True),('X',True),('Y',True),('Z',True),('[',True),('\\',True),(']',True),('^',True),('_',True),('`',True),('a',True),('b',True),('c',True),('d',True),('e',True),('f',True),('g',True),('h',True),('i',True),('j',True),('k',True),('l',True),('m',True),('n',True),('o',True),('p',True),('q',True),('r',True),('s',True),('t',True),('u',True),('v',True),('w',True),('x',True),('y',True),('z',True),('{',True),('|',True),('}',True),('~',True),('\DEL',True),('\128',True),('\129',True),('\130',True),('\131',True),('\132',True),('\133',True),('\134',True),('\135',True),('\136',True),('\137',True),('\138',True),('\139',True),('\140',True),('\141',True),('\142',True),('\143',True),('\144',True),('\145',True),('\146',True),('\147',True),('\148',True),('\149',True),('\150',True),('\151',True),('\152',True),('\153',True),('\154',True),('\155',True),('\156',True),('\157',True),('\158',True),('\159',True),('\160',True),('\161',True),('\162',True),('\163',True),('\164',True),('\165',True),('\166',True),('\167',True),('\168',True),('\169',True),('\170',True),('\171',True),('\172',True),('\173',True),('\174',True),('\175',True),('\176',True),('\177',True),('\178',True),('\179',True),('\180',True),('\181',True),('\182',True),('\183',True),('\184',True),('\185',True),('\186',True),('\187',True),('\188',True),('\189',True),('\190',True),('\191',True),('\192',True),('\193',True),('\194',True),('\195',True),('\196',True),('\197',True),('\198',True),('\199',True),('\200',True),('\201',True),('\202',True),('\203',True),('\204',True),('\205',True),('\206',True),('\207',True),('\208',True),('\209',True),('\210',True),('\211',True),('\212',True),('\213',True),('\214',True),('\215',True),('\216',True),('\217',True),('\218',True),('\219',True),('\220',True),('\221',True),('\222',True),('\223',True),('\224',True),('\225',True),('\226',True),('\227',True),('\228',True),('\229',True),('\230',True),('\231',True),('\232',True),('\233',True),('\234',True),('\235',True),('\236',True),('\237',True),('\238',True),('\239',True),('\240',True),('\241',True),('\242',True),('\243',True),('\244',True),('\245',True),('\246',True),('\247',True),('\248',True),('\249',True),('\250',True),('\251',True),('\252',True),('\253',True),('\254',True),('\255',True)]))),(AlexAcc (alex_action_8))],[(AlexAcc (alex_action_6))],[(AlexAcc (alex_action_6))],[(AlexAccSkipPred  (alexPrevCharIs '\n'))],[(AlexAccSkipPred  (alexPrevCharIs '\n'))],[],[(AlexAccPred  (alex_action_4) (alexPrevCharIs '\n')),(AlexAcc (alex_action_5))],[],[],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAcc (alex_action_21))],[(AlexAcc (alex_action_6))],[(AlexAcc (alex_action_6))],[(AlexAcc (alex_action_7))],[(AlexAcc (alex_action_8))],[(AlexAcc (alex_action_9))],[],[],[(AlexAccPred  (alex_action_10) (alexPrevCharIsOneOf (array ('\NUL','\255') [('\NUL',True),('\SOH',True),('\STX',True),('\ETX',True),('\EOT',True),('\ENQ',True),('\ACK',True),('\a',True),('\b',True),('\t',True),('\n',False),('\v',True),('\f',True),('\r',True),('\SO',True),('\SI',True),('\DLE',True),('\DC1',True),('\DC2',True),('\DC3',True),('\DC4',True),('\NAK',True),('\SYN',True),('\ETB',True),('\CAN',True),('\EM',True),('\SUB',True),('\ESC',True),('\FS',True),('\GS',True),('\RS',True),('\US',True),(' ',True),('!',True),('"',True),('#',True),('$',True),('%',True),('&',True),('\'',True),('(',True),(')',True),('*',True),('+',True),(',',True),('-',True),('.',True),('/',True),('0',True),('1',True),('2',True),('3',True),('4',True),('5',True),('6',True),('7',True),('8',True),('9',True),(':',True),(';',True),('<',True),('=',True),('>',True),('?',True),('@',True),('A',True),('B',True),('C',True),('D',True),('E',True),('F',True),('G',True),('H',True),('I',True),('J',True),('K',True),('L',True),('M',True),('N',True),('O',True),('P',True),('Q',True),('R',True),('S',True),('T',True),('U',True),('V',True),('W',True),('X',True),('Y',True),('Z',True),('[',True),('\\',True),(']',True),('^',True),('_',True),('`',True),('a',True),('b',True),('c',True),('d',True),('e',True),('f',True),('g',True),('h',True),('i',True),('j',True),('k',True),('l',True),('m',True),('n',True),('o',True),('p',True),('q',True),('r',True),('s',True),('t',True),('u',True),('v',True),('w',True),('x',True),('y',True),('z',True),('{',True),('|',True),('}',True),('~',True),('\DEL',True),('\128',True),('\129',True),('\130',True),('\131',True),('\132',True),('\133',True),('\134',True),('\135',True),('\136',True),('\137',True),('\138',True),('\139',True),('\140',True),('\141',True),('\142',True),('\143',True),('\144',True),('\145',True),('\146',True),('\147',True),('\148',True),('\149',True),('\150',True),('\151',True),('\152',True),('\153',True),('\154',True),('\155',True),('\156',True),('\157',True),('\158',True),('\159',True),('\160',True),('\161',True),('\162',True),('\163',True),('\164',True),('\165',True),('\166',True),('\167',True),('\168',True),('\169',True),('\170',True),('\171',True),('\172',True),('\173',True),('\174',True),('\175',True),('\176',True),('\177',True),('\178',True),('\179',True),('\180',True),('\181',True),('\182',True),('\183',True),('\184',True),('\185',True),('\186',True),('\187',True),('\188',True),('\189',True),('\190',True),('\191',True),('\192',True),('\193',True),('\194',True),('\195',True),('\196',True),('\197',True),('\198',True),('\199',True),('\200',True),('\201',True),('\202',True),('\203',True),('\204',True),('\205',True),('\206',True),('\207',True),('\208',True),('\209',True),('\210',True),('\211',True),('\212',True),('\213',True),('\214',True),('\215',True),('\216',True),('\217',True),('\218',True),('\219',True),('\220',True),('\221',True),('\222',True),('\223',True),('\224',True),('\225',True),('\226',True),('\227',True),('\228',True),('\229',True),('\230',True),('\231',True),('\232',True),('\233',True),('\234',True),('\235',True),('\236',True),('\237',True),('\238',True),('\239',True),('\240',True),('\241',True),('\242',True),('\243',True),('\244',True),('\245',True),('\246',True),('\247',True),('\248',True),('\249',True),('\250',True),('\251',True),('\252',True),('\253',True),('\254',True),('\255',True)]) `alexAndPred` alexRightContext 26)),(AlexAcc (alex_action_11))],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAcc (alex_action_12))],[(AlexAcc (alex_action_13))],[(AlexAcc (alex_action_14))],[(AlexAcc (alex_action_15))],[(AlexAcc (alex_action_16))],[(AlexAcc (alex_action_17))],[(AlexAcc (alex_action_18))],[(AlexAcc (alex_action_19))],[(AlexAcc (alex_action_20))],[(AlexAcc (alex_action_22))],[(AlexAcc (alex_action_23))],[(AlexAcc (alex_action_24))],[(AlexAcc (alex_action_25))],[(AlexAcc (alex_action_26))]]
-{-# LINE 106 "BasicAlexMonad.x" #-}
+{-# LINE 105 "BasicAlexMonad.x" #-}
 
 
-{- 
 
--- Each action has type :: String -> Token
-
------------------------------------- <Datatypes> ----------------------------------------------------------
-
--- The token type:
-data Token 
-     = TkLineNumber Int 
-
------- <Reserved words> ---------------
-
-     | TkPrint  
-     | TkInput  
-     | TkFor   
-     | TkTo    
-     | TkNext 
-     | TkIf     
-     | TkThen   
-     | TkGoto   
-     | TkStep   
-     | TkLen    
-
------- </Reserved words> ---------------
-
------- <Combinators> ---------------
-
-     | TkSingleLineCommandCombinator  
-     -- | TkStringConcatWithTab    
-     | TkKomma  
-     | TkStringConcat  
-
------- </Combinators> ---------------
-
------- <Compare Operators> ---------------
-
-     | TkEqual  
-     | TkLt      
-     | TkGt      
-     | TkUnEqual 
-     | TkGE      
-     | TkLE      
-
------- </Compare Operators> ---------------
-
-     | TkPlus  
-     | TkMinus 
-     | TkTimes 
-     | TkDiv   
-
------- <Variables, Strings, Numbers> ---------------
-
-     | TkString String 
-     | TkConst  Constant 
-     | TkStringVar String 
-     | TkIntVar    String 
-     | TkFloatVar  String 
-
------- </Variables, Strings, Numbers> --------------
-     | TkBracketOpen  
-     | TkBracketClose  
-
-     | TkLogOr  
-     | TkLogAnd  
-     | TkLogNeg  
-
-     | TkReturn  
-     | TkGoSub  
-     
-     | TkEnd  
-     
-     | TkGet  
-     | TkRandom  
-     | TkIntFunc  
-
- --    | TkEOF
---     | TkWildCard -- needed only for error handling !
-
-   deriving (Eq,Show)
-
-
-data Constant 
-     = TkIntConst Int  
-     | TkFloatConst Float
-   deriving (Eq, Show)
-
-
-data TokenWrap 
-    = TokenWrap { _type :: String, pos :: (Int,Int), _token :: Token }
-    | TkEOF
-    -- = TokenWrap { pos :: (Int,Int), token :: Token , _type :: String }
-    -- = TokenWrap String (Int,Int) Token
-    deriving (Show,Eq)
-
-
------------------------------------- </Datatypes> ---------------------------------------------------------
-
--}
-
--- The idea for this function is simple, first check against all reserved words, if the input is one of them,
--- if not successful, it should be a variable
+-- The idea for this function is simple, first check against all reserved 
+--  words, if the input is one of them, if not successful, it should be a 
+--   variable
 -- ToDO:
 --    -> Use Maybe or Either instead of list donkey chain (??)
 buildVarOrResWord :: String -> Token
@@ -335,7 +236,6 @@ buildVarOrResWord str =
         bresw = buildResWord str
       in
         if bresw == []
-            -- then TkVar $ buildVar str
             then buildVar str
             else head bresw
 
@@ -377,7 +277,8 @@ buildResWord str =
 
                 
 buildString :: String -> Char -> Token
-buildString str del = TkString (takeWhile ((/=) del) $ tail $ dropWhile ((/=) del) str)
+buildString str del = 
+    TkString (takeWhile ((/=) del) $ tail $ dropWhile ((/=) del) str)
 
 
 -- In this version scanner returns a list of all read tokens
@@ -389,45 +290,30 @@ scanner str = runAlex str $ do
                       else do let i' = i++[tok] in i' `seq` loop i'
   loop []
 
---alexEOF = return "stopped."
+
+
 alexEOF = return TkEOF
 
 
---uneither :: Either a b -> a 
 uneither :: Either String b -> b 
 uneither (Right x) = x
 uneither (Left x) = error x
 
 
-getTokens :: String -> [TokenWrap]
-getTokens str = uneither $ scanner str
 
 
 wrapMonadic :: AlexInput -> Int -> (String -> Token) -> String -> Alex TokenWrap
-wrapMonadic (AlexPn _ lnNr col,_,inp) len f tp = return $ TokenWrap { _type  = tp, 
-                                                                     pos   = (lnNr,col), 
-                                                                     _token = f (take len inp)}
+wrapMonadic (AlexPn _ lnNr col,_,inp) len f tp = 
+    return $ TokenWrap { 
+                _type  = tp, 
+                pos   = (lnNr,col), 
+                _token = f (take len inp)
+             }
 
 
-{-
-wrapMonadic :: AlexInput -> Int -> Token -> (Token -> String -> Token) -> Alex Token
-wrapMonadic (AlexPn _ lnNr col,_,inp) len cons f = return $ f (cons { pos = (lnNr,col) }) inp
--}
 
-{-
-alexMonadScan = do
-  inp <- alexGetInput
-  sc <- alexGetStartCode
-  case alexScan inp sc of
-    AlexEOF -> alexEOF
-    AlexError inp' -> alexError "mylexical error"
-    AlexSkip  inp' len -> do
-        alexSetInput inp'
-        alexMonadScan
-    AlexToken inp' len action -> do
-        alexSetInput inp'
-        action inp len
--}
+getTokens :: String -> [TokenWrap]
+getTokens str = uneither $ scanner str
 
 
 alex_action_4 = \inp len -> wrapMonadic inp len (TkLineNumber . read) "LINENUMBER" 

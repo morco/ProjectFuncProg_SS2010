@@ -4,8 +4,8 @@ module Parser.BasicHapMonad(getParseTree) where
 import Parser.Lexer.BasicAlexMonad(getTokens)
 import Parser.ParserTypes
 
-import Data.Char
-import Data.List
+-- import Data.Char
+import Data.List(delete)
 
 import Control.Monad.State
 
@@ -271,6 +271,13 @@ parseError ls = do
 
 
 
+
+evalListStrict f [] nlList = nlList
+evalListStrict f (x:xs) nlList = ((:) $! (f $! x)) $! (evalListStrict f xs (x : nlList))
+
+
+
+
 getParseTree str = 
     let tokens = getTokens str 
         (a,s) = runState (basicParse $ tokens) ParserState { tokenList = tokens, 
@@ -290,8 +297,6 @@ getParseTree str =
     in a
 
 
-evalListStrict f [] nlList = nlList
-evalListStrict f (x:xs) nlList = ((:) $! (f $! x)) $! (evalListStrict f xs (x : nlList))
 
 }
 
