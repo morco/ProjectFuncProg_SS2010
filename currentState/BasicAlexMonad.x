@@ -3,6 +3,8 @@
 --module BasicAlex( alexScanTokens, Token(..), Constant(..)) where
 module BasicAlexMonad where
 
+import ParserTypes(Token(..),TokenWrap(..),Constant(..))
+
 import Data.List
 import Data.Char
 
@@ -102,7 +104,8 @@ tokens :-
 
 {
 
- 
+{- 
+
 -- Each action has type :: String -> Token
 
 ------------------------------------ <Datatypes> ----------------------------------------------------------
@@ -177,6 +180,7 @@ data Token
      | TkIntFunc  
 
  --    | TkEOF
+--     | TkWildCard -- needed only for error handling !
 
    deriving (Eq,Show)
 
@@ -196,6 +200,8 @@ data TokenWrap
 
 
 ------------------------------------ </Datatypes> ---------------------------------------------------------
+
+-}
 
 -- The idea for this function is simple, first check against all reserved words, if the input is one of them,
 -- if not successful, it should be a variable

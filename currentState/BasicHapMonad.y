@@ -2,13 +2,17 @@
 --module BasicHap(getParseTree,SyntaxTree, Command, IOCommand, Vars) where
 module BasicHapMonad where
 
-import BasicAlexMonad
+import BasicAlexMonad(getTokens)
+import ParserTypes
+
 import Data.Char
 import Data.List
 
 import Control.Monad.State
 
 import Debug.Trace
+
+import Error
 
 }
 
@@ -17,7 +21,8 @@ import Debug.Trace
 %error { parseError }
 
 -- %monad { State {runState :: Int -> (a, Int)} }
-%monad { State [String] }
+-- %monad { State [TokenWrap] }
+%monad { State ParserState }
 
 %token 
       print           { TokenWrap _type pos TkPrint }
@@ -89,23 +94,37 @@ SyntaxTree         : Line                                      {[$1]}
                                                                                  --    des 1. for
                     | lineNr return                             {(getTokenIntValue $1, [Return])}
 
-Line                : lineNr Commands          {% wrapStateMonadic "RegelLine" (getTokenIntValue $1,$2)}
+-- Line                : lineNr Commands          {% wrapStateMonadic "RegelLine" (getTokenIntValue $1,$2)}
+-- Line                : lineNr Commands          {(getTokenIntValue $1,$2)}
+Line                : lineNr Commands          {% do 
+                                                  nr <- buildLineNumber $! $1
+                                                  return (nr,$2)}
 
  
 Commands            : Command                                        {[$1]}
                     | Command ":" Commands                           {$1:$3}
 
-Command             : IOCommand             {% wrapStateMonadic "ComRegel_IO" (Command $1)}
-                    | ControlStruct         {% wrapStateMonadic "ComRegel_ControlStruct" (ControlStructure $1)}
-                    | goto int    {% wrapStateMonadic "ComRegel_GOTO" (Goto ((\(TokenWrap _ _ (TkConst (TkIntConst x))) -> x)$2))}
+-- Command             : IOCommand             {% wrapStateMonadic "ComRegel_IO" (Command $1)}
+--                    | ControlStruct         {% wrapStateMonadic "ComRegel_ControlStruct" (ControlStructure $1)}
+ --                   | goto int    {% wrapStateMonadic "ComRegel_GOTO" (Goto ((\(TokenWrap _ _ (TkConst (TkIntConst x))) -> x)$2))}
 --               | next Var                       {% wrapStateMonadic "ComRegel_ControlStruct" NOOP}
-                    | Assignment                          {% wrapStateMonadic "ComRegel_ASSIGN" $1}
-                    | return                              {% wrapStateMonadic "ComRegel_RETURN" Return}
-                    | end                                 {% wrapStateMonadic "ComRegel_END" End}
+  --                  | Assignment                          {% wrapStateMonadic "ComRegel_ASSIGN" $1}
+   --                 | return                              {% wrapStateMonadic "ComRegel_RETURN" Return}
+    --                | end                                 {% wrapStateMonadic "ComRegel_END" End}
+
+Command             : IOCommand             {Command $1}
+                    | ControlStruct         {ControlStructure $1}
+                    | goto int    {Goto ((\(TokenWrap _ _ (TkConst (TkIntConst x))) -> x)$2)}
+--               | next Var                       {% wrapStateMonadic "ComRegel_ControlStruct" NOOP}
+                    | Assignment                          {$1}
+                    | return                              {Return}
+                    | end                                 {End}
 
 
-Assignment          : NumVar "=" NumExpr          {% wrapStateMonadic "Regel_NUM-Assign" (ArithAssignment $1 $3)}
-                    | stringVar "=" StringExpr {% wrapStateMonadic "Regel_STR-Assign" (StringAssignment (StringVar $ getTokenStringValue $1) $3)}
+-- Assignment          : NumVar "=" NumExpr          {% wrapStateMonadic "Regel_NUM-Assign" (ArithAssignment $1 $3)}
+--                     | stringVar "=" StringExpr {% wrapStateMonadic "Regel_STR-Assign" (StringAssignment (StringVar $ getTokenStringValue $1) $3)}
+Assignment          : NumVar "=" NumExpr          {ArithAssignment $1 $3}
+                    | stringVar "=" StringExpr {StringAssignment (StringVar $ getTokenStringValue $1) $3}
 
 StringExpr          : BasicString                                    {StringOp $1}
                     | BasicString "+" BasicString                    {StringExpr ($1,$3) "+"} 
@@ -177,7 +196,8 @@ Constant            : int                                            {getTokenIn
 
 IOCommand           : print Output                                   {Print $2}
                     | print                                          {Print ([], True)}
-                    | input Input                     {% wrapStateMonadic "IOComRegel Inp" (Input $2)}
+              --      | input Input                     {% wrapStateMonadic "IOComRegel Inp" (Input $2)}
+                    | input Input                     {Input $2}
                     | get Var                                  {Get $2}
 
 
@@ -188,7 +208,8 @@ Output              : stringLiteral                            {([OutString $ ge
                     | stringLiteral";" Output       {((OutString $ getTokenStringValue $1):(fst $3), snd ($3))}
                     | Var ";" Output                                 {((OutVar $1):(fst $3), snd ($3))}
 
-Input               : stringLiteral";" Vars   {% wrapStateMonadic "InpRegel1" (InputStuff [getTokenStringValue $1] $3, False)}
+-- Input               : stringLiteral";" Vars   {% wrapStateMonadic "InpRegel1" (InputStuff [getTokenStringValue $1] $3, False)}
+Input               : stringLiteral";" Vars   {(InputStuff [getTokenStringValue $1] $3, False)}
                     | stringLiteral Vars      {(InputStuff [getTokenStringValue $1] $2, True)}
                     | Vars                                            {(InputStuff [] $1, False)}
 
@@ -199,10 +220,13 @@ Var                 : stringVar                         {StringVar_Var (StringVa
                     | NumVar                           {NumVar_Var $1}
 
 NumVar              : intVar                             {IntVar $ getTokenStringValue $1}
-                    | floatVar         {% wrapStateMonadic "Regel_FloatVar" (FloatVar $ getTokenStringValue $1)}
+                 --   | floatVar         {% wrapStateMonadic "Regel_FloatVar" (FloatVar $ getTokenStringValue $1)}
+                    | floatVar         {FloatVar $ getTokenStringValue $1}
 
 {
 
+
+-- data ParserState = ParserState { tokenList :: TokenWrap, lineNumbers :: [Int], expectedLineNumbers :: [Int] }
 
 getTokenIntValue (TokenWrap _ _ (TkLineNumber x)) = x
 getTokenIntValue _ = error "Unallowed Token here!"
@@ -216,17 +240,49 @@ getTokenStringValue _ = error "Unallowed Token here!"
 wrapStateMonadic state val = get >>= (\s -> put (s ++ [state])) >> return val
 
 
+buildLineNumber :: TokenWrap -> State ParserState Int
+buildLineNumber tkWrap = do
+    state <- get
+    let lnNrs = lineNumbers state
+    -- let nr = (trace $! (show $ getTokenIntValue tkWrap)) $! (getTokenIntValue tkWrap)
+    let nr = getTokenIntValue tkWrap
+    if elem nr lnNrs
+      then do
+        let (ln,col) = pos tkWrap
+        let posText = "Line " ++ (show ln) ++ "," ++ "Column " ++ (show col) ++ ": "
+        error (posText ++ "Duplicate LINE_NUMBER " ++ show nr)
+      else do
+        put $ state { lineNumbers = nr : lnNrs, expectedLineNumbers = delete nr $ expectedLineNumbers state }
+        return nr
+
+
+
+-- checkAllExpectedLineNumbersGot :: a -> State ParserState a
+checkAllExpectedLineNumbersGot = do
+    state <- get
+    if (null $ expectedLineNumbers state)
+      then
+        return ()
+      else
+        error ("Missing lines: " ++ (show $ expectedLineNumbers state))
+
+
 -- TODO: FLoat COnstants
 makeArithOperandConstant (TkIntConst x) = IntConst x
 makeiArithOperandConstant _ = error "invalid makeOperandConstant call"
 
 --parseError :: [Token] -> a
 parseError ls = do
-    readStr <- get
+    (exp,context) <- getExpectingMessage (head ls)
     -- error ("Parse error on: " ++ (show ls))
-    let erTk = ("\n   ErrorToken: " ++ (show $ head ls))
-    error ("Used rules(" ++ (show $ length readStr) ++ "): " ++ (foldl (\s y -> s ++ " " ++ y) "" readStr) ++ erTk) 
+    let (ln,col) = pos $ head ls
+    let posText = "Line " ++ (show ln) ++ "," ++ "Column " ++ (show col) ++ ": "
+    let erTk = (", but was: " ++ (show $ tokenToRuleType $ _token $ head ls))
+    -- error ("Used rules(" ++ (show $ length readStr) ++ "): " ++ (foldl (\s y -> s ++ " " ++ y) "" readStr) ++ erTk) 
+    let cxt = "\n        Context seems to be: " ++ context
+    error (posText ++ exp ++ erTk ++ cxt)
 
+{-
 data SyntaxTree  
       = Line Int [Command]
       | Lines SyntaxTree SyntaxTree
@@ -319,13 +375,30 @@ data Var
 data StringVar
       = StringVar String
       deriving (Eq, Show, Ord)
+-}
 
 -- getParseTree str = evalState (basicParse $ getTokens str) ["Init"]
 
 getParseTree str = 
-    let (a,s) = runState (basicParse $ getTokens str) ["Init"]
-    in trace ("the end state: " ++ (intercalate "," s)) a
+    let tokens = getTokens str 
+        {- (a,s) = runState (basicParse $ tokens) ParserState { tokenList = tokens, 
+                                                             lineNumbers = [], 
+                                                             expectedLineNumbers = []} -}
+        initState = ParserState { tokenList = tokens, 
+                                  lineNumbers = [], 
+                                  expectedLineNumbers = []}
+        (a,s) = (runState $! ((\ tk -> do
+                              psTree <- basicParse tk
+                              checkAllExpectedLineNumbersGot
+                              return psTree
+                          )tokens)) initState
+    -- in trace ("the end state: " ++ (intercalate "," s)) a
+    -- in map (id $!) a
+    in reverse $! (evalListStrict id a [])
 
+
+evalListStrict f [] nlList = nlList
+evalListStrict f (x:xs) nlList = ((:) $! (f $! x)) $! (evalListStrict f xs (x : nlList))
 
 }
 

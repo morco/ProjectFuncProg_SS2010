@@ -1,2 +1,4 @@
 10 sdfg$tgh -- illegal identifier  Caution: At the moment he splits it simply
 20 sdf&/(
+
+30 print bla"

@@ -1,4 +1,4 @@
-------------------------------------------------- <Imports> ------------------------------------------------------
+--------------------------------- <Imports> --------------------------------
 
 import BasicHapMonad
 import IO
@@ -12,10 +12,10 @@ import ProgrammState
 import Nums
 import Bool
 
-------------------------------------------------- </Imports> -----------------------------------------------------
+--------------------------------- </Imports> -------------------------------
 
 
----------------------------------------------------- <Main> ------------------------------------------------------
+--------------------------------- <Main> -----------------------------------
 
 -- TODO: 
 --    -> Speed it up, awfully slow even for very small examples
@@ -28,28 +28,35 @@ import Bool
 --            -> interprete
 
 main = do
-    hSetBuffering stdout NoBuffering  -- needed to have output and getLine in the same line   
-    hSetBuffering stdin NoBuffering  -- needed for getChar to read at once   
+    -- needed to have output and getLine in the same line   
+    hSetBuffering stdout NoBuffering      
+    -- needed for getChar to read at once   
+    hSetBuffering stdin NoBuffering  
 
     args <- getArgs
     handle <- openFile (head args) ReadMode
     contents <- hGetContents handle
     let pTree = getParseTree contents
-    let state = getNewState pTree
+    let state = getNewState $! pTree
     runStateT (initState >> interpret pTree ) state
     hClose handle
 
---------------------------------------------------- </Main> ------------------------------------------------------
+--------------------------------- </Main> ----------------------------------
 
--- The main interpret function, works on a Program, which means a list of pairs linenumbers with a list of commands
---  Because commands like goto and end can change the program flow end even let terminate the program at once,
+-- The main interpret function, works on a Program, which means a list 
+-- which pairs up linenumbers with a list of commands.
+--  Because commands like "goto" and "end" can change the program flow 
+--  ("end" even let terminate the program at once),
 --   there have to be some checkings done here, which works like this:
---     1. Update the nextPos of state, which is in the normal case the following line in the program list 
---         (Caution, this means not, it has the line number + 1 !)
+--     1. Update the nextPos of state, which is in the normal case the 
+--         following line in the program list 
+--          (Caution, this means not, it has to have the line number + 1 !)
 --     2. Evaluate all commands of the current line
---     3. Check if a command set the program finished flag true, if so, terminate at once
---     4. Check if a command changed the nextPos pointer, if set the current working program list to this position,
---         else, go on normally
+--     3. Check if a command set the program finished flag true, if so, 
+--         terminate at once
+--     4. Check if a command changed the nextPos pointer, if so, set the 
+--         current working program list to this position, else, 
+--          go on normally
 interpret :: Program -> PState ()
 interpret [] = return ()
 interpret ((lnNr,commands):xs) = do
@@ -62,16 +69,18 @@ interpret ((lnNr,commands):xs) = do
       then
         return ()
       else
-        let realNextPos = (nextPos newState2) in
-        if (nextPos newState1) == realNextPos 
-          then 
-            interpret xs
-          else 
-            let newList = dropWhile (\(a,_) -> a /= realNextPos) (completeProgram newState2) in
-            interpret newList                 
+        let realNxPos = (nextPos newState2) 
+        in if (nextPos newState1) == realNxPos 
+             then 
+               interpret xs
+             else 
+               interpret $ getNewList (completeProgram newState2) realNxPos              
+  where
+    getNewList oldList nxPos = dropWhile (\(a,_) -> a /= nxPos) oldList
 
 
--- This Function handles the hole work, it evaluates all commands in their right way
+-- This Function handles the hole work, it evaluates all commands in 
+--  their right way
 -- TODO: 
 --     -> action is very, very ugly!!! (Generalizing things seems possible
 evalCommand :: Command -> PState ()
@@ -83,10 +92,7 @@ evalCommand (Command (Input ((InputStuff lsComment vars), printLn))) = do
                            putStrLn x
                          else
                            putStr x
-                     
     mapM_ (flip insertIOValue (putStr "? " >> getLine)) vars
-
-
 
 evalCommand (Command (Get var)) = 
     insertIOValue var (putStr "? " >> myGetChar)
@@ -99,16 +105,17 @@ evalCommand (Command (Print (list, printLn))) = do
                  putStrLn printStr
                else
                  putStr printStr
-    
-    where
-      buildOutString :: Output -> ProgramState -> String
-      buildOutString (OutString x) _ = x 
-      buildOutString (OutVar x) state =                                      
-                case x of
-                  StringVar_Var _          ->        getMapVal $ M.lookup x (stringVars state) 
-                  NumVar_Var (IntVar _)    -> show $ getMapVal $ M.lookup x (intVars state)
-                  NumVar_Var (FloatVar _)  -> show $ getMapVal $ M.lookup x (floatVars state)
-
+  where
+    buildOutString :: Output -> ProgramState -> String
+    buildOutString (OutString x) _ = x 
+    buildOutString (OutVar x) state =                                      
+        case x of
+             StringVar_Var _          ->        
+                        getMapVal $ M.lookup x (stringVars state) 
+             NumVar_Var (IntVar _)    -> 
+                 show $ getMapVal $ M.lookup x (intVars state)
+             NumVar_Var (FloatVar _)  -> 
+                 show $ getMapVal $ M.lookup x (floatVars state)
 
 evalCommand NOOP = return ()            
 
@@ -117,12 +124,12 @@ evalCommand End = do
     state <- get
     put $ state { progFinished = True }           
 
--- TODO: jumping to a wrong number should kill the program, maybe check this by parsing ??
+-- TODO: jumping to a wrong number should kill the program, maybe 
+--  check this by parsing ??
 evalCommand (Goto nr) = do
     state <- get
     put $ state { nextPos = nr }      
     return ()
-   
 
 evalCommand (ControlStructure (If boolExpr commands)) = do
     state <- get
@@ -132,8 +139,6 @@ evalCommand (ControlStructure (If boolExpr commands)) = do
         mapM_ evalCommand commands
       else
         return ()
-                                      
-
 
 evalCommand (ArithAssignment var numExpr) = do
     state <- get
@@ -143,12 +148,10 @@ evalCommand (ArithAssignment var numExpr) = do
        IntVar   _ -> updateIntVar (NumVar_Var var) (truncate res) 
     return ()
 
-
 evalCommand (StringAssignment var stringExpr) = do
     val <- evalStringExpression stringExpr
     updateStringVar (StringVar_Var var) val
     return ()
-
 
 evalCommand (ControlStructure (For var (start,step,end) commands)) = do
     -- only reading, should not change state
@@ -156,41 +159,46 @@ evalCommand (ControlStructure (For var (start,step,end) commands)) = do
     step'  <- makeFloat step   
     stop'  <- makeFloat end   
     evalFor var  start' step' stop' (concat $ map snd commands) True
-    
-   where
-      evalFor var' start step end commands isFirst = do
-          state <- get
-          let var = NumVar_Var var'
-          if isFirst
-            then 
-              case var of
-                NumVar_Var (FloatVar _ ) -> updateFloatVar var start
-                NumVar_Var (IntVar _ )   -> updateIntVar var (truncate start)
-            else
-              return () 
-
-          state1 <- get
-          let varVal =  
-               case var' of
-                 IntVar _   -> fromIntegral $ getMapVal $ M.lookup var (intVars state1)
-                 FloatVar _ -> getMapVal $ M.lookup var (floatVars state1)
-          
-          if (varVal > end)
-            then
-              return ()
-            else do
-              mapM_ evalCommand commands
-              case var of
-                NumVar_Var (FloatVar _ ) -> updateFloatVar var (varVal + step)
-                NumVar_Var (IntVar _ )   -> updateIntVar var (truncate (varVal + step))
-              evalFor var' start step end commands False
-     
+  where
+    evalFor var' start step end commands isFirst = do
+        state <- get
+        let var = NumVar_Var var'
+        if isFirst
+          then 
+            case var of
+                 NumVar_Var (FloatVar _ ) -> 
+                        updateFloatVar var start
+                 NumVar_Var (IntVar _ )   -> 
+                        updateIntVar var (truncate start)
+          else
+            return () 
+        state1 <- get
+        let varVal =  
+             case var' of
+                  IntVar _   ->
+                     let intVal =  getMapVal $ M.lookup var (intVars state1)
+                     in  fromIntegral intVal
+                  FloatVar _ -> 
+                     getMapVal $ M.lookup var (floatVars state1)
+        if (varVal > end)
+          then
+            return ()
+          else do
+            mapM_ evalCommand commands
+            let inc = varVal + step
+            case var of
+                 NumVar_Var (FloatVar _ ) -> updateFloatVar var inc
+                 NumVar_Var (IntVar _ )   -> updateIntVar var (truncate inc)
+            evalFor var' start step end commands False
 
 evalCommand (ControlStructure (GoSub lnNr)) = do
     state <- get
-    put $ state { backJumpAdressStack = (nextPos state) : (backJumpAdressStack state) }
+    let newState = 
+         state { 
+          backJumpAdressStack = (nextPos state) : (backJumpAdressStack state) 
+         }
+    put $ newState    
     evalCommand (Goto lnNr)
-
 
 evalCommand (Return) = do
     state <- get
@@ -214,10 +222,11 @@ myGetChar = do
 insertIOValue :: Var -> IO String -> PState ()
 insertIOValue x ioAct = do
     val <- liftIO $ ioAct
-
     case x of
       StringVar_Var _         -> updateStringVar x val
-      NumVar_Var (IntVar _)   -> updateIntVar x (read val)
-      NumVar_Var (FloatVar _) -> updateFloatVar x (read val)
+      -- if there is an unreadable input (no number), the runtime error 
+      --  should be thrown immediately, so strict evaluation here
+      NumVar_Var (IntVar _)   -> (updateIntVar x) $! (read val)
+      NumVar_Var (FloatVar _) -> (updateFloatVar x) $! (read val)
     
 

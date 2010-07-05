@@ -12,3 +12,6 @@ Arithmetische Grammatik (beliebig geschachtelte Audsdrücke, Operatoren mit unte
 
 
 goto mit vars ???
+
+
+Errorchecking LineNumbers beim Parsen (Duplikate, expected) <<---- Prob, Lazy Eval!

@@ -1,11 +1,12 @@
 10 input "Geben Sie bitte einen String ein: "; a$
-20 prinf "Guten Tag "; a$
+-- 20 prinf "Guten Tag "; a$                            -- Error Case: Mistyped print
 
-30 input "Geben Sie bitte eine int-Zahl ein "; a%
-40 print "Guten Tag "; a%
+-- 30 input "Geben Sie bitte eine int-Zahl ein ";       -- Error Case: No Variable after input
+40 print a%
+40 print "Error Case: Duplicate line number"            -- Error Case: look at string ;D
 
-50 input "Geben Sie bitte eine float-Zahl ein: "; a
-60 print "Guten Tag "; a
+--50 input "Geben Sie bitte eine float-Zahl ein: "; a
+--60 print "Guten Tag "; a
 
-70 input "Alle drei zusammen! "; b$,b%,b
-80 print "Gruppenkuscheln!!! String = ";b$;", Int = ";b%;", Float = ";b
+--70 input "Alle drei zusammen! "; b$,b%,b
+--80 print "Gruppenkuscheln!!! String = ";b$;", Int = ";b%;", Float = ";b
