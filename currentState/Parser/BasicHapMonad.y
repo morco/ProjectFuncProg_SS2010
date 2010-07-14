@@ -3,15 +3,13 @@ module Parser.BasicHapMonad(getParseTree) where
 
 import Parser.Lexer.BasicAlexMonad(getTokens)
 import Parser.ParserTypes
+import Parser.ParserErrors
 
--- import Data.Char
 import Data.List(delete)
-
 import Control.Monad.State
 
 import Debug.Trace
 
-import Parser.ParserErrors
 
 }
 
@@ -22,55 +20,55 @@ import Parser.ParserErrors
 %monad { State ParserState }
 
 %token 
-      print           { TokenWrap _type pos TkPrint }
-      input           { TokenWrap _type pos TkInput }
-      stringLiteral          { TokenWrap _type pos (TkString val) }
-      stringVar             { TokenWrap _type pos (TkStringVar val) }
-      intVar             { TokenWrap _type posTk (TkIntVar val) }
-      floatVar             { TokenWrap _type pos (TkFloatVar val) }
-      lineNr          { TokenWrap _type pos (TkLineNumber val) }
-      ";"             { TokenWrap _type pos TkStringConcat }
-      ":"             { TokenWrap _type pos TkSingleLineCommandCombinator }
-      ","             { TokenWrap _type pos TkKomma } -- <--- TODO!!! use bei print
-      if              { TokenWrap _type pos TkIf }
-      then            { TokenWrap _type pos TkThen }
-      goto            { TokenWrap _type pos TkGoto }
-      for             { TokenWrap _type pos TkFor }
-      to              { TokenWrap _type pos TkTo }
-      next            { TokenWrap _type pos TkNext }
-      step            { TokenWrap _type pos TkStep }
+    print           { TokenWrap _type pos TkPrint }
+    input           { TokenWrap _type pos TkInput }
+    stringLiteral          { TokenWrap _type pos (TkString val) }
+    stringVar             { TokenWrap _type pos (TkStringVar val) }
+    intVar             { TokenWrap _type posTk (TkIntVar val) }
+    floatVar             { TokenWrap _type pos (TkFloatVar val) }
+    lineNr          { TokenWrap _type pos (TkLineNumber val) }
+    ";"             { TokenWrap _type pos TkStringConcat }
+    ":"             { TokenWrap _type pos TkSingleLineCommandCombinator }
+    ","             { TokenWrap _type pos TkKomma } -- <--- TODO!!! use bei print
+    if              { TokenWrap _type pos TkIf }
+    then            { TokenWrap _type pos TkThen }
+    goto            { TokenWrap _type pos TkGoto }
+    for             { TokenWrap _type pos TkFor }
+    to              { TokenWrap _type pos TkTo }
+    next            { TokenWrap _type pos TkNext }
+    step            { TokenWrap _type pos TkStep }
 --      float           { TokenWrap _type pos TkConst (TkFloatConst $$) }
 --      int             { TokenWrap _type pos TkConst (TkIntConst $$) }
-      int             { TokenWrap _type pos (TkConst val) }
+    int             { TokenWrap _type pos (TkConst val) }
 --      float           { TokenWrap _type pos TkConst $$ }
-      "="             { TokenWrap _type pos TkEqual }
-      "<>"            { TokenWrap _type pos TkUnEqual }
-      "<"             { TokenWrap _type pos TkLt }
-      ">"             { TokenWrap _type pos TkGt }
-      "<="            { TokenWrap _type pos TkLE }
-      ">="            { TokenWrap _type pos TkGE }
+    "="             { TokenWrap _type pos TkEqual }
+    "<>"            { TokenWrap _type pos TkUnEqual }
+    "<"             { TokenWrap _type pos TkLt }
+    ">"             { TokenWrap _type pos TkGt }
+    "<="            { TokenWrap _type pos TkLE }
+    ">="            { TokenWrap _type pos TkGE }
 
-      "+"             { TokenWrap _type pos TkPlus }
-      "-"             { TokenWrap _type pos TkMinus }
-      "*"             { TokenWrap _type pos TkTimes }
-      "/"             { TokenWrap _type pos TkDiv }
+    "+"             { TokenWrap _type pos TkPlus }
+    "-"             { TokenWrap _type pos TkMinus }
+    "*"             { TokenWrap _type pos TkTimes }
+    "/"             { TokenWrap _type pos TkDiv }
 
-      len             { TokenWrap _type pos TkLen }
-      "("             { TokenWrap _type pos TkBracketOpen }
-      ")"             { TokenWrap _type pos TkBracketClose }
+    len             { TokenWrap _type pos TkLen }
+    "("             { TokenWrap _type pos TkBracketOpen }
+    ")"             { TokenWrap _type pos TkBracketClose }
 
-      or              { TokenWrap _type pos TkLogOr }
-      and             { TokenWrap _type pos TkLogAnd }
-      neg             { TokenWrap _type pos TkLogNeg }
+    or              { TokenWrap _type pos TkLogOr }
+    and             { TokenWrap _type pos TkLogAnd }
+    neg             { TokenWrap _type pos TkLogNeg }
 
-      return          { TokenWrap _type pos TkReturn }
-      gosub           { TokenWrap _type pos TkGoSub }
+    return          { TokenWrap _type pos TkReturn }
+    gosub           { TokenWrap _type pos TkGoSub }
 
-      end             { TokenWrap _type pos TkEnd }
+    end             { TokenWrap _type pos TkEnd }
       
-      rand             { TokenWrap _type pos TkRandom }
-      get             { TokenWrap _type pos TkGet }
-      intfunc             { TokenWrap _type pos TkIntFunc }
+    rand             { TokenWrap _type pos TkRandom }
+    get             { TokenWrap _type pos TkGet }
+    intfunc             { TokenWrap _type pos TkIntFunc }
 %%
 
 
@@ -215,60 +213,13 @@ NumVar              : intVar                             {IntVar $ getTokenStrin
 
 
 
-getTokenIntValue (TokenWrap _ _ (TkLineNumber x)) = x
-getTokenIntValue _ = error "Unallowed Token here!"
-
-getTokenStringValue (TokenWrap _ _ (TkString str)) = str
-getTokenStringValue (TokenWrap _ _ (TkStringVar str)) = str
-getTokenStringValue (TokenWrap _ _ (TkIntVar str)) = str
-getTokenStringValue (TokenWrap _ _ (TkFloatVar str)) = str
-getTokenStringValue _ = error "Unallowed Token here!"
 
 wrapStateMonadic state val = get >>= (\s -> put (s ++ [state])) >> return val
 
 
-buildLineNumber :: TokenWrap -> State ParserState Int
-buildLineNumber tkWrap = do
-    state <- get
-    let lnNrs = lineNumbers state
-    -- let nr = (trace $! (show $ getTokenIntValue tkWrap)) $! (getTokenIntValue tkWrap)
-    let nr = getTokenIntValue tkWrap
-    if elem nr lnNrs
-      then do
-        let (ln,col) = pos tkWrap
-        let posText = "Line " ++ (show ln) ++ "," ++ "Column " ++ (show col) ++ ": "
-        error (posText ++ "Duplicate LINE_NUMBER " ++ show nr)
-      else do
-        put $ state { lineNumbers = nr : lnNrs, expectedLineNumbers = delete nr $ expectedLineNumbers state }
-        return nr
-
-
-
--- checkAllExpectedLineNumbersGot :: a -> State ParserState a
-{-checkAllExpectedLineNumbersGot = do
-    state <- get
-    if (null $ expectedLineNumbers state)
-      then
-        return ()
-      else
-        error ("Missing lines: " ++ (show $ expectedLineNumbers state))
--}
-
 -- TODO: FLoat COnstants
 makeArithOperandConstant (TkIntConst x) = IntConst x
 makeiArithOperandConstant _ = error "invalid makeOperandConstant call"
-
---parseError :: [Token] -> a
-parseError ls = do
-    (exp,context) <- getExpectingMessage (head ls)
-    -- error ("Parse error on: " ++ (show ls))
-    let (ln,col) = pos $ head ls
-    let posText = "Line " ++ (show ln) ++ "," ++ "Column " ++ (show col) ++ ": "
-    let erTk = (", but was: " ++ (show $ tokenToRuleType $ _token $ head ls))
-    -- error ("Used rules(" ++ (show $ length readStr) ++ "): " ++ (foldl (\s y -> s ++ " " ++ y) "" readStr) ++ erTk) 
-    let cxt = "\n        Context seems to be: " ++ context
-    error (posText ++ exp ++ erTk ++ cxt)
-
 
 
 

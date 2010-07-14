@@ -1,21 +1,14 @@
 module Parser.ParserErrors where
--- import BasicAlexMonad
 
--- import ProgrammState -- leads to cyclcic imports!!
+import Parser.ParserTypes(Token(..),Constant(..),TokenWrap(..),ParserState(..),getTokenIntValue)
 
 import qualified Data.Map as M
-
-import Data.List 
-
+import Data.List(intercalate,delete) 
 import Control.Monad.State
-
--- import BasicHapMonad(ParserState(..))
 
 import Debug.Trace
 
-import Parser.ParserTypes(Token(..),Constant(..),TokenWrap(..),ParserState(..))
 
--- data ParserState = ParserState { tokenList :: [TokenWrap], lineNumbers :: [Int], expectedLineNumbers :: [Int] }
 
 data RuleType
     = LINE_NUMBER
@@ -45,6 +38,7 @@ data RuleType
     deriving (Ord, Show, Eq)
 
 
+tokenToRuleType :: Token -> RuleType
 tokenToRuleType TkInput = COMMAND_INPUT
 tokenToRuleType (TkLineNumber _) = LINE_NUMBER
 tokenToRuleType (TkStringVar _) = STRING_VARIABLE
@@ -53,17 +47,6 @@ tokenToRuleType (TkFloatVar _) = FLOAT_VARIABLE
 tokenToRuleType (TkStringConcat) = STRING_NL_SURPRESSOR ";"
 tokenToRuleType (TkString _) = STRING_LITERAL
 
-{-
-expecting = 
-    M.fromList 
-    [
-     ((LINE_NUMBER,FLOAT_VARIABLE), [OPERATOR "="] ),
-     ((LINE_NUMBER,INT_VARIABLE), [OPERATOR "="] ),
-     ((LINE_NUMBER,STRING_VARIABLE), [OPERATOR "="] ),
-     ((LINE_NUMBER,STRING_VARIABLE), [OPERATOR "="] ),
-     ((WILDCARD,COMMAND_INPUT), [STRING_LITERAL,VARIABLE] )
-    ]
--}
 
 expecting = 
     M.fromList 
@@ -89,44 +72,16 @@ context =
     ]
 
 
-{-
-singleContext =
-    M.fromList
-    [
-     (COMMAND_INPUT,True)
-    ]
--}
 
+getExpectingMessage :: TokenWrap -> State ParserState (String,String)
 getExpectingMessage ertok = do
     state <- get
-    let allToks = tokenList state -- "holeGesamteTokenList aus state" state -- TODO!!!
-    -- let preds = get2Predecessor ertok allToks
-    -- let expect = getMapVal $ M.lookup preds expecting
+    let allToks = tokenList state 
     let (expect,cont) = getExpecting ertok allToks
-    return ("Expecting: " ++ (intercalate "or" $ map show expect), cont)
+    return ("Expecting: " ++ (intercalate " or " $ map show expect), cont)
 
   where
-     {-get2Predecessor tok tkList =
-          let elPos = getElemFirstPos tok 0 tkList
-          in case elPos of
-                  0 -> (WILDCARD,WILDCARD)
-                  1 -> let parent = tokenToRuleType (_token $ head tkList)                        
-                       in  (WILDCARD,parent)
-                  _ -> let parent = tokenToRuleType (_token $ tkList !! (elPos - 1)) 
-                       in case M.lookup parent singleContext of
-                               Just _ -> let grandparent = 
-                                                tokenToRuleType (_token $ tkList !! (elPos - 2))
-                                         in  (grandparent,parent)
-                               Nothing -> (WILDCARD,parent)
-
-
-     getElemFirstPos _ _ [] = error "Element was not in list!"
-     getElemFirstPos elem curPos (x:xs) = 
-         if elem == x
-           then curPos
-           else getElemFirstPos elem (curPos + 1) xs -}
-
-
+     getExpecting :: TokenWrap -> [TokenWrap] -> ([RuleType],String)
      getExpecting ertok tkList = 
          let preds = reverse $ takeWhile ((/=) ertok) tkList
          in getExpecting' preds []
@@ -153,4 +108,49 @@ getExpectingMessage ertok = do
 getMapVal :: Maybe a -> a
 getMapVal (Just x) = x
 getMapVal _  = error "Var not found!"
+
+
+
+buildLineNumber :: TokenWrap -> State ParserState Int
+buildLineNumber tkWrap = do
+    state <- get
+    let lnNrs = lineNumbers state
+    -- let nr = (trace $! (show $ getTokenIntValue tkWrap)) $! (getTokenIntValue tkWrap)
+    let nr = getTokenIntValue tkWrap
+    if elem nr lnNrs
+      then do
+        let (ln,col) = pos tkWrap
+        let posText = "Line " ++ (show ln) ++ "," ++ "Column " ++ (show col) ++ ": "
+        error (posText ++ "Duplicate LINE_NUMBER " ++ show nr)
+        else do
+          let newState = state { 
+                           lineNumbers = nr : lnNrs, 
+                           expectedLineNumbers = delete nr $ expectedLineNumbers state 
+                         }
+          put newState
+          return nr
+
+
+{- checkAllExpectedLineNumbersGot :: a -> State ParserState a
+checkAllExpectedLineNumbersGot = do
+    state <- get
+    if (null $ expectedLineNumbers state)
+      then
+        return ()
+      else
+        error ("Missing lines: " ++ (show $ expectedLineNumbers state))
+-}
+
+
+
+parseError :: [TokenWrap] -> State ParserState a
+parseError ls = do
+    (exp,context) <- getExpectingMessage (head ls)
+    -- error ("Parse error on: " ++ (show ls))
+    let (ln,col) = pos $ head ls
+    let posText = "Line " ++ (show ln) ++ "," ++ "Column " ++ (show col) ++ ": "
+    let erTk = (", but was: " ++ (show $ tokenToRuleType $ _token $ head ls))
+    -- error ("Used rules(" ++ (show $ length readStr) ++ "): " ++ (foldl (\s y -> s ++ " " ++ y) "" readStr) ++ erTk)
+    let cxt = "\n        Context seems to be: " ++ context
+    error (posText ++ exp ++ erTk ++ cxt)
 

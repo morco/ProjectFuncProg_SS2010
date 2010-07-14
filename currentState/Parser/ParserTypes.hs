@@ -1,7 +1,8 @@
 module Parser.ParserTypes where
  
 -- This types are used from a variety of modules. Because of this and to 
---  make the other modules smaller and cleaner i have de
+--  make the other modules smaller and cleaner i have decided to modulize
+--   the types used for parsing
 
 
 ------------------------------ <Token Datatypes> ----------------------------
@@ -73,6 +74,10 @@ data Token
      | TkRandom  
      | TkIntFunc  
 
+     | TkStringStart
+     | TkStringEnd
+     | TkStringChar String
+
    deriving (Eq,Show)
 
 
@@ -86,6 +91,20 @@ data TokenWrap
     = TokenWrap { _type :: String, pos :: (Int,Int), _token :: Token }
     | TkEOF
     deriving (Show,Eq)
+
+
+getTokenIntValue :: TokenWrap -> Int
+getTokenIntValue (TokenWrap _ _ (TkLineNumber x)) = x
+getTokenIntValue _ = error "Unallowed Token here!"
+
+
+getTokenStringValue :: TokenWrap -> String
+getTokenStringValue (TokenWrap _ _ (TkString str)) = str
+getTokenStringValue (TokenWrap _ _ (TkStringVar str)) = str
+getTokenStringValue (TokenWrap _ _ (TkIntVar str)) = str
+getTokenStringValue (TokenWrap _ _ (TkFloatVar str)) = str
+getTokenStringValue _ = error "Unallowed Token here!"
+
 
 ------------------------------ </Token Datatypes> ---------------------------
 

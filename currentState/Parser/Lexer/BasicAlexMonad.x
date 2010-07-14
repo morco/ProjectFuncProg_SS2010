@@ -25,7 +25,8 @@ $varOrRW_PreContext = [$white \; : \( \)]
 @varOrResWord = $alpha [$alpha $digit ]*   -- seems not possible to distinguish between reserved 
                                                      --  words and variables with regular expressions alone, 
                                                      --   so further processing is handled by myself 
- @string = \" [. # \"]* \"                            -- " 
+-- @string = \" [. # \"]* \"                            -- " 
+-- @string = \" .* [. # \\]\"                            -- " 
 --@string = [. # \"]*                             -- " 
 @varOrRW_PostContext = ($white+ | \; | \) | \( | \= ) -- bin mir nicht mehr ganz sicher, warum ich dachte, dass 
                                                       -- ich den brauche, aber aktuell scheint es nicht noetig 
@@ -36,10 +37,15 @@ $varOrRW_PreContext = [$white \; : \( \)]
 tokens :-
 
 ---------------------------------- <Ignores> --------------------------------
-  $white+			     ;
-  [. # \n]^ "REM".*		     ;  -- Commentary (whole line)
-  ^ $digit+ $white+ "REM".*	     ;  -- Commentary (line part)
-  "--".*                             ;  -- Unoff comments (for debugging)
+--  <0> \x0A          {begin linenr}
+--  <0> \n          {begin linenr}
+  <normal> [$white # \n]+			     ;
+  <0> [$white]+			     ;
+  <0>  $digit+ $white* "REM".*		     ;  -- Commentary (whole line)
+--  <> ^ $digit+ $white+ "REM".*	     ;  -- Commentary (line part)
+  <normal> "REM".*	     ;  -- Commentary (line part)
+  <0> "--".*                             ;  -- Unoff comments (for debugging)
+  <normal> "--".*                             ;  -- Unoff comments (for debugging)
 ---------------------------------- </Ignores> -------------------------------
 
 
@@ -49,55 +55,68 @@ tokens :-
 -- sure, to be not mistaken
 --  ^ $white* $digit+ 		            {\s -> TkLineNumber (read s)}
 --  ^ $digit+ 			            {\s -> TkLineNumber (read s)}
-  ^ $digit+  {\inp len -> wrapMonadic inp len (TkLineNumber . read) "LINENUMBER" }
+--  <0> ^ $digit+  {\inp len -> wrapMonadic inp len (TkLineNumber . read) "LINENUMBER" }
+  <normal> \n          {begin 0}
+--  <> $white+			     ;
+  <0> $digit+  {andBegin (\inp len -> wrapMonadic inp len (TkLineNumber . read) "LINENUMBER") normal }
 ------------------------------ </Additional Stuff> --------------------------
 
 
 
 
 ---------------- <Strings, Number, Vars and Reserved Words> -----------------
-  $digit+                      {\inp len -> wrapMonadic inp len (TkConst . TkIntConst . read) "INT_CSTANT"}
+  <normal> $digit+                      {\inp len -> wrapMonadic inp len (TkConst . TkIntConst . read) "INT_CSTANT"}
 --  ~$digit \. $digit+                                        {\s -> TkConst (TkFloatConst (read ("0"++s)))}
 --  $digit+\.$digit+                                          {\s -> TkConst (TkFloatConst (read s))}
   
-  @varOrResWord               {\inp len -> wrapMonadic inp len buildVarOrResWord "FLOAT_VAR or RESERVED_WORD" }
+  <normal> @varOrResWord               {\inp len -> wrapMonadic inp len buildVarOrResWord "FLOAT_VAR or RESERVED_WORD" }
 
-  @intVar            {\inp len -> wrapMonadic inp len TkIntVar "INT_VAR"}
-  @stringVar         {\inp len -> wrapMonadic inp len TkStringVar "STRING_VAR"}
-  @string                     {\inp len -> wrapMonadic inp len (flip buildString '"') "STRING_LITERAL"}
+  <normal> @intVar            {\inp len -> wrapMonadic inp len TkIntVar "INT_VAR"}
+  <normal> @stringVar         {\inp len -> wrapMonadic inp len TkStringVar "STRING_VAR"}
+-- <0> @string                     {\inp len -> wrapMonadic inp len (flip buildString '"') "STRING_LITERAL"}
+  --      \"             {\inp len -> wrapMonadic inp len (\_ -> andBegin TkStringStart string) "bli" }
+    <normal>    \"             {andBegin (\inp len -> wrapMonadic inp len (\_ -> TkStringStart)  "bli") string}
+--  <0>      \"             {\inp len -> wrapMonadic inp len (\_ -> andBegin TkStringStart string) "bli" }
+--  <string> [^\"]          {\inp len -> wrapMonadic inp len TkStringChar "bli" } 
+  <string> [^\\\"]          {\inp len -> wrapMonadic inp len TkStringChar "bli" } 
+--  <string>  \\            {\inp len -> wrapMonadic inp len (\s -> andBegin (TkStringChar s) escaped) "bli" } 
+  <string>  \\            {andBegin (\inp len -> wrapMonadic inp len TkStringChar "bli") escaped} 
+--  <escaped>  .            {andBegin (\inp len -> wrapMonadic inp len TkStringChar "bli")  string}
+  <escaped>  .            {andBegin (\inp len -> wrapMonadic inp len TkStringChar "bli")  string}
+  <string> \"             {andBegin (\inp len -> wrapMonadic inp len (\s -> TkStringEnd ) "bli") normal}  
 ---------------- </Strings, Number, Vars and Reserved Words> ----------------
 
 
 ---------------------------------- <Combinators> ----------------------------
 -- the section before "^" and after "/" means context (Streamcontent before and after matching expression)
 --   seems necessary here because something like this is possible : "";Var;""
-  [.]^ \; /.*                   {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) ""}
-  \;                    {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) "STRING_CONCAT ';'"}
-  \,                            {\inp len -> wrapMonadic inp len (\s -> TkKomma) "KOMMA"}
-  :          {\inp len -> wrapMonadic inp len (\s -> TkSingleLineCommandCombinator) "COMMAND_COMBINATOR ':'"}
+--  <normal> [.]^ \; /.*                   {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) ""}
+  <normal> \;                    {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) "STRING_CONCAT ';'"}
+  <normal> \,                            {\inp len -> wrapMonadic inp len (\s -> TkKomma) "KOMMA"}
+  <normal> :          {\inp len -> wrapMonadic inp len (\s -> TkSingleLineCommandCombinator) "COMMAND_COMBINATOR ':'"}
 ---------------------------------- </Combinators> ---------------------------
 
 
 ------------------------------- <Compare Operators> -------------------------
 --  [.]^ \= /.*                                        {\inp len -> wrapMonadic inp len (\s -> TkEqual)}
-  \=               {\inp len -> wrapMonadic inp len (\s -> TkEqual) "="}
-  \<\>             {\inp len -> wrapMonadic inp len (\s -> TkUnEqual) "<>"}
-  \<               {\inp len -> wrapMonadic inp len (\s -> TkLt) "<"}
-  \>               {\inp len -> wrapMonadic inp len (\s -> TkGt) ">"}
-  \<\=             {\inp len -> wrapMonadic inp len (\s -> TkGE) "<="}
-  \>\=             {\inp len -> wrapMonadic inp len (\s -> TkLE) ">="}
+  <normal> \=               {\inp len -> wrapMonadic inp len (\s -> TkEqual) "="}
+  <normal> \<\>             {\inp len -> wrapMonadic inp len (\s -> TkUnEqual) "<>"}
+  <normal> \<               {\inp len -> wrapMonadic inp len (\s -> TkLt) "<"}
+  <normal> \>               {\inp len -> wrapMonadic inp len (\s -> TkGt) ">"}
+  <normal> \<\=             {\inp len -> wrapMonadic inp len (\s -> TkGE) "<="}
+  <normal> \>\=             {\inp len -> wrapMonadic inp len (\s -> TkLE) ">="}
 ------------------------------- </Compare Operators> ------------------------
 
-  \+            {\inp len -> wrapMonadic inp len (\s -> TkPlus) "+"}
-  \-      {\inp len -> wrapMonadic inp len (\s -> TkMinus) "-"}
-  \*      {\inp len -> wrapMonadic inp len (\s -> TkTimes) "*"}
-  \/      {\inp len -> wrapMonadic inp len (\s -> TkDiv) "/"}
-  \(        {\inp len -> wrapMonadic inp len (\s -> TkBracketOpen) "("}
-  \)        {\inp len -> wrapMonadic inp len (\s -> TkBracketClose) ")"}
+  <normal> \+            {\inp len -> wrapMonadic inp len (\s -> TkPlus) "+"}
+  <normal> \-      {\inp len -> wrapMonadic inp len (\s -> TkMinus) "-"}
+  <normal> \*      {\inp len -> wrapMonadic inp len (\s -> TkTimes) "*"}
+  <normal> \/      {\inp len -> wrapMonadic inp len (\s -> TkDiv) "/"}
+  <normal> \(        {\inp len -> wrapMonadic inp len (\s -> TkBracketOpen) "("}
+  <normal> \)        {\inp len -> wrapMonadic inp len (\s -> TkBracketClose) ")"}
 
 
 ----------------------------------- <Aliases> -------------------------------
-  \?          {\inp len -> wrapMonadic inp len (\s -> TkPrint) "PRINT"}
+  <normal> \?          {\inp len -> wrapMonadic inp len (\s -> TkPrint) "PRINT"}
 ----------------------------------- </Aliases> ------------------------------
 
 
@@ -164,15 +183,35 @@ buildString str del =
 -- In this version scanner returns a list of all read tokens
 scanner :: String -> Either String [TokenWrap]
 scanner str = runAlex str $ do
-  let loop i = do tok <- alexMonadScan;
+  let loop i = do tok' <- alexMonadScan;
+                  tok <- filterToks tok'
+                  --let tok = tok'
                   if tok == TkEOF -- || tok == "error."
-                      then return i
-                      else do let i' = i++[tok] in i' `seq` loop i'
+                    then return i 
+                    else do let i' = i ++ [tok] in i' `seq` loop i'
   loop []
 
 
 
 alexEOF = return TkEOF
+
+
+filterToks :: TokenWrap -> Alex TokenWrap
+filterToks (TokenWrap typ pos TkStringStart) = do
+     str <- buildStateString 
+     return $ TokenWrap { _type = "STRING_LITERAL", pos = pos, _token = TkString $ str}
+filterToks tok = return tok
+
+
+buildStateString :: Alex String
+buildStateString = do
+    tok <- alexMonadScan;
+    case _token tok of
+                  TkStringChar x -> do
+                        rest <- buildStateString
+                        return (x ++ rest )
+                  TkStringEnd    -> return []
+                  _ -> error ("wrong token: " ++ (show $ _token tok))
 
 
 uneither :: Either String b -> b 

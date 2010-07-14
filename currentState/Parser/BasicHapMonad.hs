@@ -3,15 +3,12 @@ module Parser.BasicHapMonad(getParseTree) where
 
 import Parser.Lexer.BasicAlexMonad(getTokens)
 import Parser.ParserTypes
+import Parser.ParserErrors
 
--- import Data.Char
 import Data.List(delete)
-
 import Control.Monad.State
 
 import Debug.Trace
-
-import Parser.ParserErrors
 
 -- parser produced by Happy Version 1.18.4
 
@@ -1410,60 +1407,12 @@ basicParse tks = happySomeParser where
 happySeq = happyDontSeq
 
 
-getTokenIntValue (TokenWrap _ _ (TkLineNumber x)) = x
-getTokenIntValue _ = error "Unallowed Token here!"
-
-getTokenStringValue (TokenWrap _ _ (TkString str)) = str
-getTokenStringValue (TokenWrap _ _ (TkStringVar str)) = str
-getTokenStringValue (TokenWrap _ _ (TkIntVar str)) = str
-getTokenStringValue (TokenWrap _ _ (TkFloatVar str)) = str
-getTokenStringValue _ = error "Unallowed Token here!"
-
 wrapStateMonadic state val = get >>= (\s -> put (s ++ [state])) >> return val
 
-
-buildLineNumber :: TokenWrap -> State ParserState Int
-buildLineNumber tkWrap = do
-    state <- get
-    let lnNrs = lineNumbers state
-    -- let nr = (trace $! (show $ getTokenIntValue tkWrap)) $! (getTokenIntValue tkWrap)
-    let nr = getTokenIntValue tkWrap
-    if elem nr lnNrs
-      then do
-        let (ln,col) = pos tkWrap
-        let posText = "Line " ++ (show ln) ++ "," ++ "Column " ++ (show col) ++ ": "
-        error (posText ++ "Duplicate LINE_NUMBER " ++ show nr)
-      else do
-        put $ state { lineNumbers = nr : lnNrs, expectedLineNumbers = delete nr $ expectedLineNumbers state }
-        return nr
-
-
-
--- checkAllExpectedLineNumbersGot :: a -> State ParserState a
-{-checkAllExpectedLineNumbersGot = do
-    state <- get
-    if (null $ expectedLineNumbers state)
-      then
-        return ()
-      else
-        error ("Missing lines: " ++ (show $ expectedLineNumbers state))
--}
 
 -- TODO: FLoat COnstants
 makeArithOperandConstant (TkIntConst x) = IntConst x
 makeiArithOperandConstant _ = error "invalid makeOperandConstant call"
-
---parseError :: [Token] -> a
-parseError ls = do
-    (exp,context) <- getExpectingMessage (head ls)
-    -- error ("Parse error on: " ++ (show ls))
-    let (ln,col) = pos $ head ls
-    let posText = "Line " ++ (show ln) ++ "," ++ "Column " ++ (show col) ++ ": "
-    let erTk = (", but was: " ++ (show $ tokenToRuleType $ _token $ head ls))
-    -- error ("Used rules(" ++ (show $ length readStr) ++ "): " ++ (foldl (\s y -> s ++ " " ++ y) "" readStr) ++ erTk) 
-    let cxt = "\n        Context seems to be: " ++ context
-    error (posText ++ exp ++ erTk ++ cxt)
-
 
 
 

@@ -9,3 +9,4 @@
 
 70 input "Alle drei zusammen! "; b$,b%,b
 80 print "Gruppenkuscheln!!! String = ";b$;", Int = ";b%;", Float = ";b
+
