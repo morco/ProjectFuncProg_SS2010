@@ -8,32 +8,60 @@ module Parser.ParserTypes where
 ------------------------------ <Token Datatypes> ----------------------------
 
 data Token 
-     = TkLineNumber Int 
+     = TkLineNumber                  Int 
 
------- <Reserved words> ---------------
+-------- <Reserved words> ----------------
 
+  -- IO commands
      | TkPrint  
      | TkInput  
+     | TkGet  
+
+  -- Controlstructures
+     | TkIf     
+     | TkThen   
      | TkFor   
      | TkTo    
      | TkNext 
-     | TkIf     
-     | TkThen   
-     | TkGoto   
      | TkStep   
+     | TkGoto  
+     | TkGoSub  
+     | TkReturn  
+     | TkEnd  
+
+  -- Numerical functions 
      | TkLen    
+     | TkRandom  
+     | TkIntFunc  
 
------- </Reserved words> ---------------
+  -- Data commands
+     | TkRead
+     | TkData
+     | TkRestore
 
------- <Combinators> ---------------
+  -- Others
+     | TkComment
+-------- </Reserved words> ---------------
+
+-------- <Combinators> -------------------
 
      | TkSingleLineCommandCombinator  
      | TkKomma  
      | TkStringConcat  
+     | TkBracketOpen  
+     | TkBracketClose  
 
------- </Combinators> ---------------
+-------- </Combinators> ------------------
 
------- <Compare Operators> ---------------
+-------- <Boolean Operators> -------------
+
+     | TkLogOr  
+     | TkLogAnd  
+     | TkLogNeg  
+
+-------- </Boolean Operators> ------------
+
+-------- <Compare Operators> -------------
 
      | TkEqual  
      | TkLt      
@@ -42,53 +70,35 @@ data Token
      | TkGE      
      | TkLE      
 
------- </Compare Operators> ---------------
+-------- </Compare Operators> ------------
 
      | TkPlus  
      | TkMinus 
      | TkTimes 
      | TkDiv   
 
------- <Variables, Strings, Numbers> ---------------
+----- <Variables, Strings, Numbers> ------
 
-     | TkString String 
-     | TkConst  Constant 
-     | TkStringVar String 
-     | TkIntVar    String 
-     | TkFloatVar_Or_DataString  String 
+     | TkString                   String 
+     | TkConst                  Constant 
+     | TkStringVar                String 
+     | TkIntVar                   String 
+     | TkFloatVar_Or_DataString   String 
 
------- </Variables, Strings, Numbers> --------------
-     | TkBracketOpen  
-     | TkBracketClose  
+----- </Variables, Strings, Numbers> -----
 
-     | TkLogOr  
-     | TkLogAnd  
-     | TkLogNeg  
-
-     | TkReturn  
-     | TkGoSub  
-     
-     | TkEnd  
-     
-     | TkGet  
-     | TkRandom  
-     | TkIntFunc  
+------- <Only temporarly needed> ---------
 
      | TkStringStart
      | TkStringEnd
---     | TkStringChar String
-     | TkRead
-     | TkData
-     
-     | TkRestore
 
-     | TkComment
+------- </Only temporarly needed> --------
 
    deriving (Eq,Show)
 
 
 data Constant 
-     = TkIntConst Int  
+     = TkIntConst     Int  
      | TkFloatConst Float
    deriving (Eq, Show)
 
@@ -99,22 +109,25 @@ data TokenWrap
     deriving (Show,Eq)
 
 
-getTokenIntValue :: TokenWrap -> Int
-getTokenIntValue (TokenWrap _ _ (TkLineNumber x)) = x
-getTokenIntValue (TokenWrap _ _ (TkConst (TkIntConst x))) = x
-getTokenIntValue tk = error ("Unallowed Token here! (" ++ (show $ _token tk) ++ ")")
+getTkIntVal :: TokenWrap -> Int
+getTkIntVal (TokenWrap _ _ (TkLineNumber x)) = x
+getTkIntVal (TokenWrap _ _ (TkConst (TkIntConst x))) = x
+getTkIntVal tk = 
+    error ("Unallowed Token here! (" ++ (show $ _token tk) ++ ")")
 
 
-getTokenFloatValue :: TokenWrap -> Float
-getTokenFloatValue (TokenWrap _ _ (TkConst (TkFloatConst x))) = x
-getTokenFloatValue tk = error $ "Unallowed Token here! (" ++ (show $ _token tk) ++ ")"
+getTkFltVal :: TokenWrap -> Float
+getTkFltVal (TokenWrap _ _ (TkConst (TkFloatConst x))) = x
+getTkFltVal tk = 
+    error $ "Unallowed Token here! (" ++ (show $ _token tk) ++ ")"
 
-getTokenStringValue :: TokenWrap -> String
-getTokenStringValue (TokenWrap _ _ (TkString str)) = str
-getTokenStringValue (TokenWrap _ _ (TkStringVar str)) = str
-getTokenStringValue (TokenWrap _ _ (TkIntVar str)) = str
-getTokenStringValue (TokenWrap _ _ (TkFloatVar_Or_DataString str)) = str
-getTokenStringValue tk = error $ "Unallowed Token here! (" ++ (show $ _token tk) ++ ")"
+getTkStrVal :: TokenWrap -> String
+getTkStrVal (TokenWrap _ _ (TkString str)) = str
+getTkStrVal (TokenWrap _ _ (TkStringVar str)) = str
+getTkStrVal (TokenWrap _ _ (TkIntVar str)) = str
+getTkStrVal (TokenWrap _ _ (TkFloatVar_Or_DataString str)) = str
+getTkStrVal tk = 
+    error $ "Unallowed Token here! (" ++ (show $ _token tk) ++ ")"
 
 
 ------------------------------ </Token Datatypes> ---------------------------
@@ -126,112 +139,109 @@ type Program = [(Int, [Command])]
 
 data ParserState 
     = ParserState { 
-         tokenList :: [TokenWrap], 
-         lineNumbers :: [Int], 
+         tokenList           :: [TokenWrap], 
+         lineNumbers         :: [Int], 
          expectedLineNumbers :: [Int],
-         data_temp :: [DataContent] 
+         data_temp           :: [DataContent] 
       }
 
 
 data ParseTree
-      = ParseTree { program :: Program, pdata :: [DataContent] }
-      deriving Show
+    = ParseTree { program :: Program, pdata :: [DataContent] }
+    deriving Show
 
 data Command
-      = IO_Com IOCommand
-      | ControlStructure ControlStruct
-      | NOOP
-      | ArithAssignment NumVar NumExpr
-      | StringAssignment StringVar StringExpr
-      | Read [Var]
-      | Data [DataContent]
-      | Restore
-      deriving Show
+    = NOOP
+    | IO_Com             IOCommand
+    | ControlStructure   ControlStruct
+    | ArithAssignment    NumVar          NumExpr
+    | StringAssignment   StringVar       StringExpr
+    | Read               [Var]
+    | Data               [DataContent]
+    | Restore
+    deriving Show
 
 data StringExpr
-      = StringOp BasicString
-      | StringExpr (BasicString,BasicString) String
-      deriving Show
+    = StringOp    BasicString
+    | StringExpr (BasicString,BasicString) String
+    deriving Show
 
 data BasicString
-      = StringVar_BString StringVar
-      | StringLiteral String
-      deriving Show
+    = StringVar_BString   StringVar
+    | StringLiteral       String
+    deriving Show
 
 data NumFunction
-      = Len String
-      | LenVar StringVar
-      | Random Int
-      | IntFunc NumExpr
-      deriving Show
+    = Len      String
+    | LenVar   StringVar
+    | Random   Int
+    | IntFunc  NumExpr
+    deriving Show
 
 
 data ControlStruct
-      = If BoolExpr [Command]
-      | For NumVar (Operand,Operand,Operand) [(Int,[Command])]
-      | GoSub Int 
-      | Goto Int
-      | End
-      | Return
--- Ruecksprungpunkt ist ja schon durch die ZeilenNr des gosub Befehls gegeben, und muss eigentlich nicht nochmal extra aufgeschrieben werden
-      deriving Show
+    = If BoolExpr [Command]
+    | For NumVar  (Operand,Operand,Operand) [(Int,[Command])]
+    | GoSub       Int 
+    | Goto        Int
+    | End
+    | Return
+    deriving Show
 
 
 data BoolExpr
-      = BoolExprString (StringExpr,StringExpr) String
-      | BoolExprNum (NumExpr,NumExpr) String
-      | BoolExprLog (BoolExpr,BoolExpr) String
-      deriving Show
+    = BoolExprString  (StringExpr,StringExpr) String
+    | BoolExprNum     (NumExpr,NumExpr) String
+    | BoolExprLog     (BoolExpr,BoolExpr) String
+    deriving Show
 
 data IOCommand 
-      = Print ([Output], Bool)
-      | Input (InputStuff, Bool)
-      | Get Var
-      deriving Show
+    = Print   ([Output], Bool)
+    | Input   (InputStuff, Bool)
+    | Get     Var
+    deriving Show
 
 data Output
-  --    = OutString String  
-  --    | OutVar Var
-        = OutStringExpr StringExpr
-        | OutNumExpr NumExpr
-      deriving Show
+    = OutStringExpr  StringExpr
+    | OutNumExpr     NumExpr
+    deriving Show
 
 data InputStuff 
-      = InputStuff [String] [Var]
-      deriving Show
+    = InputStuff   [String] [Var]
+    deriving Show
 
 data NumExpr
-      = NumExpr (NumExpr,NumExpr) String
-      | NumOp Operand
-      | NumFunc NumFunction
-      | NumMinus NumExpr
-      deriving Show
+    = NumExpr    (NumExpr,NumExpr) String
+    | NumOp      Operand
+    | NumFunc    NumFunction
+    | NumMinus   NumExpr
+    deriving Show
 
 data Operand
-      = OpVar NumVar
-      | IntConst Int
-      | FloatConst Float
-      deriving Show
+    = OpVar        NumVar
+    | IntConst     Int
+    | FloatConst   Float
+    deriving Show
 
 data NumVar
-      = IntVar String
-      | FloatVar String
-      deriving (Eq, Show, Ord)
+    = IntVar    String
+    | FloatVar  String
+    deriving (Eq, Show, Ord)
 
 data Var
-      = StringVar_Var StringVar
-      | NumVar_Var NumVar
-      deriving (Eq, Show, Ord)
+    = StringVar_Var   StringVar
+    | NumVar_Var      NumVar
+    deriving (Eq, Show, Ord)
 
 data StringVar
-      = StringVar String
-      deriving (Eq, Show, Ord)
+    = StringVar String
+    deriving (Eq, Show, Ord)
 
 
 data DataContent 
-    = DataInt Int
-    | DataFloat Float
-    | DataString String
+    = DataInt     Int
+    | DataFloat   Float
+    | DataString  String
     deriving (Eq, Show)
 
 ------------------------------ </Parser Datatypes> --------------------------

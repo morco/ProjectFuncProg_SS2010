@@ -1,6 +1,6 @@
 module Parser.ParserErrors where
 
-import Parser.ParserTypes(Token(..),Constant(..),TokenWrap(..),ParserState(..),getTokenIntValue)
+import Parser.ParserTypes(Token(..),Constant(..),TokenWrap(..),ParserState(..),getTkIntVal)
 
 import qualified Data.Map as M
 import Data.List(intercalate,delete) 
@@ -122,8 +122,8 @@ buildLineNumber :: TokenWrap -> State ParserState Int
 buildLineNumber tkWrap = do
     state <- get
     let lnNrs = lineNumbers state
-    -- let nr = (trace $! (show $ getTokenIntValue tkWrap)) $! (getTokenIntValue tkWrap)
-    let nr = getTokenIntValue tkWrap
+    -- let nr = (trace $! (show $ getTkIntVal tkWrap)) $! (getTkIntVal tkWrap)
+    let nr = getTkIntVal tkWrap
     if elem nr lnNrs
       then do
         let (ln,col) = pos tkWrap

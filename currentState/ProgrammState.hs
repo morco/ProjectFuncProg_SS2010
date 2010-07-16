@@ -1,27 +1,35 @@
-------------------------------------------------- <Imports> ------------------------------------------------------
 module ProgrammState where
 
---import BasicHap( Var(..), Command(..), NumVar(..))
-import Parser.ParserTypes( Var(..), Command(..), NumVar(..), DataContent(..), Program, ParseTree(..))
+------------------------------ <Imports> ------------------------------------
+import Parser.ParserTypes( 
+                           Var(..), 
+                           Command(..), 
+                           NumVar(..), 
+                           DataContent(..), 
+                           Program, 
+                           ParseTree(..)
+                         )
 import qualified Data.Map as M
 import Control.Monad.State
 
 import Random(randoms, mkStdGen)
 
-------------------------------------------------- </Imports> -----------------------------------------------------
+------------------------------ </Imports> -----------------------------------
 
 
+----------------------------- <Data types> ----------------------------------
 
------------------------------------------------- <Data types> ----------------------------------------------------
-
---type Program = [(Int, [Command])]
 type PState a = StateT ProgramState IO a
 
--- XXX Starting
--- What are these awkward </ ... things? Makes things difficult to read and
--- I see no reason for them. Standard terminal/editor width is 78 chars.
 
--- This type is for recording the state of the programm, which means currently the values of the variables
+-- This type is for recording the state of the programm, which means 
+--  currently the values of the variables, the whole program as list 
+--   (needed for gotos), the current line position (needed for error 
+--    messages), the expected next line position (needed for gotos),
+--     a list of return adresses (for gosubs, adress = line number),
+--      a flag to set the program finished (for asafe and clean finish 
+--      caused by exit like commands), a list of random numbers for random
+--       number functions, the data array and the pointer for this
 data ProgramState =
     ProgramState {
        stringVars :: (M.Map Var String),
@@ -39,13 +47,10 @@ data ProgramState =
 
 
 
------------------------------------------------- </Data types> ---------------------------------------------------
+----------------------------- </Data types> ---------------------------------
 
 -- TODO: make Seed variable
 
----------------------------------------------------- <Main> ------------------------------------------------------
-
---getNewState :: Program -> ProgramState
 getNewState :: ParseTree -> ProgramState
 getNewState parseTree = 
     ProgramState { 
@@ -62,25 +67,7 @@ getNewState parseTree =
        dataPointer = 0
     }
 
--- running through the whole prog at start to find all datas, very inefficient, alternatives:
---  -> Parser builds this by parsing (complicates parser)
---  -> (search first for datas, when really needed)
-{-buildDataList :: Program -> [DataContent]
-buildDataList prog =
-    let onlycoms = concat $ map snd prog
-        onlyData = filter isData onlycoms
-    in concat $ map getDataCont onlyData
-        
 
-isData :: Command -> Bool
-isData (Data _) = True
-isData _ = False
-
-getDataCont :: Command -> [DataContent]
-getDataCont (Data x) = x
-getDataCont _ = error "Non Data Element!"-}
-
---------------------------------------------------- </Main> ------------------------------------------------------
 
 {-
 getNextRandomNumber = do
@@ -94,15 +81,17 @@ getNextRandomNumber = do
           else nextNumberNotNull xs-}
    
          
--- This action is only used to set the nextPos pointer to the right start value at the beginning
+-- This action is only used to set the nextPos pointer to the right 
+--  start value at the beginning
 initState :: PState ()
 initState = do
     state <- get
     updateStateNextPos (completeProgram state)
 
 
--- Set the nextPos pointer to the next line number to execute by peeking in the head of the list.
---  This relative seemingly unpractical approach is needed, cause commands like goto can change execution order
+-- Set the nextPos pointer to the next line number to execute by peeking 
+--  in the head of the list. This relative seemingly unpractical approach 
+--   is needed, cause commands like goto can change execution order
 updateStateNextPos :: Program -> PState ()
 updateStateNextPos [] = return ()
 updateStateNextPos ((lnNrNext,_):_) = do
@@ -133,4 +122,52 @@ updateStringVar var val = do
     put $ state { stringVars = (M.alter (\ _ -> Just val) var $ stringVars state ) }
 
 
+
+getNextDataElement :: PState DataContent
+getNextDataElement = do
+    state <- get
+    let dat = _data state
+        ptr = dataPointer state
+    if length dat > ptr
+      then do
+        put $ state { dataPointer = ptr + 1 }
+        return (dat !! ptr)
+      else error ("OUT OF DATA ERROR in line " ++ (show $ curPos state))
+
+
+
+getDataString :: DataContent -> String
+getDataString (DataString x) = x
+getDataString (DataInt x) = show x
+getDataString (DataFloat x) = show x
+
+
+-- Frage, geht float auch nach int im sinne von abschneiden
+--  der nachkommastellen implizit???
+getDataInt :: DataContent -> Int
+getDataInt (DataInt x) = x
+getDataInt other = 
+    error $ "TYPE MISMATCH ERROR: Unallowed data value '" 
+            ++ (show other) ++ "', expected INT!"
+
+
+getDataFloat :: DataContent -> Float
+getDataFloat (DataFloat x) = x
+getDataFloat (DataInt x) = fromIntegral x
+getDataFloat other = 
+    error $ "TYPE MISMATCH ERROR: Unallowed data value '" 
+            ++ (show other) ++ "', expected NUMERICAL!"
+
+
+insertValue :: Var -> PState a -> (a -> String) -> (a -> Int)
+                -> (a -> Float) -> PState ()
+insertValue var getValAct toStringFunc toIntFunc toFloatFunc = do
+    val <- getValAct
+    case var of
+      -- if there is an unreadable input (no number), the runtime error
+      --  should be thrown immediately, so strict evaluation here
+         StringVar_Var _         -> (updateStringVar var) $! (toStringFunc val)
+         NumVar_Var (IntVar _)   -> (updateIntVar var) $! (toIntFunc val)
+         NumVar_Var (FloatVar _) -> (updateFloatVar var) $! (toFloatFunc val)
+      
 

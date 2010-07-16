@@ -30,17 +30,8 @@ $varOrRW_PreContext = [$white \; : \( \)]
 @intVar = @varOrResWord \%
 @stringVar = @varOrResWord \$
 
--- @comment = REM | REm | ReM | rEM | Rem | reM | rEm | rem  
 @comment =  [Rr][Ee][Mm]
 
---@odata = DATA 
-  --    | DATa | DAtA | DaTA | dATA -- all possibilities with 1 letter small
-  --    | DAta | DaTa | dATa | DatA | dAtA | daTA |    -- all possibilities with 2 letter small
-  --    | Data | dAta | daTa | datA
-  --    | data
-        
-
-@data = ~alpha_num [Dd][Aa][Tt][Aa] ~alpha_num
 
 tokens :-
 
@@ -79,8 +70,8 @@ tokens :-
 -- The string state machine, problem of this method is, that strings are 
 --  lexed in parts, so we need a additional function to put a string together again
 
-  <normal>   \"             {andBegin (\inp len -> wrapMonadic inp len (\_ -> TkStringStart)  "bli") string}
-  <string>   [^\\\"]*       {\inp len -> wrapMonadic inp len TkString "bli" } 
+  <normal>   \"             {andBegin (\inp len -> wrapMonadic inp len (\_ -> TkStringStart)  "bli") string} 
+  <string>   [^\\\"]*       {\inp len -> wrapMonadic inp len TkString "bli" }   -- "
   <string>   \\             {andBegin (\inp len -> wrapMonadic inp len TkString "bli") escaped} 
   <escaped>  .              {andBegin (\inp len -> wrapMonadic inp len TkString "bli")  string}
   <string>   \"             {andBegin (\inp len -> wrapMonadic inp len (\s -> TkStringEnd ) "bli") normal}  
@@ -145,40 +136,33 @@ buildVar str
 
 buildResWord :: String -> [Token] 
 buildResWord str = 
-    let
-      nmstr = map toLower str
-    in
-      buildResWord' nmstr
-    where
-      buildResWord' str
-          | str == "print" = [TkPrint]
-          | str == "input" = [TkInput]
-          | str == "for"   = [TkFor]
-          | str == "to"    = [TkTo]
-          | str == "next"  = [TkNext]
-          | str == "if"    = [TkIf]
-          | str == "then"  = [TkThen]
-          | str == "goto"  = [TkGoto]
-          | str == "step"  = [TkStep]
-          | str == "len"  = [TkLen]
-          | str == "or"  = [TkLogOr]
-          | str == "and"  = [TkLogAnd]
-          | str == "return"  = [TkReturn]
-          | str == "gosub"  = [TkGoSub]
-          | str == "end"  = [TkEnd]
-          | str == "get"  = [TkGet]
-          | str == "rnd"  = [TkRandom]
-          | str == "int"  = [TkIntFunc]
-          | str == "read"  = [TkRead]
-          | str == "data"  = [TkData]
-          | str == "restore"  = [TkRestore]
-          | otherwise      = [] 
+    let nmstr = map toLower str
+    in buildResWord' nmstr
+  where
+        buildResWord' str
+            | str == "print"    = [TkPrint]
+            | str == "input"    = [TkInput]
+            | str == "for"      = [TkFor]
+            | str == "to"       = [TkTo]
+            | str == "next"     = [TkNext]
+            | str == "if"       = [TkIf]
+            | str == "then"     = [TkThen]
+            | str == "goto"     = [TkGoto]
+            | str == "step"     = [TkStep]
+            | str == "len"      = [TkLen]
+            | str == "or"       = [TkLogOr]
+            | str == "and"      = [TkLogAnd]
+            | str == "return"   = [TkReturn]
+            | str == "gosub"    = [TkGoSub]
+            | str == "end"      = [TkEnd]
+            | str == "get"      = [TkGet]
+            | str == "rnd"      = [TkRandom]
+            | str == "int"      = [TkIntFunc]
+            | str == "read"     = [TkRead]
+            | str == "data"     = [TkData]
+            | str == "restore"  = [TkRestore]
+            | otherwise         = [] 
 
-{-                
-buildString :: String -> Char -> Token
-buildString str del = 
-    TkString (takeWhile ((/=) del) $ tail $ dropWhile ((/=) del) str)
--}
 
 -- In this version scanner returns a list of all read tokens
 scanner :: String -> Either String [TokenWrap]

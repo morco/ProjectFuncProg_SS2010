@@ -6,13 +6,13 @@
 30 input "Wieviele Sterne möchten Sie?"; s%
 40 REM for i = 1 to s%                                      REM  --  TODO: Vars in for range!! FOr without step!!
 35 s$ = ""
-40 for i = 1 to s% step 1                                 REM  --  TODO: Vars in for range!!
-50 s$ = s$ + "*"                                       REM erste mal nutzen ohne initialisierung??
+40 for i = 1 to s% step 1  --          REM  --  TODO: Vars in for range!!
+50 s$ = s$ + "*"           :                            REM erste mal nutzen ohne initialisierung??
 55 next i
 60 print s$
 70 input "Möchten Sie noch mehr Sterne?"; q$
 80 REM if len(q$) = 0 goto 70                           REM -- Fehler, oder then weglassbar????
-80 if len(q$) = 0 then goto 70                          REM -- TODO: len  !!
+80 if len(q$) = 0 then goto 70           :               REM -- TODO: len  !!
 -- 80 if len ( q$ ) = 0 then goto 70                        -- So gehts auch, Problem, Context!!
 -- 80 if len q$ = 0 then goto 70                          -- So geht es!!
 90 REM l$ = left$(q$, 1)                                    REM -- TODO: left !!

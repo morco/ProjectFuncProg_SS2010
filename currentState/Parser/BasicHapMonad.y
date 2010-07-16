@@ -19,248 +19,279 @@ import Debug.Trace
 
 %monad { State ParserState }
 
-%token 
-    print           { TokenWrap _type pos TkPrint }
-    input           { TokenWrap _type pos TkInput }
-    stringLiteral          { TokenWrap _type pos (TkString val) }
-    stringVar             { TokenWrap _type pos (TkStringVar val) }
-    intVar             { TokenWrap _type posTk (TkIntVar val) }
-    floatVar_or_datastring             { TokenWrap _type pos (TkFloatVar_Or_DataString val) }
-    lineNr          { TokenWrap _type pos (TkLineNumber val) }
-    ";"             { TokenWrap _type pos TkStringConcat }
-    ":"             { TokenWrap _type pos TkSingleLineCommandCombinator }
-    ","             { TokenWrap _type pos TkKomma } -- <--- TODO!!! use bei print
-    if              { TokenWrap _type pos TkIf }
-    then            { TokenWrap _type pos TkThen }
-    goto            { TokenWrap _type pos TkGoto }
-    for             { TokenWrap _type pos TkFor }
-    to              { TokenWrap _type pos TkTo }
-    next            { TokenWrap _type pos TkNext }
-    step            { TokenWrap _type pos TkStep }
-    float           { TokenWrap _type pos (TkConst (TkFloatConst val)) }
-    int             { TokenWrap _type pos (TkConst (TkIntConst val)) }
---    int             { TokenWrap _type pos (TkConst val) }
---      float           { TokenWrap _type pos TkConst $$ }
-    "="             { TokenWrap _type pos TkEqual }
-    "<>"            { TokenWrap _type pos TkUnEqual }
-    "<"             { TokenWrap _type pos TkLt }
-    ">"             { TokenWrap _type pos TkGt }
-    "<="            { TokenWrap _type pos TkLE }
-    ">="            { TokenWrap _type pos TkGE }
 
-    "+"             { TokenWrap _type pos TkPlus }
-    "-"             { TokenWrap _type pos TkMinus }
-    "*"             { TokenWrap _type pos TkTimes }
-    "/"             { TokenWrap _type pos TkDiv }
+%token
 
-    len             { TokenWrap _type pos TkLen }
-    "("             { TokenWrap _type pos TkBracketOpen }
-    ")"             { TokenWrap _type pos TkBracketClose }
+-- Reserved words
 
-    or              { TokenWrap _type pos TkLogOr }
-    and             { TokenWrap _type pos TkLogAnd }
-    neg             { TokenWrap _type pos TkLogNeg }
+  -- IO commands 
+    input                         { TokenWrap _type pos TkInput            }
+    print                         { TokenWrap _type pos TkPrint            }
+    get                           { TokenWrap _type pos TkGet              }
 
-    return          { TokenWrap _type pos TkReturn }
-    gosub           { TokenWrap _type pos TkGoSub }
+  -- Control structures
+    if                            { TokenWrap _type pos TkIf               }
+    then                          { TokenWrap _type pos TkThen             }
+    goto                          { TokenWrap _type pos TkGoto             }
+    for                           { TokenWrap _type pos TkFor              }
+    to                            { TokenWrap _type pos TkTo               }
+    next                          { TokenWrap _type pos TkNext             }
+    step                          { TokenWrap _type pos TkStep             }
+    gosub                         { TokenWrap _type pos TkGoSub            }
+    return                        { TokenWrap _type pos TkReturn           }
+    end                           { TokenWrap _type pos TkEnd              }
 
-    end             { TokenWrap _type pos TkEnd }
+  -- Numerical functions
+    rand                          { TokenWrap _type pos TkRandom           }
+    len                           { TokenWrap _type pos TkLen              }
+    intfunc                       { TokenWrap _type pos TkIntFunc          }
+
+  -- Data commands
+    read                          { TokenWrap _type pos TkRead             }
+    data                          { TokenWrap _type pos TkData             }
+    restore                       { TokenWrap _type pos TkRestore          }
+
+  -- Others
+    comment                       { TokenWrap _type pos TkComment          }
+
+
+-- Numerical operators
+    "+"                           { TokenWrap _type pos TkPlus             }
+    "-"                           { TokenWrap _type pos TkMinus            }
+    "*"                           { TokenWrap _type pos TkTimes            }
+    "/"                           { TokenWrap _type pos TkDiv              }
+ 
+
+-- Boolean operators
+    or                            { TokenWrap _type pos TkLogOr            }
+    and                           { TokenWrap _type pos TkLogAnd           } 
+    neg                           { TokenWrap _type pos TkLogNeg           }
+
+  -- Compare operators
+    "="                           { TokenWrap _type pos TkEqual            }
+    "<>"                          { TokenWrap _type pos TkUnEqual          }
+    "<"                           { TokenWrap _type pos TkLt               }
+    ">"                           { TokenWrap _type pos TkGt               }
+    "<="                          { TokenWrap _type pos TkLE               }
+    ">="                          { TokenWrap _type pos TkGE               }
+
+
+-- Variables
+    stringVar                     { TokenWrap _type pos (TkStringVar val)  }
+    intVar                        { TokenWrap _type pos (TkIntVar val)     }
+    floatVar_or_datastring { TokenWrap _t p (TkFloatVar_Or_DataString val) }
+
+-- Constants
+    stringLiteral                 { TokenWrap _type pos (TkString val)     }
+    float               { TokenWrap _type pos (TkConst (TkFloatConst val)) }
+    int                 { TokenWrap _type pos (TkConst (TkIntConst val))   }
+
+
+-- Special symbols
+    lineNr                        { TokenWrap _type pos (TkLineNumber val) }
+
+    ";"                           { TokenWrap _type pos TkStringConcat     }
+    ":"                { TokenWrap _type pos TkSingleLineCommandCombinator }
+    ","         { TokenWrap _type pos TkKomma } -- <--- TODO!!! use bei print
+
+    "("                           { TokenWrap _type pos TkBracketOpen      }
+    ")"                           { TokenWrap _type pos TkBracketClose     }
       
-    rand             { TokenWrap _type pos TkRandom }
-    get             { TokenWrap _type pos TkGet }
-    intfunc             { TokenWrap _type pos TkIntFunc }
-    
-    read             { TokenWrap _type pos TkRead }
-    data             { TokenWrap _type pos TkData }
-    restore             { TokenWrap _type pos TkRestore }
 
-    comment             { TokenWrap _type pos TkComment }
+    
 %%
 
 
-SyntaxTree         : Line                                      {[$1]}
-                   | Line SyntaxTree                           {$1:$2}
-                   | lineNr next NumVar           {[(getTokenIntValue $1, [NOOP])]} -- muss aktuell so hier extra 
-                                                                                 --  stehen, sonst parst er das 
-                                                                                 --   ganze Programm als Inhalt 
-                                                                                 --    des 1. for
 
-                   | lineNr next            {[(getTokenIntValue $1, [NOOP])]} 
-                    | lineNr return                             {(getTokenIntValue $1, [ControlStructure $ Return])}
+SyntaxTree          : Line                         { [$1]                   }
+                    | Line SyntaxTree              { $1:$2                  }
+                    | lineNr next NumVar           { let nr = getTkIntVal $1
+                                                     in [(nr, [NOOP])]      }   
+                                              -- muss aktuell so hier extra 
+                                              --  stehen, sonst parst er das 
+                                              --   ganze Programm als Inhalt 
+                                              --    des 1. for
 
--- Line                : lineNr Commands          {% wrapStateMonadic "RegelLine" (getTokenIntValue $1,$2)}
--- Line                : lineNr Commands          {(getTokenIntValue $1,$2)}
-Line                : lineNr Commands          {% do 
-                                                  nr <- buildLineNumber $! $1
-                                                  return (nr,$2)}
+                    | lineNr next                  { let nr = getTkIntVal $1
+                                                     in [(nr, [NOOP])]      }   
+                    | lineNr return     { let nr = getTkIntVal $1
+                                          in (nr, [ControlStructure Return])}
+
+
+Line                : lineNr Commands        {% do 
+                                                nr <- buildLineNumber $! $1
+                                                return (nr,$2)              }
 
  
-Commands            : Command                                        {[$1]}
-                    | Command ":" Commands                           {$1:$3}
+Commands            : Command                      { [$1]                   }
+                    | Command ":" Commands         { $1:$3                  }
 
--- Command             : IOCommand             {% wrapStateMonadic "ComRegel_IO" (Command $1)}
---                    | ControlStruct         {% wrapStateMonadic "ComRegel_ControlStruct" (ControlStructure $1)}
- --                   | goto int    {% wrapStateMonadic "ComRegel_GOTO" (Goto $ getTokenIntValue $2)}
---               | next Var                       {% wrapStateMonadic "ComRegel_ControlStruct" NOOP}
-  --                  | Assignment                          {% wrapStateMonadic "ComRegel_ASSIGN" $1}
-   --                 | return                              {% wrapStateMonadic "ComRegel_RETURN" Return}
-    --                | end                                 {% wrapStateMonadic "ComRegel_END" End}
 
-Command             : IOCommand             {IO_Com $1}
-                    | ControlStruct         {ControlStructure $1}
---               | next Var                       {% wrapStateMonadic "ComRegel_ControlStruct" NOOP}
-                    | Assignment                          {$1}
-                    | read Vars               {Read $2}
-                    | data Data               {% do
-                                                 state <- get
-                                                 let old_con = data_temp state
-                                                 put $ state { data_temp = old_con ++ $2}
-                                                 return NOOP
-                                              }
-                    | restore               { Restore }
-                    | comment               { NOOP }
+Command             : IOCommand                    { IO_Com $1              }
+                    | ControlStruct                { ControlStructure $1    }
+                    | Assignment                   { $1                     }
+                    | read Vars                    { Read $2                }
+                    | data Data         {% do
+                                           st <- get
+                                           let old_con = data_temp st
+                                           let newst = st { 
+                                                 data_temp = old_con ++ $2
+                                               }
+                                           put newst
+                                           return NOOP                      }
+                    | restore                      { Restore                }
+                    | comment                      { NOOP                   }
 
 
 
-Data : DataContent                     {[$1]}
-     | DataContent "," Data       {$1:$3}
-
-DataContent : int                    {DataInt $ getTokenIntValue $1}
-            | float                  {DataFloat $ getTokenFloatValue $1} 
-            | "-" int                {DataInt $ (- getTokenIntValue $2)}
-            | "-" float              {DataFloat $ (- getTokenFloatValue $2)} 
-            | stringLiteral          {DataString $ getTokenStringValue $1}
-            | floatVar_or_datastring  {DataString $ getTokenStringValue $1}
+Data                : DataContent                  { [$1]                   }
+                    | DataContent "," Data         { $1:$3                  }
 
 
--- Assignment          : NumVar "=" NumExpr          {% wrapStateMonadic "Regel_NUM-Assign" (ArithAssignment $1 $3)}
---                     | stringVar "=" StringExpr {% wrapStateMonadic "Regel_STR-Assign" (StringAssignment (StringVar $ getTokenStringValue $1) $3)}
-Assignment          : NumVar "=" NumExpr          {ArithAssignment $1 $3}
-                    | stringVar "=" StringExpr {StringAssignment (StringVar $ getTokenStringValue $1) $3}
-
-StringExpr          : BasicString                                    {StringOp $1}
-                    | BasicString "+" BasicString                    {StringExpr ($1,$3) "+"} 
-
-BasicString         : stringLiteral                 {StringLiteral $ getTokenStringValue $1}
---                  | StringOperation                                {String_Operation $1}
-                    | stringVar                    {StringVar_BString (StringVar $ getTokenStringValue $1)}
-
-NumFunction         : len "(" stringLiteral ")"                      {Len $ getTokenStringValue $3}
-                    | len "(" stringVar ")"                          {LenVar (StringVar $ getTokenStringValue $3)}
-                    | rand "(" int ")"           {Random ((\(TokenWrap _ _ (TkConst (TkIntConst x))) -> x)$3)} 
-                                                                        -- TODO: Argument
-                    | intfunc "(" NumExpr ")"                        {IntFunc $3} 
+DataContent         : int                  {       DataInt $ getTkIntVal $1 }
+                    | float                {     DataFloat $ getTkFltVal $1 } 
+                    | "-" int              {   DataInt $ (- getTkIntVal $2) }
+                    | "-" float            { DataFloat $ (- getTkFltVal $2) } 
+                    | stringLiteral        { DataString $ getTkStrVal $1    }
+              | floatVar_or_datastring     { DataString $ getTkStrVal $1    }
 
 
-NumExpr             : NumExpr NumOperationsLev2 Term                 {NumExpr ($1,$3) $2}
-                    | Term                                           {$1}
-                    | NumFunction                                    {NumFunc $1}
-                    | "-" NumExpr                   {NumMinus $2}
+Assignment          : NumVar "=" NumExpr           { ArithAssignment $1 $3  }
+                    | stringVar "=" StringExpr { let {
+                                                      str = getTkStrVal $1;
+                                                      str' = StringVar str
+                                               } in StringAssignment str' $3}
 
 
-NumOperationsLev2   : "+"               {"+"}          
-                    | "-"               {"-"}
+StringExpr          : BasicString                  { StringOp $1            }
+                    | BasicString "+" BasicString  { StringExpr ($1,$3) "+" } 
 
 
-NumOperationsLev1   : "*"               {"*"}
-                    | "/"               {"/"}
+BasicString         : stringLiteral                { let str = getTkStrVal $1
+                                                     in StringLiteral str   }
+--                  | StringOperation              { String_Operation $1    }
+                    | stringVar                  { let {
+                                                       str = getTkStrVal $1;
+                                                       str' = StringVar str
+                                                 } in StringVar_BString str'}
 
 
-Term                : Term NumOperationsLev1 Factor          {NumExpr ($1,$3) $2}
-                    | Factor                           {$1}
-
-Factor              : Operand                    {NumOp $1}
-                    | "(" NumExpr ")"            {$2}
-                    |  NumFunction               {NumFunc $1}
-
-Operand             : NumVar                                         {OpVar $1}
---                    | int             {makeArithOperandConstant $ ((\(TokenWrap _ _ (TkConst x)) -> x)$1)}
-                    | Constant           {$1}
+NumFunction         : len "(" stringLiteral ")"    { Len $ getTkStrVal $3   }
+                    | len "(" stringVar ")"    { let str = getTkStrVal $3
+                                                 in LenVar (StringVar $ str)}
+                    | rand "(" int ")"            { Random $ getTkIntVal $3 } 
+                                                         -- TODO: Argument
+                    | intfunc "(" NumExpr ")"      { IntFunc $3             } 
 
 
-
-ControlStruct       : if BoolExpr then IfBody                        {If $2 $4}
-                    | if BoolExpr IfBody                             {If $2 $3}
-                    | for NumVar "=" Operand to Operand step Operand SyntaxTree {For $2 ($4,$8,$6) $9} -- step auch var??
-                    | for NumVar "=" Operand to Operand SyntaxTree   {For $2 ($4,(IntConst 1),$6) $7} 
-                    | gosub int           {GoSub $ getTokenIntValue $2}
-                    | goto int    {Goto $ getTokenIntValue $2}
-                    | end                                 {End}
-                    | return                              {Return}
+NumExpr             : NumExpr NumOperationsLev2 Term   { NumExpr ($1,$3) $2 }
+                    | Term                             { $1                 }
+                    | NumFunction                      { NumFunc $1         }
+                    | "-" NumExpr                      { NumMinus $2        }
 
 
+NumOperationsLev2   : "+"                          { "+"                    }          
+                    | "-"                          { "-"                    }
 
-IfBody              : int                          {[ControlStructure $ Goto $ getTokenIntValue $1]}
-                    | Commands                                       {$1} --  <--- verursacht shift/red conflicts
+
+NumOperationsLev1   : "*"                          { "*"                    }
+                    | "/"                          { "/"                    }
 
 
-BoolExpr            : SimpleBoolExpr                                     {$1}
-                    | "(" BoolExpr ")" LogicOperation "(" BoolExpr ")"   {BoolExprLog ($2,$6) $4}
+Term                : Term NumOperationsLev1 Factor   { NumExpr ($1,$3) $2  }
+                    | Factor                          { $1                  }
 
-LogicOperation      : or                                             {"||"} -- Kurzschlussauswertung ???
-                    | and                                            {"&&"}
-                    | neg                                            {"neg"}
 
-SimpleBoolExpr      : StringExpr CompareOperator StringExpr          {BoolExprString ($1,$3) $2}
-                    | NumExpr CompareOperator NumExpr                {BoolExprNum ($1,$3) $2}
+Factor              : Operand                         { NumOp $1            }
+                    | "(" NumExpr ")"                 { $2                  }
+                    |  NumFunction                    { NumFunc $1          }
+
+
+Operand             : NumVar                       { OpVar $1               }
+                    | Constant                     { $1                     }
+
+
+
+ControlStruct       : if BoolExpr then IfBody      { If $2 $4               }
+                    | if BoolExpr IfBody           { If $2 $3               }
+ | for NumVar "=" Operand to Operand step Operand SyntaxTree 
+                                                  {For $2 ($4,$8,$6) $9} 
+                                                        -- step auch var??
+ | for NumVar "=" Operand to Operand SyntaxTree  
+                                             {For $2 ($4,(IntConst 1),$6) $7} 
+                    | gosub int                    { GoSub $ getTkIntVal $2 }
+                    | goto int                     { Goto $ getTkIntVal $2  }
+                    | end                          { End                    }
+                    | return                       { Return                 }
+
+
+
+IfBody              : int                 { let nr  = getTkIntVal $1
+                                            in [ControlStructure $ Goto nr] }
+                    | Commands   {$1} --  <--- verursacht shift/red conflicts
+
+
+BoolExpr   : SimpleBoolExpr                           { $1                  }
+ | "(" BoolExpr ")" LogicOperation "(" BoolExpr ")"  {BoolExprLog ($2,$6) $4}
+
+
+LogicOperation      : or                {"||"} -- Kurzschlussauswertung ???
+                    | and                          { "&&"                   }
+                    | neg                          { "neg"                  }
+
+
+SimpleBoolExpr   : StringExpr CompareOperator StringExpr   
+                                                  {BoolExprString ($1,$3) $2}
+          | NumExpr CompareOperator NumExpr        { BoolExprNum ($1,$3) $2 }
  
-CompareOperator     : "="                                            {"=="}
-                    | "<"                                            {"<"}
-                    | ">"                                            {">"}
-                    | "<>"                                           {"/="}
-                    | "<="                                           {"<="}
-                    | ">="                                           {">="}
 
-Constant            : int                                            {IntConst $ getTokenIntValue $1}
-                    | float                                          {FloatConst $ getTokenFloatValue $1}
+CompareOperator     : "="                          { "=="                   }
+                    | "<"                          { "<"                    }
+                    | ">"                          { ">"                    }
+                    | "<>"                         { "/="                   }
+                    | "<="                         { "<="                   }
+                    | ">="                         { ">="                   }
 
-IOCommand           : print Output                                   {Print $2}
-                    | print                                          {Print ([], True)}
-              --      | input Input                     {% wrapStateMonadic "IOComRegel Inp" (Input $2)}
-                    | input Input                     {Input $2}
-                    | get Var                                  {Get $2}
 
-Output : OutputAtom                     {([$1], True)}
-       | OutputAtom ";"                 {([$1], False)}
-       | OutputAtom ";" Output          {($1:(fst $3), snd $3)}
+Constant            : int                        { let int = getTkIntVal $1
+                                                   in IntConst int          }
+                    | float                      { let flt = getTkFltVal $1
+                                                   in FloatConst flt        }
 
-OutputAtom           --   : stringLiteral                            {([OutString $ getTokenStringValue $1], True)}
-                --    : stringLiteral                            {OutString $ getTokenStringValue $1}
-                 --   | stringLiteral";"                         {([OutString $ getTokenStringValue $1], False)}
-               --     | Var                                            {OutVar $1}
-                      : StringExpr                                {OutStringExpr $1}
-                      | NumExpr                                {OutNumExpr $1}
-                --    | Var                                            {([OutVar $1], True)}
-                 --   | Var ";"                                        {([OutVar $1], False)}
-                 --   | stringLiteral";" Output       {((OutString $ getTokenStringValue $1):(fst $3), snd ($3))}
-                 --   | Var ";" Output                                 {((OutVar $1):(fst $3), snd ($3))}
+IOCommand           : print Output                 { Print $2               }
+                    | print                        { Print ([], True)       }
+                    | input Input                  { Input $2               }
+                    | get Var                      { Get $2                 }
 
--- Input               : stringLiteral";" Vars   {% wrapStateMonadic "InpRegel1" (InputStuff [getTokenStringValue $1] $3, False)}
-Input               : stringLiteral";" Vars   {(InputStuff [getTokenStringValue $1] $3, False)}
-                    | stringLiteral Vars      {(InputStuff [getTokenStringValue $1] $2, True)}
-                    | Vars                                            {(InputStuff [] $1, False)}
 
-Vars                : Var                                            {[$1]}
-                    | Var "," Vars                                   {$1:$3}
+Output              : OutputAtom                   { ([$1], True)           }
+                    | OutputAtom ";"               { ([$1], False)          }
+                    | OutputAtom ";" Output        { ($1:(fst $3), snd $3)  }
 
-Var                 : stringVar                         {StringVar_Var (StringVar $ getTokenStringValue $1)} 
-                    | NumVar                           {NumVar_Var $1}
 
-NumVar              : intVar                             {IntVar $ getTokenStringValue $1}
-                 --   | floatVar         {% wrapStateMonadic "Regel_FloatVar" (FloatVar $ getTokenStringValue $1)}
-                    | floatVar_or_datastring         {FloatVar $ getTokenStringValue $1}
+OutputAtom          : StringExpr                   { OutStringExpr $1       }
+                    | NumExpr                      { OutNumExpr $1          }
+
+
+Input     : stringLiteral";" Vars   {(InputStuff [getTkStrVal $1] $3, False)}
+          | stringLiteral Vars      {(InputStuff [getTkStrVal $1] $2, True) }
+                    | Vars                      { (InputStuff [] $1, False) }
+
+
+Vars                : Var                          { [$1]                   }
+                    | Var "," Vars                 { $1:$3                  }
+
+
+Var                 : stringVar  {StringVar_Var (StringVar $ getTkStrVal $1)} 
+                    | NumVar                       { NumVar_Var $1          }
+
+
+NumVar              : intVar                    {   IntVar $ getTkStrVal $1 }
+                    | floatVar_or_datastring    { FloatVar $ getTkStrVal $1 }
+
 
 {
 
-
-
-
-wrapStateMonadic state val = get >>= (\s -> put (s ++ [state])) >> return val
-
-
--- TODO: FLoat COnstants
---makeArithOperandConstant (TkIntConst x) = IntConst x
---makeiArithOperandConstant _ = error "invalid makeOperandConstant call"
 
 
 
@@ -270,16 +301,18 @@ evalListStrict f (x:xs) nlList = ((:) $! (f $! x)) $! (evalListStrict f xs (x : 
 
 
 
+getParseTree :: String -> ParseTree 
 getParseTree str = 
-    let tokens = getTokens str 
-        (a,s) = runState (basicParse $ tokens) ParserState { tokenList = tokens, 
-                                                             lineNumbers = [], 
-                                                             expectedLineNumbers = [],
-                                                             data_temp = []} 
-       {- initState = ParserState { tokenList = tokens, 
-                                  lineNumbers = [], 
-                                  expectedLineNumbers = []}
-        (a,s) = (runState $! ((\ tk -> do
+    let tokens = getTokens str
+        initstate =  ParserState { 
+                          tokenList = tokens, 
+                          lineNumbers = [], 
+                          expectedLineNumbers = [],
+                          data_temp = []
+                     } 
+        (a,s) = runState (basicParse $ tokens) initstate 
+
+     {-   (a,s) = (runState $! ((\ tk -> do
                               psTree <- basicParse tk
                               checkAllExpectedLineNumbersGot
                               return psTree
