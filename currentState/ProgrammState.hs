@@ -2,7 +2,7 @@
 module ProgrammState where
 
 --import BasicHap( Var(..), Command(..), NumVar(..))
-import Parser.ParserTypes( Var(..), Command(..), NumVar(..))
+import Parser.ParserTypes( Var(..), Command(..), NumVar(..), DataContent(..), Program, ParseTree(..))
 import qualified Data.Map as M
 import Control.Monad.State
 
@@ -14,7 +14,7 @@ import Random(randoms, mkStdGen)
 
 ------------------------------------------------ <Data types> ----------------------------------------------------
 
-type Program = [(Int, [Command])]
+--type Program = [(Int, [Command])]
 type PState a = StateT ProgramState IO a
 
 -- XXX Starting
@@ -28,10 +28,13 @@ data ProgramState =
        intVars    :: (M.Map Var Int),
        floatVars  :: (M.Map Var Float),
        completeProgram :: Program,
+       curPos :: Int,
        nextPos :: Int,
        backJumpAdressStack :: [Int],
        progFinished :: Bool,
-       randomNumbers :: [Float]
+       randomNumbers :: [Float],
+       _data :: [DataContent],
+       dataPointer :: Int
     } deriving Show
 
 
@@ -42,19 +45,40 @@ data ProgramState =
 
 ---------------------------------------------------- <Main> ------------------------------------------------------
 
-getNewState :: Program -> ProgramState
+--getNewState :: Program -> ProgramState
+getNewState :: ParseTree -> ProgramState
 getNewState parseTree = 
     ProgramState { 
        stringVars = M.empty, 
        intVars    = M.empty, 
        floatVars  = M.empty,
-       completeProgram = parseTree,
+       completeProgram = program parseTree,
+       curPos = 0,
        nextPos = 0,
        backJumpAdressStack = [],
        progFinished = False,
-       randomNumbers = randoms (mkStdGen 1)
+       randomNumbers = randoms (mkStdGen 1),
+       _data = pdata parseTree,
+       dataPointer = 0
     }
 
+-- running through the whole prog at start to find all datas, very inefficient, alternatives:
+--  -> Parser builds this by parsing (complicates parser)
+--  -> (search first for datas, when really needed)
+{-buildDataList :: Program -> [DataContent]
+buildDataList prog =
+    let onlycoms = concat $ map snd prog
+        onlyData = filter isData onlycoms
+    in concat $ map getDataCont onlyData
+        
+
+isData :: Command -> Bool
+isData (Data _) = True
+isData _ = False
+
+getDataCont :: Command -> [DataContent]
+getDataCont (Data x) = x
+getDataCont _ = error "Non Data Element!"-}
 
 --------------------------------------------------- </Main> ------------------------------------------------------
 

@@ -35,6 +35,8 @@ data RuleType
     | COMMAND
     | VARIABLE
     | LINE
+
+    | NOT_IMPLEMENTED
     deriving (Ord, Show, Eq)
 
 
@@ -43,14 +45,18 @@ tokenToRuleType TkInput = COMMAND_INPUT
 tokenToRuleType (TkLineNumber _) = LINE_NUMBER
 tokenToRuleType (TkStringVar _) = STRING_VARIABLE
 tokenToRuleType (TkIntVar _) = INT_VARIABLE
-tokenToRuleType (TkFloatVar _) = FLOAT_VARIABLE
+--tokenToRuleType (TkFloatVar _) = FLOAT_VARIABLE
+tokenToRuleType (TkFloatVar_Or_DataString _) = FLOAT_VARIABLE -- TODO!!!
 tokenToRuleType (TkStringConcat) = STRING_NL_SURPRESSOR ";"
 tokenToRuleType (TkString _) = STRING_LITERAL
+--tokenToRuleType other = error ("not implement token: " ++ show other)
+tokenToRuleType other = NOT_IMPLEMENTED
 
 
 expecting = 
     M.fromList 
     [
+     ([NOT_IMPLEMENTED],[NOT_IMPLEMENTED]),
      ([LINE_NUMBER], [COMMAND,VARIABLE] ),
      ([FLOAT_VARIABLE,LINE_NUMBER], [OPERATOR "="] ),
      ([INT_VARIABLE,LINE_NUMBER], [OPERATOR "="] ),
@@ -65,6 +71,7 @@ context :: M.Map [RuleType] String
 context = 
     M.fromList 
     [
+     ([NOT_IMPLEMENTED], "Context missing"),
      ([LINE_NUMBER,STRING_VARIABLE], "String Assignment" ),
      ([LINE_NUMBER,FLOAT_VARIABLE], "Float Assignment" ),
      ([LINE_NUMBER,INT_VARIABLE], "Int Assignment" ),

@@ -30,6 +30,9 @@ import Control.Monad.State
 evalExpression :: NumExpr -> PState Float
 evalExpression (NumFunc x) = evalNumFunc x 
 evalExpression (NumOp x) = makeFloat x 
+evalExpression (NumMinus expr) = do
+    res <- evalExpression expr  
+    return (-res)
 evalExpression (NumExpr (op1, op2) op) = do
     val1 <- evalExpression op1
     val2 <- evalExpression op2

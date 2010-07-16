@@ -11,41 +11,47 @@ import Debug.Trace
 
 }
 
--- ToDO:
---   -> Make Strings in Strings and more than one String per Line work together
---   -> end delimiter strings directly over context (really useful?)
 
 %wrapper "monad"
 
 $digit = 0-9			-- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
+$alpha_num = [$alpha$digit]
 
 $varOrRW_PreContext = [$white \; : \( \)]
 
-@varOrResWord = $alpha [$alpha $digit ]*   -- seems not possible to distinguish between reserved 
+@varOrResWord = $alpha $alpha_num*   -- seems not possible to distinguish between reserved 
                                                      --  words and variables with regular expressions alone, 
                                                      --   so further processing is handled by myself 
--- @string = \" [. # \"]* \"                            -- " 
--- @string = \" .* [. # \\]\"                            -- " 
---@string = [. # \"]*                             -- " 
+
 @varOrRW_PostContext = ($white+ | \; | \) | \( | \= ) -- bin mir nicht mehr ganz sicher, warum ich dachte, dass 
                                                       -- ich den brauche, aber aktuell scheint es nicht noetig 
                                                       -- und er ist eher hinderlich als nuetzlich 
 @intVar = @varOrResWord \%
 @stringVar = @varOrResWord \$
 
+-- @comment = REM | REm | ReM | rEM | Rem | reM | rEm | rem  
+@comment =  [Rr][Ee][Mm]
+
+--@odata = DATA 
+  --    | DATa | DAtA | DaTA | dATA -- all possibilities with 1 letter small
+  --    | DAta | DaTa | dATa | DatA | dAtA | daTA |    -- all possibilities with 2 letter small
+  --    | Data | dAta | daTa | datA
+  --    | data
+        
+
+@data = ~alpha_num [Dd][Aa][Tt][Aa] ~alpha_num
+
 tokens :-
 
 ---------------------------------- <Ignores> --------------------------------
---  <0> \x0A          {begin linenr}
---  <0> \n          {begin linenr}
-  <normal> [$white # \n]+			     ;
-  <0> [$white]+			     ;
-  <0>  $digit+ $white* "REM".*		     ;  -- Commentary (whole line)
---  <> ^ $digit+ $white+ "REM".*	     ;  -- Commentary (line part)
-  <normal> "REM".*	     ;  -- Commentary (line part)
+  <normal> [$white # \n]+	         ;  
+  <0> [$white]+			         ;
+  <0>  $digit+ $white* @comment.*	 ;  -- Commentary (whole line)
+  -- <normal> @comment.*	                 ;  -- Commentary (line part)
+  <normal> @comment.*	      {\inp len -> wrapMonadic inp len (\s -> TkComment) "COMMENT"}  -- Commentary (line part)
   <0> "--".*                             ;  -- Unoff comments (for debugging)
-  <normal> "--".*                             ;  -- Unoff comments (for debugging)
+  <normal> "--".*                        ;  -- Unoff comments (for debugging)
 ---------------------------------- </Ignores> -------------------------------
 
 
@@ -53,52 +59,43 @@ tokens :-
 -- the line number, essential for gotos, "^" is a special pre context and 
 -- stands for newline, have to stand before the Number expression to make 
 -- sure, to be not mistaken
---  ^ $white* $digit+ 		            {\s -> TkLineNumber (read s)}
---  ^ $digit+ 			            {\s -> TkLineNumber (read s)}
---  <0> ^ $digit+  {\inp len -> wrapMonadic inp len (TkLineNumber . read) "LINENUMBER" }
   <normal> \n          {begin 0}
---  <> $white+			     ;
   <0> $digit+  {andBegin (\inp len -> wrapMonadic inp len (TkLineNumber . read) "LINENUMBER") normal }
 ------------------------------ </Additional Stuff> --------------------------
 
 
 
-
 ---------------- <Strings, Number, Vars and Reserved Words> -----------------
-  <normal> $digit+                      {\inp len -> wrapMonadic inp len (TkConst . TkIntConst . read) "INT_CSTANT"}
---  ~$digit \. $digit+                                        {\s -> TkConst (TkFloatConst (read ("0"++s)))}
---  $digit+\.$digit+                                          {\s -> TkConst (TkFloatConst (read s))}
+  <normal> $digit+             {\inp len -> wrapMonadic inp len (TkConst . TkIntConst . read) "INT_CSTANT"}
+  <normal> ~$digit \. $digit+  {\inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read. (++) "0") "Float_CSTANT"}
+  <normal> $digit+ \. $digit+  {\inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read) "Float_CSTANT"}
   
-  <normal> @varOrResWord               {\inp len -> wrapMonadic inp len buildVarOrResWord "FLOAT_VAR or RESERVED_WORD" }
+  <normal> @varOrResWord       {\inp len -> wrapMonadic inp len buildVarOrResWord "FLOAT_VAR or RESERVED_WORD" }
 
   <normal> @intVar            {\inp len -> wrapMonadic inp len TkIntVar "INT_VAR"}
   <normal> @stringVar         {\inp len -> wrapMonadic inp len TkStringVar "STRING_VAR"}
--- <0> @string                     {\inp len -> wrapMonadic inp len (flip buildString '"') "STRING_LITERAL"}
-  --      \"             {\inp len -> wrapMonadic inp len (\_ -> andBegin TkStringStart string) "bli" }
-    <normal>    \"             {andBegin (\inp len -> wrapMonadic inp len (\_ -> TkStringStart)  "bli") string}
---  <0>      \"             {\inp len -> wrapMonadic inp len (\_ -> andBegin TkStringStart string) "bli" }
---  <string> [^\"]          {\inp len -> wrapMonadic inp len TkStringChar "bli" } 
-  <string> [^\\\"]          {\inp len -> wrapMonadic inp len TkStringChar "bli" } 
---  <string>  \\            {\inp len -> wrapMonadic inp len (\s -> andBegin (TkStringChar s) escaped) "bli" } 
-  <string>  \\            {andBegin (\inp len -> wrapMonadic inp len TkStringChar "bli") escaped} 
---  <escaped>  .            {andBegin (\inp len -> wrapMonadic inp len TkStringChar "bli")  string}
-  <escaped>  .            {andBegin (\inp len -> wrapMonadic inp len TkStringChar "bli")  string}
-  <string> \"             {andBegin (\inp len -> wrapMonadic inp len (\s -> TkStringEnd ) "bli") normal}  
+
+
+-- The string state machine, problem of this method is, that strings are 
+--  lexed in parts, so we need a additional function to put a string together again
+
+  <normal>   \"             {andBegin (\inp len -> wrapMonadic inp len (\_ -> TkStringStart)  "bli") string}
+  <string>   [^\\\"]*       {\inp len -> wrapMonadic inp len TkString "bli" } 
+  <string>   \\             {andBegin (\inp len -> wrapMonadic inp len TkString "bli") escaped} 
+  <escaped>  .              {andBegin (\inp len -> wrapMonadic inp len TkString "bli")  string}
+  <string>   \"             {andBegin (\inp len -> wrapMonadic inp len (\s -> TkStringEnd ) "bli") normal}  
+
 ---------------- </Strings, Number, Vars and Reserved Words> ----------------
 
 
 ---------------------------------- <Combinators> ----------------------------
--- the section before "^" and after "/" means context (Streamcontent before and after matching expression)
---   seems necessary here because something like this is possible : "";Var;""
---  <normal> [.]^ \; /.*                   {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) ""}
-  <normal> \;                    {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) "STRING_CONCAT ';'"}
-  <normal> \,                            {\inp len -> wrapMonadic inp len (\s -> TkKomma) "KOMMA"}
-  <normal> :          {\inp len -> wrapMonadic inp len (\s -> TkSingleLineCommandCombinator) "COMMAND_COMBINATOR ':'"}
+  <normal> \;              {\inp len -> wrapMonadic inp len (\s -> TkStringConcat) "STRING_CONCAT ';'"}
+  <normal> \,              {\inp len -> wrapMonadic inp len (\s -> TkKomma) "KOMMA"}
+  <normal> :    {\inp len -> wrapMonadic inp len (\s -> TkSingleLineCommandCombinator) "COMMAND_COMBINATOR ':'"}
 ---------------------------------- </Combinators> ---------------------------
 
 
 ------------------------------- <Compare Operators> -------------------------
---  [.]^ \= /.*                                        {\inp len -> wrapMonadic inp len (\s -> TkEqual)}
   <normal> \=               {\inp len -> wrapMonadic inp len (\s -> TkEqual) "="}
   <normal> \<\>             {\inp len -> wrapMonadic inp len (\s -> TkUnEqual) "<>"}
   <normal> \<               {\inp len -> wrapMonadic inp len (\s -> TkLt) "<"}
@@ -143,7 +140,7 @@ buildVar :: String -> Token
 buildVar str 
      | isSuffixOf "$" str = (TkStringVar str)
      | isSuffixOf "%" str = (TkIntVar str) 
-     | otherwise          = (TkFloatVar str) 
+     | otherwise          = (TkFloatVar_Or_DataString str) 
 
 
 buildResWord :: String -> [Token] 
@@ -172,13 +169,16 @@ buildResWord str =
           | str == "get"  = [TkGet]
           | str == "rnd"  = [TkRandom]
           | str == "int"  = [TkIntFunc]
+          | str == "read"  = [TkRead]
+          | str == "data"  = [TkData]
+          | str == "restore"  = [TkRestore]
           | otherwise      = [] 
 
-                
+{-                
 buildString :: String -> Char -> Token
 buildString str del = 
     TkString (takeWhile ((/=) del) $ tail $ dropWhile ((/=) del) str)
-
+-}
 
 -- In this version scanner returns a list of all read tokens
 scanner :: String -> Either String [TokenWrap]
@@ -207,7 +207,7 @@ buildStateString :: Alex String
 buildStateString = do
     tok <- alexMonadScan;
     case _token tok of
-                  TkStringChar x -> do
+                  TkString x -> do
                         rest <- buildStateString
                         return (x ++ rest )
                   TkStringEnd    -> return []

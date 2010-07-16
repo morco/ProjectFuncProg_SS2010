@@ -39,7 +39,7 @@ main = do
     contents <- hGetContents handle
     let pTree = getParseTree contents
     let state = getNewState $! pTree
-    runStateT (initState >> interpret pTree ) state
+    runStateT (initState >> interpret (completeProgram state) ) state
     hClose handle
 
 --------------------------------- </Main> ----------------------------------
@@ -62,6 +62,7 @@ interpret :: Program -> PState ()
 interpret [] = return ()
 interpret ((lnNr,commands):xs) = do
     state <- get
+    put $ state { curPos = lnNr }
     updateStateNextPos xs 
     newState1 <- get
     mapM_ evalCommand commands
@@ -85,7 +86,7 @@ interpret ((lnNr,commands):xs) = do
 -- TODO: 
 --     -> action is very, very ugly!!! (Generalizing things seems possible
 evalCommand :: Command -> PState ()
-evalCommand (Command (Input ((InputStuff lsComment vars), printLn))) = do 
+evalCommand (IO_Com (Input ((InputStuff lsComment vars), printLn))) = do 
     liftIO $ case lsComment of
                []  -> return ()
                [x] -> if printLn
@@ -95,19 +96,22 @@ evalCommand (Command (Input ((InputStuff lsComment vars), printLn))) = do
                            putStr x
     mapM_ (flip insertIOValue (putStr "? " >> getLine)) vars
 
-evalCommand (Command (Get var)) = 
-    insertIOValue var (putStr "? " >> myGetChar)
+evalCommand (IO_Com (Get var)) = 
+    --insertIOValue var (putStr "? " >> myGetChar)
+    insertIOValue var (putStr "? " >> getChar >>= (return . flip (:) [])) 
 
-evalCommand (Command (Print (list, printLn))) = do 
+evalCommand (IO_Com (Print (list, printLn))) = do 
     state <- get
-    let printStr = foldl (++) "" $ map (flip buildOutString state) list
+    --let printStr = foldl (++) "" $ map (flip buildOutString state) list
+    outStr <- mapM outputToString list
+    let printStr = foldl (++) "" $ outStr
     liftIO $ if printLn
                then
                  putStrLn printStr
                else
                  putStr printStr
   where
-    buildOutString :: Output -> ProgramState -> String
+    {-buildOutString :: Output -> ProgramState -> String
     buildOutString (OutString x) _ = x 
     buildOutString (OutVar x) state =                                      
         case x of
@@ -116,18 +120,21 @@ evalCommand (Command (Print (list, printLn))) = do
              NumVar_Var (IntVar _)    -> 
                  show $ getMapVal $ M.lookup x (intVars state)
              NumVar_Var (FloatVar _)  -> 
-                 show $ getMapVal $ M.lookup x (floatVars state)
+                 show $ getMapVal $ M.lookup x (floatVars state)-}
+
+    outputToString (OutStringExpr x) = evalStringExpression x 
+    outputToString (OutNumExpr x) = evalExpression x >>= (return . show)
 
 evalCommand NOOP = return ()            
 
 -- end is not right this way, cause in c64 a program can be resumed
-evalCommand End = do
+evalCommand (ControlStructure End) = do
     state <- get
     put $ state { progFinished = True }           
 
 -- TODO: jumping to a wrong number should kill the program, maybe 
 --  check this by parsing ??
-evalCommand (Goto nr) = do
+evalCommand (ControlStructure (Goto nr)) = do
     state <- get
     put $ state { nextPos = nr }      
     return ()
@@ -199,27 +206,92 @@ evalCommand (ControlStructure (GoSub lnNr)) = do
           backJumpAdressStack = (nextPos state) : (backJumpAdressStack state) 
          }
     put $ newState    
-    evalCommand (Goto lnNr)
+    evalCommand (ControlStructure $ Goto lnNr)
 
-evalCommand (Return) = do
+evalCommand (ControlStructure Return) = do
     state <- get
     let backJumpPoint = head $ backJumpAdressStack state
     put $ state { backJumpAdressStack = tail $ backJumpAdressStack state }
-    evalCommand (Goto backJumpPoint)
+    evalCommand (ControlStructure $ Goto backJumpPoint)
 
+--evalCommand (Data _) = evalCommand NOOP
+
+evalCommand (Read vars) = mapM_ readVar vars
+
+evalCommand Restore = do
+    state <- get
+    put $ state { dataPointer = 0 }
+    
+{-
+-- equals awfully insertIOValue, and the map pattern, so optimize please!!
+readVar :: Var -> PState ()
+readVar x = do
+    state <-get
+    let dat = _data state
+        ptr = dataPointer state
+    val <- if length dat > ptr
+                then do
+                  put $ state { dataPointer = ptr + 1 }
+                  return (dat !! ptr)
+                else error ("OUT OF DATA ERROR in line " 
+                            ++ (show $ curPos state))   
+    case x of
+      StringVar_Var _         -> updateStringVar x $ getDataString val
+      -- if there is an unreadable input (no number), the runtime error 
+      --  should be thrown immediately, so strict evaluation here
+      NumVar_Var (IntVar _)   -> (updateIntVar x) $! (getDataInt val)
+      NumVar_Var (FloatVar _) -> (updateFloatVar x) $! (getDataFloat val)
+-}    
+
+readVar :: Var -> PState ()
+readVar var = 
+    insertValue var getNextDataElement getDataString getDataInt getDataFloat 
+
+
+getNextDataElement :: PState DataContent
+getNextDataElement = do
+    state <- get
+    let dat = _data state
+        ptr = dataPointer state
+    if length dat > ptr
+      then do
+        put $ state { dataPointer = ptr + 1 }
+        return (dat !! ptr)
+      else error ("OUT OF DATA ERROR in line " ++ (show $ curPos state))   
+
+
+
+getDataString :: DataContent -> String
+getDataString (DataString x) = x
+getDataString (DataInt x) = show x
+getDataString (DataFloat x) = show x
+
+
+-- Frage, geht float auch nach int im sinne von abschneiden 
+--  der nachkommastellen???
+getDataInt :: DataContent -> Int
+getDataInt (DataInt x) = x
+getDataInt _ = error "unallowed data argument"
+
+
+getDataFloat :: DataContent -> Float
+getDataFloat (DataFloat x) = x
+getDataFloat (DataInt x) = fromIntegral x
+getDataFloat _ = error "unallowed data argument"
 
 --getConstant (TkIntConst x) = read (show x)
 --getConstant (TkFloatConst x) = read (show x)
 --getConstant (TkIntConst x) = x
 --getConstant (TkFloatConst x) = -1
 
-
+{-
 myGetChar :: IO String
 myGetChar = do
     ch <- getChar
     return [ch]
+-}
 
-
+{-
 insertIOValue :: Var -> IO String -> PState ()
 insertIOValue x ioAct = do
     val <- liftIO $ ioAct
@@ -229,5 +301,19 @@ insertIOValue x ioAct = do
       --  should be thrown immediately, so strict evaluation here
       NumVar_Var (IntVar _)   -> (updateIntVar x) $! (read val)
       NumVar_Var (FloatVar _) -> (updateFloatVar x) $! (read val)
+-}
+    
+insertIOValue :: Var -> IO String -> PState ()
+insertIOValue var ioAct = insertValue var (liftIO $ ioAct) id read read
     
 
+insertValue :: Var -> PState a -> (a -> String) -> (a -> Int) 
+                -> (a -> Float) -> PState ()
+insertValue var getValAct toStringFunc toIntFunc toFloatFunc = do
+    val <- getValAct
+    case var of
+      -- if there is an unreadable input (no number), the runtime error 
+      --  should be thrown immediately, so strict evaluation here
+      StringVar_Var _         -> (updateStringVar var) $! (toStringFunc val)
+      NumVar_Var (IntVar _)   -> (updateIntVar var) $! (toIntFunc val)
+      NumVar_Var (FloatVar _) -> (updateFloatVar var) $! (toFloatFunc val)

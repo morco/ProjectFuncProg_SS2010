@@ -55,7 +55,7 @@ data Token
      | TkConst  Constant 
      | TkStringVar String 
      | TkIntVar    String 
-     | TkFloatVar  String 
+     | TkFloatVar_Or_DataString  String 
 
 ------ </Variables, Strings, Numbers> --------------
      | TkBracketOpen  
@@ -76,7 +76,13 @@ data Token
 
      | TkStringStart
      | TkStringEnd
-     | TkStringChar String
+--     | TkStringChar String
+     | TkRead
+     | TkData
+     
+     | TkRestore
+
+     | TkComment
 
    deriving (Eq,Show)
 
@@ -95,15 +101,20 @@ data TokenWrap
 
 getTokenIntValue :: TokenWrap -> Int
 getTokenIntValue (TokenWrap _ _ (TkLineNumber x)) = x
-getTokenIntValue _ = error "Unallowed Token here!"
+getTokenIntValue (TokenWrap _ _ (TkConst (TkIntConst x))) = x
+getTokenIntValue tk = error ("Unallowed Token here! (" ++ (show $ _token tk) ++ ")")
 
+
+getTokenFloatValue :: TokenWrap -> Float
+getTokenFloatValue (TokenWrap _ _ (TkConst (TkFloatConst x))) = x
+getTokenFloatValue tk = error $ "Unallowed Token here! (" ++ (show $ _token tk) ++ ")"
 
 getTokenStringValue :: TokenWrap -> String
 getTokenStringValue (TokenWrap _ _ (TkString str)) = str
 getTokenStringValue (TokenWrap _ _ (TkStringVar str)) = str
 getTokenStringValue (TokenWrap _ _ (TkIntVar str)) = str
-getTokenStringValue (TokenWrap _ _ (TkFloatVar str)) = str
-getTokenStringValue _ = error "Unallowed Token here!"
+getTokenStringValue (TokenWrap _ _ (TkFloatVar_Or_DataString str)) = str
+getTokenStringValue tk = error $ "Unallowed Token here! (" ++ (show $ _token tk) ++ ")"
 
 
 ------------------------------ </Token Datatypes> ---------------------------
@@ -111,23 +122,30 @@ getTokenStringValue _ = error "Unallowed Token here!"
 
 ------------------------------ <Parser Datatypes> ---------------------------
 
+type Program = [(Int, [Command])]
+
 data ParserState 
     = ParserState { 
          tokenList :: [TokenWrap], 
          lineNumbers :: [Int], 
-         expectedLineNumbers :: [Int] 
+         expectedLineNumbers :: [Int],
+         data_temp :: [DataContent] 
       }
 
 
+data ParseTree
+      = ParseTree { program :: Program, pdata :: [DataContent] }
+      deriving Show
+
 data Command
-      = Command IOCommand
+      = IO_Com IOCommand
       | ControlStructure ControlStruct
-      | Goto Int
       | NOOP
       | ArithAssignment NumVar NumExpr
       | StringAssignment StringVar StringExpr
-      | Return
-      | End
+      | Read [Var]
+      | Data [DataContent]
+      | Restore
       deriving Show
 
 data StringExpr
@@ -152,6 +170,9 @@ data ControlStruct
       = If BoolExpr [Command]
       | For NumVar (Operand,Operand,Operand) [(Int,[Command])]
       | GoSub Int 
+      | Goto Int
+      | End
+      | Return
 -- Ruecksprungpunkt ist ja schon durch die ZeilenNr des gosub Befehls gegeben, und muss eigentlich nicht nochmal extra aufgeschrieben werden
       deriving Show
 
@@ -169,8 +190,10 @@ data IOCommand
       deriving Show
 
 data Output
-      = OutString String  
-      | OutVar Var
+  --    = OutString String  
+  --    | OutVar Var
+        = OutStringExpr StringExpr
+        | OutNumExpr NumExpr
       deriving Show
 
 data InputStuff 
@@ -181,6 +204,7 @@ data NumExpr
       = NumExpr (NumExpr,NumExpr) String
       | NumOp Operand
       | NumFunc NumFunction
+      | NumMinus NumExpr
       deriving Show
 
 data Operand
@@ -202,6 +226,13 @@ data Var
 data StringVar
       = StringVar String
       deriving (Eq, Show, Ord)
+
+
+data DataContent 
+    = DataInt Int
+    | DataFloat Float
+    | DataString String
+    deriving (Eq, Show)
 
 ------------------------------ </Parser Datatypes> --------------------------
 
