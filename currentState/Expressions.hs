@@ -1,9 +1,11 @@
-module Nums 
+module Expressions 
 (
   makeFloat,
-  evalExpression
+  evalExpression,
+  evalStringExpression
 )
 where 
+
 
 --------------------------------- <Imports> ---------------------------------
 
@@ -12,7 +14,10 @@ import Parser.ParserTypes(
                            Var(..), 
                            NumVar(..), 
                            NumFunction(..), 
-                           Operand(..)
+                           Operand(..), 
+                           StringExpr(..), 
+                           BasicString(..),
+                           StringFunction(..)
                          )
 import Parser.Lexer.BasicParseStringToVal
 
@@ -21,12 +26,12 @@ import Control.Monad.State
 import Data.Char (ord, chr, isDigit )
 
 import ProgrammState
-import Strings
 
 -------------------------------- </Imports> ---------------------------------
 
 
 
+---------------------------------- <Nums> -----------------------------------
 
 -- Evaluates a numerical expression, which means...
 --    1. For an Operand, make a float value out of it
@@ -117,9 +122,30 @@ evalNumFunc (SqrFunc numExpr) = do
       then return $ sqrt res
       else error $ "?ILLEGAL QUANTITY ERROR: SQR argument '"
                    ++ show res ++ "' is negative!"
-
  
 evalNumFunc (TanFunc numExpr) = evalExpression numExpr >>= (return . tan)
+
+evalNumFunc (Fnxx name numExpr) = do
+    state <- get
+    let fn = M.lookup name $ custom_funcs state
+    case fn of
+         Just (var,expr)  ->  
+              case M.lookup var $ floatVars state of
+                   Just x -> do
+                             arg <- evalExpression numExpr
+                             updateFloatVar var arg
+                             res <- evalExpression expr 
+                             updateFloatVar var x
+                             return res
+                   Nothing -> do 
+                             arg <- evalExpression numExpr
+                             updateFloatVar var arg
+                             res <- evalExpression expr 
+                             updateFloatVar var 0
+                             return res
+
+         Nothing -> error $ "?UNDEF`D FUNCTION ERROR in line " 
+                            ++ (show $ curPos state) ++ " !"
 
 
 --evalArithFunc :: (Num a) => String -> a -> a -> a
@@ -146,4 +172,94 @@ getNextRandomValue = do
     put $ state { randomNumbers = tail newRandomList }
     return newRandNumber
 
+--------------------------------- </Nums> -----------------------------------
 
+
+-------------------------------- <Strings> ----------------------------------
+
+evalStringExpression :: StringExpr -> PState String
+evalStringExpression (StringOp x) = evalBasicString x 
+evalStringExpression (StringFunc x) = evalStringFunc x
+evalStringExpression (StringExpr (bstr1,bstr2) strOp) = do
+    --val1 <- evalBasicString bstr1 
+    --val2 <- evalBasicString bstr2 
+    val1 <- evalStringExpression bstr1 
+    val2 <- evalStringExpression bstr2 
+    return $ evalStringOp strOp val1 val2
+
+
+evalBasicString :: BasicString -> PState String
+evalBasicString (StringLiteral x) = return x
+evalBasicString (StringVar_BString x) = do
+    state <- get
+    return $ getMapVal $ M.lookup (StringVar_Var x) (stringVars state)
+
+
+evalStringOp :: String -> String -> String -> String
+evalStringOp op op1 op2
+    | op == "+" = op1 ++ op2
+
+
+evalStringFunc :: StringFunction -> PState String
+evalStringFunc (ChrFunc numExpr) = do
+    state <- get
+    res <- evalExpression numExpr 
+    if res >= 0 && res <= 255
+      then return $ [chr $ truncate res]
+      else error $ "?ILLEGAL QUANTITY ERROR in line " 
+                   ++ (show $ curPos state)  ++ ": Converting number '" 
+                   ++ show res ++ "' to ASCII char not possible!"
+
+evalStringFunc (StrFunc numExpr) = do
+    res <- evalExpression numExpr
+    return $ show res
+
+evalStringFunc (LeftFunc strExpr numExpr) = do
+    state <- get
+    res <- evalExpression numExpr
+    if res >= 0
+      then do
+        str <- evalStringExpression strExpr
+        return $ take (truncate res) str
+      else error $ "?ILLEGAL QUANTITY ERROR in line " 
+                   ++ (show $ curPos state)  
+                   ++ ": Length argument for string function '" 
+                   ++ show res ++ "' is negative!"
+
+evalStringFunc (RightFunc strExpr numExpr) = do
+    state <- get
+    res <- evalExpression numExpr
+    if res >= 0
+      then do
+        str <- evalStringExpression strExpr
+        let len = length str
+            res' = truncate res
+        if res' < len
+          then return $ drop (len - res') str
+          else return str
+      else error $ "?ILLEGAL QUANTITY ERROR in line " 
+                   ++ (show $ curPos state)  
+                   ++ ": Length argument for string function '" 
+                   ++ show res ++ "' is negative!"
+
+evalStringFunc (MidFunc strExpr numExpr1 numExpr2) = do
+    state <- get
+    startPos <- evalExpression numExpr1
+    len <- evalExpression numExpr2
+    if startPos > 0 && len >= 0
+      then do
+        str <- evalStringExpression strExpr
+        let hsStartPos = (truncate startPos) - 1
+            len_str    = length str
+        if hsStartPos < len_str
+          then return $ take (truncate len) $ drop hsStartPos str
+          else return ""
+      else error $ "?ILLEGAL QUANTITY ERROR in line " 
+                   ++ (show $ curPos state)  
+                   ++ ": Length argument for string function '" 
+                   ++ show len ++ "' is negative "
+                   ++ "or index for string function '" 
+                   ++ show startPos ++ "' is negative or zero!"
+
+
+-------------------------------- </Strings> ---------------------------------

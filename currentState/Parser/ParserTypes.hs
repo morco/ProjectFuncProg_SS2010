@@ -24,6 +24,7 @@ data Token
      | TkTo    
      | TkNext 
      | TkStep   
+     | TkOn    
      | TkGoto  
      | TkGoSub  
      | TkReturn  
@@ -33,6 +34,26 @@ data Token
      | TkLen    
      | TkRandom  
      | TkIntFunc  
+     | TkAbsFunc  
+     | TkAscFunc  
+     | TkAtnFunc  
+     | TkCosFunc  
+     | TkExpFunc  
+     | TkLogFunc  
+     | TkValFunc  
+     | TkSgnFunc  
+     | TkSinFunc  
+     | TkSqrFunc  
+     | TkTanFunc  
+     | TkDef
+     | TkFnxx  String
+
+  -- String functions 
+     | TkChrFunc    
+     | TkStrFunc    
+     | TkLeftFunc    
+     | TkRightFunc    
+     | TkMidFunc    
 
   -- Data commands
      | TkRead
@@ -72,10 +93,14 @@ data Token
 
 -------- </Compare Operators> ------------
 
+--------- <Arith Operators> --------------
+
      | TkPlus  
      | TkMinus 
      | TkTimes 
      | TkDiv   
+
+--------- </Arith Operators> -------------
 
 ----- <Variables, Strings, Numbers> ------
 
@@ -126,6 +151,7 @@ getTkStrVal (TokenWrap _ _ (TkString str)) = str
 getTkStrVal (TokenWrap _ _ (TkStringVar str)) = str
 getTkStrVal (TokenWrap _ _ (TkIntVar str)) = str
 getTkStrVal (TokenWrap _ _ (TkFloatVar_Or_DataString str)) = str
+getTkStrVal (TokenWrap _ _ (TkFnxx str)) = str
 getTkStrVal tk = 
     error $ "Unallowed Token here! (" ++ (show $ _token tk) ++ ")"
 
@@ -159,11 +185,22 @@ data Command
     | Read               [Var]
     | Data               [DataContent]
     | Restore
+    | Def                String          Var          NumExpr
     deriving Show
 
 data StringExpr
     = StringOp    BasicString
-    | StringExpr (BasicString,BasicString) String
+   -- | StringExpr (BasicString,BasicString) String
+    | StringExpr (StringExpr,StringExpr) String
+    | StringFunc  StringFunction
+    deriving Show
+
+data StringFunction
+    = ChrFunc  NumExpr
+    | LeftFunc  StringExpr NumExpr
+    | MidFunc  StringExpr NumExpr NumExpr
+    | RightFunc  StringExpr NumExpr
+    | StrFunc  NumExpr
     deriving Show
 
 data BasicString
@@ -176,18 +213,39 @@ data NumFunction
     | LenVar   StringVar
     | Random   Int
     | IntFunc  NumExpr
+    | AbsFunc  NumExpr
+    | AscFunc  StringExpr
+    | AtnFunc  NumExpr
+    | CosFunc  NumExpr
+    | ExpFunc  NumExpr
+    | LogFunc  NumExpr
+    | ValFunc  StringExpr
+    | SgnFunc  NumExpr
+    | SinFunc  NumExpr
+    | SqrFunc  NumExpr
+    | TanFunc  NumExpr
+    | Fnxx     String     NumExpr
     deriving Show
 
 
 data ControlStruct
     = If BoolExpr [Command]
-    | For NumVar  (Operand,Operand,Operand) [(Int,[Command])]
+--    | For NumVar  (Operand,Operand,Operand) [(Int,[Command])]
+    | For NumVar  (Operand,Operand,Operand) [Command] Program
     | GoSub       Int 
     | Goto        Int
+    | On_Goto     NumExpr                   [Int]
+    | On_Gosub    NumExpr                   [Int]
     | End
     | Return
     deriving Show
 
+{-
+data ForBody 
+    = ForLines Program
+    | ForSingleLine [Command]
+    deriving Show
+-}
 
 data BoolExpr
     = BoolExprString  (StringExpr,StringExpr) String

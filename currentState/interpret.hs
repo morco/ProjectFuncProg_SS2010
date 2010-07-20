@@ -13,10 +13,13 @@ import qualified Data.Map as M
 import Data.List
 import Control.Monad.State
 
-import Strings
+--import Nums
+--import Strings
+import Expressions
 import ProgrammState
-import Nums
 import Bool
+
+import Debug.Trace
 
 --------------------------------- </Imports> -------------------------------
 
@@ -157,12 +160,17 @@ evalCommand (StringAssignment var stringExpr) = do
     updateStringVar (StringVar_Var var) val
     return ()
 
-evalCommand (ControlStructure (For var (start,step,end) commands)) = do
+evalCommand (ControlStructure (For var (start,step,end) commands lines)) = do
     -- only reading, should not change state
     start' <- makeFloat start 
     step'  <- makeFloat step   
     stop'  <- makeFloat end   
-    evalFor var  start' step' stop' (concat $ map snd commands) True
+    state  <- get
+    let nxLine = nextPos state
+    --evalFor var  start' step' stop' (commands ++ (concat $ map snd lines)) True
+    evalFor var  start' step' stop' ((curPos state,commands) : lines) True
+    newst <- get
+    put $ newst { nextPos = nxLine }
   where
     evalFor var' start step end commands isFirst = do
         state <- get
@@ -188,7 +196,8 @@ evalCommand (ControlStructure (For var (start,step,end) commands)) = do
           then
             return ()
           else do
-            mapM_ evalCommand commands
+            --mapM_ evalCommand commands
+            interpret commands
             let inc = varVal + step
             case var of
                  NumVar_Var (FloatVar _ ) -> updateFloatVar var inc
@@ -202,7 +211,8 @@ evalCommand (ControlStructure (GoSub lnNr)) = do
           backJumpAdressStack = (nextPos state) : (backJumpAdressStack state) 
          }
     put $ newState    
-    evalCommand (ControlStructure $ Goto lnNr)
+    --evalCommand (ControlStructure $ Goto $ trace ("Gosub: Jumping to -> " ++ (show lnNr)) lnNr)
+    evalCommand (ControlStructure $ Goto $ lnNr)
 
 evalCommand (ControlStructure Return) = do
     state <- get
@@ -216,6 +226,47 @@ evalCommand Restore = do
     state <- get
     put $ state { dataPointer = 0 }
     
+evalCommand (Def name var numExpr) = do
+    state <- get
+    let md_cf = M.insert name (var,numExpr) $ custom_funcs state
+    put $ state { custom_funcs = md_cf }
+
+evalCommand (ControlStructure (On_Goto numExpr lines)) = 
+    doOn numExpr Goto lines
+   {- res <- evalExpression numExpr
+    let res' = truncate res
+    if res' > 0 && res' < length lines
+      then evalCommand $ ControlStructure $ Goto $ lines !! (res' - 1)
+      else 
+        if res' < 0
+          then do 
+            state <- get
+            error $ "?ILLEGAL QUANTIFY ERROR in line " 
+                    ++ (show $ curPos state) ++ ": Negative argument '" 
+                    ++ (show res') ++ "' for ON command not allowed!"
+          else return ()
+-}
+
+evalCommand (ControlStructure (On_Gosub numExpr lines)) = 
+    doOn numExpr GoSub lines
+
+
+doOn :: NumExpr -> (Int -> ControlStruct) -> [Int] -> PState ()
+doOn numExpr constr lines = do   
+    res <- evalExpression numExpr
+    --let res' = trace ("Doing on with: " ++ (show $ truncate res)) $ truncate res
+    let res' = truncate res
+    if res' > 0 && res' <= length lines
+      then evalCommand $ ControlStructure $ constr $ lines !! (res' - 1)
+      else 
+        if res' < 0
+          then do 
+            state <- get
+            error $ "?ILLEGAL QUANTIFY ERROR in line " 
+                    ++ (show $ curPos state) ++ ": Negative argument '" 
+                    ++ (show res') ++ "' for ON command not allowed!"
+          else return ()
+
 
 readVar :: Var -> PState ()
 readVar var = 

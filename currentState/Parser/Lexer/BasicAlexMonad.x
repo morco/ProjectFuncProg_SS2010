@@ -4,8 +4,8 @@ module Parser.Lexer.BasicAlexMonad(getTokens) where
 
 import Parser.ParserTypes(Token(..),TokenWrap(..),Constant(..))
 
-import Data.List(isSuffixOf)
-import Data.Char(toLower)
+import Data.List(isSuffixOf,isPrefixOf)
+import Data.Char(toLower,isAlpha,isAlphaNum)
 
 import Debug.Trace
 
@@ -17,6 +17,7 @@ import Debug.Trace
 $digit = 0-9			-- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
 $alpha_num = [$alpha$digit]
+
 
 $varOrRW_PreContext = [$white \; : \( \)]
 
@@ -58,13 +59,15 @@ tokens :-
 
 ---------------- <Strings, Number, Vars and Reserved Words> -----------------
   <normal> $digit+             {\inp len -> wrapMonadic inp len (TkConst . TkIntConst . read) "INT_CSTANT"}
-  <normal> ~$digit \. $digit+  {\inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read. (++) "0") "Float_CSTANT"}
-  <normal> $digit+ \. $digit+  {\inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read) "Float_CSTANT"}
+ -- <normal> ~$digit \. $digit+  {\inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read. (++) "0") "Float_CSTANT"}
+ -- <normal> $digit+ \. $digit+  {\inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read) "Float_CSTANT"}
+  <normal> $digit* \. $digit+  {\inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read . (++) "0") "Float_CSTANT"}
   
   <normal> @varOrResWord       {\inp len -> wrapMonadic inp len buildVarOrResWord "FLOAT_VAR or RESERVED_WORD" }
 
   <normal> @intVar            {\inp len -> wrapMonadic inp len TkIntVar "INT_VAR"}
-  <normal> @stringVar         {\inp len -> wrapMonadic inp len TkStringVar "STRING_VAR"}
+--  <normal> @stringVar         {\inp len -> wrapMonadic inp len TkStringVar "STRING_VAR"}
+  <normal> @stringVar         {\inp len -> wrapMonadic inp len buildVarOrResWord "STRING_VAR or chr"}
 
 
 -- The string state machine, problem of this method is, that strings are 
@@ -119,12 +122,10 @@ tokens :-
 --    -> Use Maybe or Either instead of list donkey chain (??)
 buildVarOrResWord :: String -> Token
 buildVarOrResWord str = 
-      let
-        bresw = buildResWord str
-      in
-        if bresw == []
-            then buildVar str
-            else head bresw
+      let bresw = buildResWord str
+      in if bresw == []
+           then buildVar str
+           else head bresw
 
 
 buildVar :: String -> Token 
@@ -145,6 +146,7 @@ buildResWord str =
             | str == "for"      = [TkFor]
             | str == "to"       = [TkTo]
             | str == "next"     = [TkNext]
+            | str == "on"       = [TkOn]
             | str == "if"       = [TkIf]
             | str == "then"     = [TkThen]
             | str == "goto"     = [TkGoto]
@@ -161,6 +163,47 @@ buildResWord str =
             | str == "read"     = [TkRead]
             | str == "data"     = [TkData]
             | str == "restore"  = [TkRestore]
+            | str == "abs"      = [TkAbsFunc]
+            | str == "asc"      = [TkAscFunc]
+            | str == "atn"      = [TkAtnFunc]
+            | str == "chr$"     = [TkChrFunc] 
+            | str == "cos"      = [TkCosFunc] 
+            | str == "exp"      = [TkExpFunc] 
+            | str == "log"      = [TkLogFunc] 
+            | str == "val"      = [TkValFunc] 
+            | str == "sgn"      = [TkSgnFunc] 
+            | str == "sin"      = [TkSinFunc] 
+            | str == "sqr"      = [TkSqrFunc] 
+            | str == "tan"      = [TkTanFunc] 
+            | str == "left$"    = [TkLeftFunc] 
+            | str == "mid$"     = [TkMidFunc] 
+            | str == "right$"   = [TkRightFunc] 
+            | str == "str$"     = [TkStrFunc] 
+            | str == "def"      = [TkDef]
+            | isPrefixOf "fn" str = 
+                  let len = length str
+                  in if len == 3 || len == 4
+                       then
+                         if isAlpha (str !! 2)
+                           then
+                             if len == 3
+                               then
+                                 [TkFnxx str]
+                               else
+                                 let lc = str !! 3
+                                 in if isAlphaNum lc
+                                   then
+                                     [TkFnxx str] 
+                                   else
+                                     error $ "No valid custom function name '" 
+                                             ++ str ++ "' !"
+                           else
+                             error $ "No valid custom function name '" 
+                                     ++ str ++ "' !"
+                       else
+                         error $ "No valid custom function name '" 
+                                 ++ str ++ "' !"
+
             | otherwise         = [] 
 
 

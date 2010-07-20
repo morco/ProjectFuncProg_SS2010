@@ -7,7 +7,8 @@ import Parser.ParserTypes(
                            NumVar(..), 
                            DataContent(..), 
                            Program, 
-                           ParseTree(..)
+                           ParseTree(..),
+                           NumExpr
                          )
 import qualified Data.Map as M
 import Control.Monad.State
@@ -42,7 +43,8 @@ data ProgramState =
        progFinished :: Bool,
        randomNumbers :: [Float],
        _data :: [DataContent],
-       dataPointer :: Int
+       dataPointer :: Int,
+       custom_funcs  :: (M.Map String (Var,NumExpr))
     } deriving Show
 
 
@@ -64,7 +66,8 @@ getNewState parseTree =
        progFinished = False,
        randomNumbers = randoms (mkStdGen 1),
        _data = pdata parseTree,
-       dataPointer = 0
+       dataPointer = 0,
+       custom_funcs = M.empty
     }
 
 

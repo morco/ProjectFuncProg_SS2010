@@ -2,5 +2,20 @@
 10 FOR NB = 1 TO 10 STEP 2 
 20 PRINT NB;"    ";
 30 NEXT NB
-40 Print
+40 Print "After"
+45 print
 
+47 print "Test 2:"
+50 for i = 1 to 5 : Print "i = ";i : next
+55 Print "After2"
+57 print
+
+58 print "Test 3:"
+60 for i = 1 to 5 : Print "i2 = ";i 
+70 next
+80 Print "After3"
+85 print
+
+ 90 print "Test 4:"
+110 for i = 1 to 5 : next
+120 Print "After4"

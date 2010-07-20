@@ -6,8 +6,8 @@ module Parser.Lexer.BasicAlexMonad(getTokens) where
 
 import Parser.ParserTypes(Token(..),TokenWrap(..),Constant(..))
 
-import Data.List(isSuffixOf)
-import Data.Char(toLower)
+import Data.List(isSuffixOf,isPrefixOf)
+import Data.Char(toLower,isAlpha,isAlphaNum)
 
 import Debug.Trace
 
@@ -209,19 +209,19 @@ token t input len = return (t input len)
 -- For compatibility with previous versions of Alex, and because we can.
 
 alex_base :: Array Int Int
-alex_base = listArray (0,56) [-8,-4,18,22,1,7,132,-3,-2,137,142,-55,-46,160,-1,273,5,11,360,447,15,16,-34,24,25,64,0,127,150,236,-29,534,-10,36,65,66,67,110,250,111,112,113,114,115,116,249,350,621,0,0,734,0,0,0,0,0,0]
+alex_base = listArray (0,52) [-8,-4,18,22,1,6,-3,-2,132,137,-56,-47,155,-1,268,10,13,355,442,15,16,-34,24,25,-9,0,105,122,145,529,616,0,0,0,156,0,0,0,0,0,0,0,0,48,-22,0,0,0,0,0,0,0,0]
 
 alex_table :: Array Int Int
-alex_table = listArray (0,989) [0,6,6,6,6,6,-1,-1,-1,-1,4,20,4,4,4,-1,4,29,4,4,4,-1,7,11,6,-1,-1,5,26,5,5,5,-1,4,-1,-1,29,22,0,4,9,9,9,9,9,9,9,9,9,9,5,0,32,29,7,11,53,0,42,43,40,39,34,25,0,41,27,27,27,27,27,27,27,27,27,27,35,33,37,36,38,44,29,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,19,31,31,31,31,31,31,31,31,23,29,29,29,29,51,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,31,19,31,31,31,31,31,31,31,31,6,6,6,6,6,10,10,10,10,10,10,10,10,10,10,29,29,29,29,29,29,29,0,6,0,0,0,0,10,-1,55,54,46,10,27,27,27,27,27,27,27,27,27,27,9,9,9,9,9,9,9,9,9,9,0,17,16,28,28,28,28,28,28,28,28,28,28,15,15,15,15,15,15,15,15,15,15,0,12,0,0,0,0,12,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,12,0,0,0,0,12,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,-1,28,28,28,28,28,28,28,28,28,28,0,0,29,45,45,45,45,45,45,45,45,45,45,0,0,17,16,56,0,0,0,0,0,0,0,0,0,15,15,15,15,15,15,15,15,15,15,0,0,0,0,0,0,0,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,0,0,0,0,0,0,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,49,48,45,45,45,45,45,45,45,45,45,45,47,47,47,47,47,47,47,47,47,47,0,0,0,0,0,0,0,47,47,47,47,47,47,47,47,47,47,47,47,13,47,47,47,47,47,47,47,47,47,47,47,47,47,0,0,0,0,0,0,47,47,47,47,47,47,47,47,47,47,47,47,13,47,47,47,47,47,47,47,47,47,47,47,47,47,49,48,0,0,0,0,0,0,0,0,29,0,47,47,47,47,47,47,47,47,47,47,0,0,0,0,0,0,0,47,47,47,47,18,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,0,0,0,0,0,0,47,47,47,47,18,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,49,48,0,0,0,0,0,0,0,0,29,0,47,47,47,47,47,47,47,47,47,47,0,0,0,0,0,0,0,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,0,0,0,0,0,0,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,49,48,0,0,0,0,0,0,0,0,0,0,47,47,47,47,47,47,47,47,47,47,0,0,0,0,0,0,0,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,0,0,0,0,0,0,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+alex_table = listArray (0,871) [0,5,5,5,5,5,-1,-1,-1,-1,4,19,4,4,4,5,5,5,5,5,-1,6,10,-1,5,-1,-1,4,25,4,4,4,-1,4,-1,-1,22,21,5,46,8,8,8,8,8,8,8,8,8,8,4,0,33,6,10,0,37,0,50,51,48,47,39,24,28,49,26,26,26,26,26,26,26,26,26,26,40,38,43,41,44,52,0,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,18,29,29,29,29,29,29,29,29,45,42,0,0,0,35,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,29,18,29,29,29,29,29,29,29,29,9,9,9,9,9,9,9,9,9,9,28,0,26,26,26,26,26,26,26,26,26,26,0,9,-1,-1,0,0,9,27,27,27,27,27,27,27,27,27,27,8,8,8,8,8,8,8,8,8,8,-1,16,15,27,27,27,27,27,27,27,27,27,27,14,14,14,14,14,14,14,14,14,14,0,11,0,0,0,0,11,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,11,0,-1,0,0,11,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,15,0,0,0,0,0,0,0,0,0,0,14,14,14,14,14,14,14,14,14,14,0,0,0,0,0,0,0,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,0,0,0,0,0,0,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,32,31,0,0,0,0,0,0,0,0,0,0,30,30,30,30,30,30,30,30,30,30,0,0,0,0,0,0,0,30,30,30,30,30,30,30,30,30,30,30,30,12,30,30,30,30,30,30,30,30,30,30,30,30,30,0,0,0,0,0,0,30,30,30,30,30,30,30,30,30,30,30,30,12,30,30,30,30,30,30,30,30,30,30,30,30,30,32,31,0,0,0,0,0,0,0,0,0,0,30,30,30,30,30,30,30,30,30,30,0,0,0,0,0,0,0,30,30,30,30,17,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,0,0,0,0,0,0,30,30,30,30,17,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,32,31,0,0,0,0,0,0,0,0,0,0,30,30,30,30,30,30,30,30,30,30,0,0,0,0,0,0,0,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,0,0,0,0,0,0,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,32,31,0,0,0,0,0,0,0,0,0,0,30,30,30,30,30,30,30,30,30,30,0,0,0,0,0,0,0,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,0,0,0,0,0,0,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
 alex_check :: Array Int Int
-alex_check = listArray (0,989) [-1,9,10,11,12,13,10,10,10,10,9,45,11,12,13,10,9,46,11,12,13,10,77,69,32,10,10,9,10,11,12,13,10,32,10,10,46,45,-1,32,48,49,50,51,52,53,54,55,56,57,32,-1,34,46,109,101,34,-1,40,41,42,43,44,45,-1,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,46,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,45,46,46,46,46,92,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,9,10,11,12,13,9,10,11,12,13,9,10,11,12,13,46,46,46,46,46,46,46,-1,32,-1,-1,-1,-1,32,10,61,62,46,32,48,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,54,55,56,57,-1,36,37,48,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,54,55,56,57,-1,82,-1,-1,-1,-1,82,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,114,-1,-1,-1,-1,114,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,10,48,49,50,51,52,53,54,55,56,57,-1,-1,46,48,49,50,51,52,53,54,55,56,57,-1,-1,36,37,61,-1,-1,-1,-1,-1,-1,-1,-1,-1,48,49,50,51,52,53,54,55,56,57,-1,-1,-1,-1,-1,-1,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,-1,-1,-1,-1,-1,-1,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,36,37,48,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,54,55,56,57,-1,-1,-1,-1,-1,-1,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,-1,-1,-1,-1,-1,-1,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,36,37,-1,-1,-1,-1,-1,-1,-1,-1,46,-1,48,49,50,51,52,53,54,55,56,57,-1,-1,-1,-1,-1,-1,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,-1,-1,-1,-1,-1,-1,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,36,37,-1,-1,-1,-1,-1,-1,-1,-1,46,-1,48,49,50,51,52,53,54,55,56,57,-1,-1,-1,-1,-1,-1,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,-1,-1,-1,-1,-1,-1,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,36,37,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,48,49,50,51,52,53,54,55,56,57,-1,-1,-1,-1,-1,-1,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,-1,-1,-1,-1,-1,-1,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,34,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,92,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+alex_check = listArray (0,871) [-1,9,10,11,12,13,10,10,10,10,9,45,11,12,13,9,10,11,12,13,10,77,69,10,32,10,10,9,10,11,12,13,10,32,10,10,45,45,32,61,48,49,50,51,52,53,54,55,56,57,32,-1,34,109,101,-1,34,-1,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,61,62,-1,-1,-1,92,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,9,10,11,12,13,9,10,11,12,13,46,-1,48,49,50,51,52,53,54,55,56,57,-1,32,10,10,-1,-1,32,48,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,54,55,56,57,34,36,37,48,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,54,55,56,57,-1,82,-1,-1,-1,-1,82,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,114,-1,92,-1,-1,114,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,36,37,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,48,49,50,51,52,53,54,55,56,57,-1,-1,-1,-1,-1,-1,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,-1,-1,-1,-1,-1,-1,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,36,37,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,48,49,50,51,52,53,54,55,56,57,-1,-1,-1,-1,-1,-1,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,-1,-1,-1,-1,-1,-1,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,36,37,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,48,49,50,51,52,53,54,55,56,57,-1,-1,-1,-1,-1,-1,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,-1,-1,-1,-1,-1,-1,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,36,37,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,48,49,50,51,52,53,54,55,56,57,-1,-1,-1,-1,-1,-1,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,-1,-1,-1,-1,-1,-1,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,36,37,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,48,49,50,51,52,53,54,55,56,57,-1,-1,-1,-1,-1,-1,-1,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,-1,-1,-1,-1,-1,-1,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
 alex_deflt :: Array Int Int
-alex_deflt = listArray (0,56) [-1,52,30,50,-1,-1,-1,8,8,-1,-1,-1,-1,14,14,14,14,14,-1,-1,21,21,-1,24,24,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,50,-1,-1,-1,-1,-1,-1]
+alex_deflt = listArray (0,52) [-1,36,-1,34,-1,-1,7,7,-1,-1,-1,-1,13,13,13,13,13,-1,-1,20,20,-1,23,23,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,34,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
-alex_accept = listArray (0::Int,56) [[],[],[],[(AlexAcc (alex_action_15))],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAcc (alex_action_7))],[],[],[],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_11))],[(AlexAcc (alex_action_11))],[(AlexAccSkip)],[(AlexAccSkip)],[],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAcc (alex_action_29))],[(AlexAcc (alex_action_6))],[(AlexAcc (alex_action_8))],[(AlexAcc (alex_action_9))],[],[],[(AlexAcc (alex_action_11))],[(AlexAcc (alex_action_14))],[(AlexAcc (alex_action_19))],[(AlexAcc (alex_action_20))],[(AlexAcc (alex_action_21))],[(AlexAcc (alex_action_22))],[(AlexAcc (alex_action_24))],[(AlexAcc (alex_action_25))],[(AlexAcc (alex_action_28))],[(AlexAcc (alex_action_30))],[(AlexAcc (alex_action_31))],[(AlexAcc (alex_action_32))],[(AlexAcc (alex_action_33))],[(AlexAcc (alex_action_34))],[(AlexAcc (alex_action_10))],[],[(AlexAcc (alex_action_11))],[(AlexAcc (alex_action_12))],[(AlexAcc (alex_action_13))],[(AlexAcc (alex_action_15))],[(AlexAcc (alex_action_16))],[(AlexAcc (alex_action_17))],[(AlexAcc (alex_action_18))],[(AlexAcc (alex_action_23))],[(AlexAcc (alex_action_26))],[(AlexAcc (alex_action_27))]]
-{-# LINE 121 "BasicAlexMonad.x" #-}
+alex_accept = listArray (0::Int,52) [[],[],[],[(AlexAcc (alex_action_14))],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAcc (alex_action_7))],[],[],[],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_10))],[(AlexAcc (alex_action_10))],[(AlexAccSkip)],[(AlexAccSkip)],[],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAcc (alex_action_28))],[(AlexAcc (alex_action_6))],[(AlexAcc (alex_action_8))],[(AlexAcc (alex_action_9))],[],[(AlexAcc (alex_action_10))],[(AlexAcc (alex_action_10))],[(AlexAcc (alex_action_11))],[(AlexAcc (alex_action_12))],[(AlexAcc (alex_action_13))],[(AlexAcc (alex_action_14))],[(AlexAcc (alex_action_15))],[(AlexAcc (alex_action_16))],[(AlexAcc (alex_action_17))],[(AlexAcc (alex_action_18))],[(AlexAcc (alex_action_19))],[(AlexAcc (alex_action_20))],[(AlexAcc (alex_action_21))],[(AlexAcc (alex_action_22))],[(AlexAcc (alex_action_23))],[(AlexAcc (alex_action_24))],[(AlexAcc (alex_action_25))],[(AlexAcc (alex_action_26))],[(AlexAcc (alex_action_27))],[(AlexAcc (alex_action_29))],[(AlexAcc (alex_action_30))],[(AlexAcc (alex_action_31))],[(AlexAcc (alex_action_32))],[(AlexAcc (alex_action_33))]]
+{-# LINE 115 "BasicAlexMonad.x" #-}
 
 
 
@@ -232,12 +232,10 @@ alex_accept = listArray (0::Int,56) [[],[],[],[(AlexAcc (alex_action_15))],[(Ale
 --    -> Use Maybe or Either instead of list donkey chain (??)
 buildVarOrResWord :: String -> Token
 buildVarOrResWord str = 
-      let
-        bresw = buildResWord str
-      in
-        if bresw == []
-            then buildVar str
-            else head bresw
+      let bresw = buildResWord str
+      in if bresw == []
+           then buildVar str
+           else head bresw
 
 
 buildVar :: String -> Token 
@@ -249,40 +247,75 @@ buildVar str
 
 buildResWord :: String -> [Token] 
 buildResWord str = 
-    let
-      nmstr = map toLower str
-    in
-      buildResWord' nmstr
-    where
-      buildResWord' str
-          | str == "print" = [TkPrint]
-          | str == "input" = [TkInput]
-          | str == "for"   = [TkFor]
-          | str == "to"    = [TkTo]
-          | str == "next"  = [TkNext]
-          | str == "if"    = [TkIf]
-          | str == "then"  = [TkThen]
-          | str == "goto"  = [TkGoto]
-          | str == "step"  = [TkStep]
-          | str == "len"  = [TkLen]
-          | str == "or"  = [TkLogOr]
-          | str == "and"  = [TkLogAnd]
-          | str == "return"  = [TkReturn]
-          | str == "gosub"  = [TkGoSub]
-          | str == "end"  = [TkEnd]
-          | str == "get"  = [TkGet]
-          | str == "rnd"  = [TkRandom]
-          | str == "int"  = [TkIntFunc]
-          | str == "read"  = [TkRead]
-          | str == "data"  = [TkData]
-          | str == "restore"  = [TkRestore]
-          | otherwise      = [] 
+    let nmstr = map toLower str
+    in buildResWord' nmstr
+  where
+        buildResWord' str
+            | str == "print"    = [TkPrint]
+            | str == "input"    = [TkInput]
+            | str == "for"      = [TkFor]
+            | str == "to"       = [TkTo]
+            | str == "next"     = [TkNext]
+            | str == "on"       = [TkOn]
+            | str == "if"       = [TkIf]
+            | str == "then"     = [TkThen]
+            | str == "goto"     = [TkGoto]
+            | str == "step"     = [TkStep]
+            | str == "len"      = [TkLen]
+            | str == "or"       = [TkLogOr]
+            | str == "and"      = [TkLogAnd]
+            | str == "return"   = [TkReturn]
+            | str == "gosub"    = [TkGoSub]
+            | str == "end"      = [TkEnd]
+            | str == "get"      = [TkGet]
+            | str == "rnd"      = [TkRandom]
+            | str == "int"      = [TkIntFunc]
+            | str == "read"     = [TkRead]
+            | str == "data"     = [TkData]
+            | str == "restore"  = [TkRestore]
+            | str == "abs"      = [TkAbsFunc]
+            | str == "asc"      = [TkAscFunc]
+            | str == "atn"      = [TkAtnFunc]
+            | str == "chr$"     = [TkChrFunc] 
+            | str == "cos"      = [TkCosFunc] 
+            | str == "exp"      = [TkExpFunc] 
+            | str == "log"      = [TkLogFunc] 
+            | str == "val"      = [TkValFunc] 
+            | str == "sgn"      = [TkSgnFunc] 
+            | str == "sin"      = [TkSinFunc] 
+            | str == "sqr"      = [TkSqrFunc] 
+            | str == "tan"      = [TkTanFunc] 
+            | str == "left$"    = [TkLeftFunc] 
+            | str == "mid$"     = [TkMidFunc] 
+            | str == "right$"   = [TkRightFunc] 
+            | str == "str$"     = [TkStrFunc] 
+            | str == "def"      = [TkDef]
+            | isPrefixOf "fn" str = 
+                  let len = length str
+                  in if len == 3 || len == 4
+                       then
+                         if isAlpha (str !! 2)
+                           then
+                             if len == 3
+                               then
+                                 [TkFnxx str]
+                               else
+                                 let lc = str !! 3
+                                 in if isAlphaNum lc
+                                   then
+                                     [TkFnxx str] 
+                                   else
+                                     error $ "No valid custom function name '" 
+                                             ++ str ++ "' !"
+                           else
+                             error $ "No valid custom function name '" 
+                                     ++ str ++ "' !"
+                       else
+                         error $ "No valid custom function name '" 
+                                 ++ str ++ "' !"
 
-{-                
-buildString :: String -> Char -> Token
-buildString str del = 
-    TkString (takeWhile ((/=) del) $ tail $ dropWhile ((/=) del) str)
--}
+            | otherwise         = [] 
+
 
 -- In this version scanner returns a list of all read tokens
 scanner :: String -> Either String [TokenWrap]
@@ -348,32 +381,31 @@ alex_action_3 = \inp len -> wrapMonadic inp len (\s -> TkComment) "COMMENT"
 alex_action_6 = begin 0
 alex_action_7 = andBegin (\inp len -> wrapMonadic inp len (TkLineNumber . read) "LINENUMBER") normal 
 alex_action_8 = \inp len -> wrapMonadic inp len (TkConst . TkIntConst . read) "INT_CSTANT"
-alex_action_9 = \inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read. (++) "0") "Float_CSTANT"
-alex_action_10 = \inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read) "Float_CSTANT"
-alex_action_11 = \inp len -> wrapMonadic inp len buildVarOrResWord "FLOAT_VAR or RESERVED_WORD" 
-alex_action_12 = \inp len -> wrapMonadic inp len TkIntVar "INT_VAR"
-alex_action_13 = \inp len -> wrapMonadic inp len TkStringVar "STRING_VAR"
-alex_action_14 = andBegin (\inp len -> wrapMonadic inp len (\_ -> TkStringStart)  "bli") string
-alex_action_15 = \inp len -> wrapMonadic inp len TkString "bli" 
-alex_action_16 = andBegin (\inp len -> wrapMonadic inp len TkString "bli") escaped
-alex_action_17 = andBegin (\inp len -> wrapMonadic inp len TkString "bli")  string
-alex_action_18 = andBegin (\inp len -> wrapMonadic inp len (\s -> TkStringEnd ) "bli") normal
-alex_action_19 = \inp len -> wrapMonadic inp len (\s -> TkStringConcat) "STRING_CONCAT ';'"
-alex_action_20 = \inp len -> wrapMonadic inp len (\s -> TkKomma) "KOMMA"
-alex_action_21 = \inp len -> wrapMonadic inp len (\s -> TkSingleLineCommandCombinator) "COMMAND_COMBINATOR ':'"
-alex_action_22 = \inp len -> wrapMonadic inp len (\s -> TkEqual) "="
-alex_action_23 = \inp len -> wrapMonadic inp len (\s -> TkUnEqual) "<>"
-alex_action_24 = \inp len -> wrapMonadic inp len (\s -> TkLt) "<"
-alex_action_25 = \inp len -> wrapMonadic inp len (\s -> TkGt) ">"
-alex_action_26 = \inp len -> wrapMonadic inp len (\s -> TkGE) "<="
-alex_action_27 = \inp len -> wrapMonadic inp len (\s -> TkLE) ">="
-alex_action_28 = \inp len -> wrapMonadic inp len (\s -> TkPlus) "+"
-alex_action_29 = \inp len -> wrapMonadic inp len (\s -> TkMinus) "-"
-alex_action_30 = \inp len -> wrapMonadic inp len (\s -> TkTimes) "*"
-alex_action_31 = \inp len -> wrapMonadic inp len (\s -> TkDiv) "/"
-alex_action_32 = \inp len -> wrapMonadic inp len (\s -> TkBracketOpen) "("
-alex_action_33 = \inp len -> wrapMonadic inp len (\s -> TkBracketClose) ")"
-alex_action_34 = \inp len -> wrapMonadic inp len (\s -> TkPrint) "PRINT"
+alex_action_9 = \inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read . (++) "0") "Float_CSTANT"
+alex_action_10 = \inp len -> wrapMonadic inp len buildVarOrResWord "FLOAT_VAR or RESERVED_WORD" 
+alex_action_11 = \inp len -> wrapMonadic inp len TkIntVar "INT_VAR"
+alex_action_12 = \inp len -> wrapMonadic inp len buildVarOrResWord "STRING_VAR or chr"
+alex_action_13 = andBegin (\inp len -> wrapMonadic inp len (\_ -> TkStringStart)  "bli") string
+alex_action_14 = \inp len -> wrapMonadic inp len TkString "bli" 
+alex_action_15 = andBegin (\inp len -> wrapMonadic inp len TkString "bli") escaped
+alex_action_16 = andBegin (\inp len -> wrapMonadic inp len TkString "bli")  string
+alex_action_17 = andBegin (\inp len -> wrapMonadic inp len (\s -> TkStringEnd ) "bli") normal
+alex_action_18 = \inp len -> wrapMonadic inp len (\s -> TkStringConcat) "STRING_CONCAT ';'"
+alex_action_19 = \inp len -> wrapMonadic inp len (\s -> TkKomma) "KOMMA"
+alex_action_20 = \inp len -> wrapMonadic inp len (\s -> TkSingleLineCommandCombinator) "COMMAND_COMBINATOR ':'"
+alex_action_21 = \inp len -> wrapMonadic inp len (\s -> TkEqual) "="
+alex_action_22 = \inp len -> wrapMonadic inp len (\s -> TkUnEqual) "<>"
+alex_action_23 = \inp len -> wrapMonadic inp len (\s -> TkLt) "<"
+alex_action_24 = \inp len -> wrapMonadic inp len (\s -> TkGt) ">"
+alex_action_25 = \inp len -> wrapMonadic inp len (\s -> TkGE) "<="
+alex_action_26 = \inp len -> wrapMonadic inp len (\s -> TkLE) ">="
+alex_action_27 = \inp len -> wrapMonadic inp len (\s -> TkPlus) "+"
+alex_action_28 = \inp len -> wrapMonadic inp len (\s -> TkMinus) "-"
+alex_action_29 = \inp len -> wrapMonadic inp len (\s -> TkTimes) "*"
+alex_action_30 = \inp len -> wrapMonadic inp len (\s -> TkDiv) "/"
+alex_action_31 = \inp len -> wrapMonadic inp len (\s -> TkBracketOpen) "("
+alex_action_32 = \inp len -> wrapMonadic inp len (\s -> TkBracketClose) ")"
+alex_action_33 = \inp len -> wrapMonadic inp len (\s -> TkPrint) "PRINT"
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}
