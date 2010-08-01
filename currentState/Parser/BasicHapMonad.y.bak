@@ -126,10 +126,32 @@ import Debug.Trace
 
 SyntaxTree          : Line                         { [$1]                   }
                     | Line SyntaxTree              { $1:$2                  }
+                 --   | lineNr next NumVar           { let nr = getTkIntVal $1
+                   --                                  in [(nr, [NOOP])]      }   
+                                              -- muss aktuell so hier extra 
+                                              --  stehen, sonst parst er das 
+                                              --   ganze Programm als Inhalt 
+                                              --    des 1. for
 
+--                    | lineNr next                  { let nr = getTkIntVal $1
+  --                                                   in [(nr, [NOOP])]      }   
                     | lineNr return     { let nr = getTkIntVal $1
                                           in (nr, [ControlStructure Return])}
 
+
+NextBody           : NumVar                 {% do 
+                                               st <- get
+                                               -- TODO: CHeck if head differs from given var => failure!
+                                               let myfor = head $ last_for st
+                                               put $ st { last_for = tail $ last_for st }
+                                               return [Next myfor] }
+                   | NumVar "," NextBody    { %do
+                                               st <- get
+                                               -- TODO: CHeck if head differs from given var => failure!
+                                               let myfor = head $ last_for st
+                                               put $ st { last_for = tail $ last_for st }
+                                               -- rst <- $3
+                                               return $ (Next myfor) : $3 } -- why in wrong order ???
 
 
 Line                : lineNr Commands        {% do 
@@ -138,43 +160,24 @@ Line                : lineNr Commands        {% do
                                                 put $ st { cur_basline = nr }
                                                 return (nr,$2)              }
 
-
+ 
 Commands            : Command                      { [$1]                   }
                     | Command ":" Commands         { $1:$3                  }
-               -- next stands here specially because it have to return a list
-               --  of commands, because something like this "next i,j,k" is
-               --   parsed as: "next i : next j : next k" for simple 
-               --    interpreting
-                    | Next                         { $1                     }
-                    | Next ":" Commands            { $1 ++ $3               }
+                    | NewNext                      { $1 }
+                    | NewNext ":" Commands         { $1 ++ $3 }
 
 
-
-Next                : next NextBody                { reverse $2             }
+NewNext             : next NextBody { reverse $2 }
                     | next          {% do
                                        st <- get
                                        let nx = [Next $ head $ last_for st]
                                        let rst = tail $ last_for st
                                        put $ st { last_for = rst }
-                                       return nx                            }
+                                       return nx }
 
 
-
-NextBody            : NumVar                 {% do 
-                                               st <- get
-                                               -- TODO: CHeck if head differs from given var => failure!
-                                               let myfor = head $ last_for st
-                                               put $ st { last_for = tail $ last_for st }
-                                               return [Next myfor] }
-                    | NumVar "," NextBody    { %do
-                                               st <- get
-                                               -- TODO: CHeck if head differs from given var => failure!
-                                               let myfor = head $ last_for st
-                                               put $ st { last_for = tail $ last_for st }
-                                               -- rst <- $3
-                                               return $ (Next myfor) : $3 } 
-
-
+ForCommands         : Command ":" ForCommands      { $1:$3                  }
+                    | Command ":" Next             { $1:$3                  }
 
 Command             : IOCommand                    { IO_Com $1              }
                     | ControlStruct                { ControlStructure $1    }
@@ -283,7 +286,16 @@ Operand             : NumVar                       { OpVar $1               }
 
 
 
-ControlStruct                   : if BoolExpr IfBody           { If $2 $3               }
+ControlStruct    --   : if BoolExpr then IfBody      { If $2 $4               }
+                    : if BoolExpr IfBody           { If $2 $3               }
+ -- | for NumVar "=" Operand to Operand step Operand SyntaxTree 
+    --                                              {For $2 ($4,$8,$6) $9} 
+      --                                                  -- step auch var??
+-- | for NumVar "=" Operand to Operand SyntaxTree  
+  --                                           {For $2 ($4,(IntConst 1),$6) $7} 
+-- | for floatVar_or_datastring "=" Operand to Operand step Operand ForBody 
+  --                                           { let (a,b) = $9
+    --                                          in For (FloatVar $ getTkStrVal $2) ($4,$8,$6) a b} 
  
  | for floatVar_or_datastring "=" Operand to Operand step Operand 
                                              {% do
@@ -302,6 +314,9 @@ ControlStruct                   : if BoolExpr IfBody           { If $2 $3       
                                     put $ st { last_for = com : (last_for st) }
                                     return com }
  
+-- | for floatVar_or_datastring "=" Operand to Operand ForBody
+   --                                    { let (a,b) = $7
+     --                                    in For (FloatVar $ getTkStrVal $2) ($4,(IntConst 1),$6) a b} 
 
                     | gosub int                    { GoSub $ getTkIntVal $2 }
                     | goto int                     { Goto $ getTkIntVal $2  }
@@ -314,8 +329,21 @@ ControlStruct                   : if BoolExpr IfBody           { If $2 $3       
 OnBody              : int                          { [getTkIntVal $1]       }
                     | int "," OnBody               { (getTkIntVal $1):$3    }
 
+--ForBody             : SyntaxTree                {ForLines $1}
+--                    | ":" Commands next         {ForSingleLine $2}
+  --                  | ":" next                  {ForSingleline [NOOP]}
+        --            | ":" Commands -- next bei commands 
 
+--ForBody       : SyntaxTree lineNr Next              {([NOOP],$1++[(getTkIntVal $2,$3)])} 
+  --            | ":" Commands SyntaxTree lineNr Next {($2,$3++[(getTkIntVal $4,$5)])}
+ForBody       : SyntaxTree               {([NOOP],$1)} 
+              | ":" Commands SyntaxTree  {($2,$3)}
+              | ":" Next                            {([NOOP],[(-1,$2)])}
+              | ":" ForCommands                    {($2,[(-1,[NOOP])])}
+        --      : SyntaxTree {([NOOP],[(-1,[NOOP])])}
 
+Next          : next                                {[NOOP]}
+              | next NumVar           {[NOOP]}   -- plural!               
 
 
 IfBody              : then int            { let nr  = getTkIntVal $2
