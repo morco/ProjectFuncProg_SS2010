@@ -126,26 +126,54 @@ import Debug.Trace
 
 SyntaxTree          : Line                         { [$1]                   }
                     | Line SyntaxTree              { $1:$2                  }
-                    | lineNr next NumVar           { let nr = getTkIntVal $1
-                                                     in [(nr, [NOOP])]      }   
+                 --   | lineNr next NumVar           { let nr = getTkIntVal $1
+                   --                                  in [(nr, [NOOP])]      }   
                                               -- muss aktuell so hier extra 
                                               --  stehen, sonst parst er das 
                                               --   ganze Programm als Inhalt 
                                               --    des 1. for
 
-                    | lineNr next                  { let nr = getTkIntVal $1
-                                                     in [(nr, [NOOP])]      }   
+--                    | lineNr next                  { let nr = getTkIntVal $1
+  --                                                   in [(nr, [NOOP])]      }   
                     | lineNr return     { let nr = getTkIntVal $1
                                           in (nr, [ControlStructure Return])}
 
 
+NextBody           : NumVar                 {% do 
+                                               st <- get
+                                               -- TODO: CHeck if head differs from given var => failure!
+                                               let myfor = head $ last_for st
+                                               put $ st { last_for = tail $ last_for st }
+                                               return [Next myfor] }
+                   | NumVar "," NextBody    { %do
+                                               st <- get
+                                               -- TODO: CHeck if head differs from given var => failure!
+                                               let myfor = head $ last_for st
+                                               put $ st { last_for = tail $ last_for st }
+                                               -- rst <- $3
+                                               return $ (Next myfor) : $3 } -- why in wrong order ???
+
+
 Line                : lineNr Commands        {% do 
+                                                st <- get
                                                 nr <- buildLineNumber $! $1
+                                                put $ st { cur_basline = nr }
                                                 return (nr,$2)              }
 
  
 Commands            : Command                      { [$1]                   }
                     | Command ":" Commands         { $1:$3                  }
+                    | NewNext                      { $1 }
+                    | NewNext ":" Commands         { $1 ++ $3 }
+
+
+NewNext             : next NextBody { reverse $2 }
+                    | next          {% do
+                                       st <- get
+                                       let nx = [Next $ head $ last_for st]
+                                       let rst = tail $ last_for st
+                                       put $ st { last_for = rst }
+                                       return nx }
 
 
 ForCommands         : Command ":" ForCommands      { $1:$3                  }
@@ -265,13 +293,31 @@ ControlStruct    --   : if BoolExpr then IfBody      { If $2 $4               }
       --                                                  -- step auch var??
 -- | for NumVar "=" Operand to Operand SyntaxTree  
   --                                           {For $2 ($4,(IntConst 1),$6) $7} 
- | for floatVar_or_datastring "=" Operand to Operand step Operand ForBody 
-                                             { let (a,b) = $9
-                                              in For (FloatVar $ getTkStrVal $2) ($4,$8,$6) a b} 
-                                                        -- step auch var??
- | for floatVar_or_datastring "=" Operand to Operand ForBody
-                                       { let (a,b) = $7
-                                         in For (FloatVar $ getTkStrVal $2) ($4,(IntConst 1),$6) a b} 
+-- | for floatVar_or_datastring "=" Operand to Operand step Operand ForBody 
+  --                                           { let (a,b) = $9
+    --                                          in For (FloatVar $ getTkStrVal $2) ($4,$8,$6) a b} 
+ 
+ | for floatVar_or_datastring "=" Operand to Operand step Operand 
+                                             {% do
+                                    st <- get
+                                    let myvar =  (FloatVar $ getTkStrVal $2)
+                                    let com = For myvar ($4,$8,$6)
+                                    put $ st { last_for = com : (last_for st) }
+                                    return com } 
+
+ | for floatVar_or_datastring "=" Operand to Operand 
+                                             {% do
+                                    st <- get
+                                    let myvar =  (FloatVar $ getTkStrVal $2)
+                                    let com = For myvar ($4,(IntConst 1),$6)
+                                 --   put $ st { last_for = trace ("myfors: " ++ show (com : (last_for st))) $ com : (last_for st) }
+                                    put $ st { last_for = com : (last_for st) }
+                                    return com }
+ 
+-- | for floatVar_or_datastring "=" Operand to Operand ForBody
+   --                                    { let (a,b) = $7
+     --                                    in For (FloatVar $ getTkStrVal $2) ($4,(IntConst 1),$6) a b} 
+
                     | gosub int                    { GoSub $ getTkIntVal $2 }
                     | goto int                     { Goto $ getTkIntVal $2  }
                     | end                          { End                    }
@@ -365,19 +411,21 @@ Var                 : stringVar  {StringVar_Var (StringVar $ getTkStrVal $1)}
 NumVar              : intVar                    {   IntVar $ getTkStrVal $1 }
                     | floatVar_or_datastring    { FloatVar $ getTkStrVal $1 }
 
-StringVar       : stringVar
-                | stringVar "(" ArrayIndex ")"
+-- StringVar       : stringVar                     
+  --              | stringVar "(" ArrayIndex ")"
 
-IntVar          : intVar
-                | intVar "(" ArrayIndex ")"
+-- IntVar          : intVar
+  --              | intVar "(" ArrayIndex ")"
 
-FloatVar        : floatVar_or_datastring
-                | floatVar_or_datastring "(" ArrayIndex ")"
+-- FloatVar        : floatVar_or_datastring
+  --              | floatVar_or_datastring "(" ArrayIndex ")"
 
-ArrayIndex      : NumExpr
-                : NumExpr "," ArrayIndex 
+-- ArrayIndex      : NumExpr
+  --              : NumExpr "," ArrayIndex 
 
 {
+
+
 
 
 
@@ -395,85 +443,9 @@ getParseTree str =
                           tokenList = tokens, 
                           lineNumbers = [], 
                           expectedLineNumbers = [],
-                          data_temp = []
-                     } 
-        (a,s) = runState (basicParse $ tokens) initstate 
-
-     {-   (a,s) = (runState $! ((\ tk -> do
-                              psTree <- basicParse tk
-                              checkAllExpectedLineNumbersGot
-                              return psTree
-                          )tokens)) initState -}
-    -- in trace ("the end state: " ++ (intercalate "," s)) a
-    -- in map (id $!) a
-    -- in reverse $! (evalListStrict id a [] )
-    in ParseTree { program = a, pdata = data_temp s}
-
-
-
-}
-
-ArrayIndex      : NumExpr
-                : NumExpr "," ArrayIndex 
-
-{
-
-
-
-
-evalListStrict f [] nlList = nlList
-evalListStrict f (x:xs) nlList = ((:) $! (f $! x)) $! (evalListStrict f xs (x : nlList))
-
-
-
-
-getParseTree :: String -> ParseTree 
-getParseTree str = 
-    let tokens = getTokens str
-        initstate =  ParserState { 
-                          tokenList = tokens, 
-                          lineNumbers = [], 
-                          expectedLineNumbers = [],
-                          data_temp = []
-                     } 
-        (a,s) = runState (basicParse $ tokens) initstate 
-
-     {-   (a,s) = (runState $! ((\ tk -> do
-                              psTree <- basicParse tk
-                              checkAllExpectedLineNumbersGot
-                              return psTree
-                          )tokens)) initState -}
-    -- in trace ("the end state: " ++ (intercalate "," s)) a
-    -- in map (id $!) a
-    -- in reverse $! (evalListStrict id a [] )
-    in ParseTree { program = a, pdata = data_temp s}
-
-
-
-}
-
-ArrayIndex      : NumExpr
-                : NumExpr "," ArrayIndex 
-
-{
-
-
-
-
-evalListStrict f [] nlList = nlList
-evalListStrict f (x:xs) nlList = ((:) $! (f $! x)) $! (evalListStrict f xs (x : nlList))
-
-
-
-
-getParseTree :: String -> ParseTree 
-getParseTree str = 
-    let tokens = getTokens str
-        initstate =  ParserState { 
-                          tokenList = tokens, 
-                          lineNumbers = [], 
-                          expectedLineNumbers = [],
-                          data_temp = []
+                          data_temp = [],
+                          last_for = [],
+                          cur_basline = -1
                      } 
         (a,s) = runState (basicParse $ tokens) initstate 
 

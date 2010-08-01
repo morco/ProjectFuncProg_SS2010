@@ -19,3 +19,25 @@
  90 print "Test 4:"
 110 for i = 1 to 5 : next
 120 Print "After4"
+125 print
+
+130 print "Test 5:"
+140 print "bla" : for i = 1 to 5 : print "i = ";i
+150 next
+160 print
+
+170 print "Test 6a:"
+180 for i = 1 to 3 
+182 for j = 4 to 6
+184 for k = 7 to 9
+186 print i;",";j;",";k
+190 next k,j,i
+200 print
+
+210 print "Test 6b:"
+220 for i = 1 to 3 
+232 for j = 4 to 6
+244 for k = 7 to 9
+256 print i;",";j;",";k
+260 next : next : next
+270 print

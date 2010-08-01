@@ -168,7 +168,14 @@ data ParserState
          tokenList           :: [TokenWrap], 
          lineNumbers         :: [Int], 
          expectedLineNumbers :: [Int],
-         data_temp           :: [DataContent] 
+         data_temp           :: [DataContent],
+       --  last_for            :: Int,
+      --   last_forvar         :: String,
+      --   last_forvar         :: [NumVar],
+         last_for         :: [ControlStruct],
+      --   for_lines           :: M.Map String Int,
+      --   cur_forscope        :: [String],
+         cur_basline         :: Int
       }
 
 
@@ -186,14 +193,17 @@ data Command
     | Data               [DataContent]
     | Restore
     | Def                String          Var          NumExpr
-    deriving Show
+--    | Next               [String]
+  --  | Next               NumVar
+    | Next               ControlStruct
+    deriving (Show,Eq)
 
 data StringExpr
     = StringOp    BasicString
    -- | StringExpr (BasicString,BasicString) String
     | StringExpr (StringExpr,StringExpr) String
     | StringFunc  StringFunction
-    deriving Show
+    deriving (Show,Eq)
 
 data StringFunction
     = ChrFunc  NumExpr
@@ -201,12 +211,12 @@ data StringFunction
     | MidFunc  StringExpr NumExpr NumExpr
     | RightFunc  StringExpr NumExpr
     | StrFunc  NumExpr
-    deriving Show
+    deriving (Show,Eq)
 
 data BasicString
     = StringVar_BString   StringVar
     | StringLiteral       String
-    deriving Show
+    deriving (Show,Eq)
 
 data NumFunction
     = Len      String
@@ -225,20 +235,21 @@ data NumFunction
     | SqrFunc  NumExpr
     | TanFunc  NumExpr
     | Fnxx     String     NumExpr
-    deriving Show
+    deriving (Show,Eq)
 
 
 data ControlStruct
     = If BoolExpr [Command]
 --    | For NumVar  (Operand,Operand,Operand) [(Int,[Command])]
-    | For NumVar  (Operand,Operand,Operand) [Command] Program
+--    | For NumVar  (Operand,Operand,Operand) [Command] Program
+    | For NumVar  (Operand,Operand,Operand) 
     | GoSub       Int 
     | Goto        Int
     | On_Goto     NumExpr                   [Int]
     | On_Gosub    NumExpr                   [Int]
     | End
     | Return
-    deriving Show
+    deriving (Show,Eq)
 
 {-
 data ForBody 
@@ -251,35 +262,35 @@ data BoolExpr
     = BoolExprString  (StringExpr,StringExpr) String
     | BoolExprNum     (NumExpr,NumExpr) String
     | BoolExprLog     (BoolExpr,BoolExpr) String
-    deriving Show
+    deriving (Show,Eq)
 
 data IOCommand 
     = Print   ([Output], Bool)
     | Input   (InputStuff, Bool)
     | Get     Var
-    deriving Show
+    deriving (Show,Eq)
 
 data Output
     = OutStringExpr  StringExpr
     | OutNumExpr     NumExpr
-    deriving Show
+    deriving (Show,Eq)
 
 data InputStuff 
     = InputStuff   [String] [Var]
-    deriving Show
+    deriving (Show,Eq)
 
 data NumExpr
     = NumExpr    (NumExpr,NumExpr) String
     | NumOp      Operand
     | NumFunc    NumFunction
     | NumMinus   NumExpr
-    deriving Show
+    deriving (Show,Eq)
 
 data Operand
     = OpVar        NumVar
     | IntConst     Int
     | FloatConst   Float
-    deriving Show
+    deriving (Show,Eq)
 
 data NumVar
     = IntVar    String

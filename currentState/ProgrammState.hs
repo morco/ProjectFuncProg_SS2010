@@ -44,7 +44,9 @@ data ProgramState =
        randomNumbers :: [Float],
        _data :: [DataContent],
        dataPointer :: Int,
-       custom_funcs  :: (M.Map String (Var,NumExpr))
+       custom_funcs  :: (M.Map String (Var,NumExpr)),
+       for_lines    :: [Int],
+       fromNext     :: Bool
     } deriving Show
 
 
@@ -67,7 +69,9 @@ getNewState parseTree =
        randomNumbers = randoms (mkStdGen 1),
        _data = pdata parseTree,
        dataPointer = 0,
-       custom_funcs = M.empty
+       custom_funcs = M.empty,
+       for_lines = [],
+       fromNext = False
     }
 
 

@@ -67,8 +67,24 @@ main = do
 --         current working program list to this position, else, 
 --          go on normally
 interpret :: Program -> PState ()
-interpret [] = return ()
+interpret [] = get >>= \st -> put $ st { progFinished = True } -- >> return ()
 interpret ((lnNr,commands):xs) = do
+   {- state <- get
+    put $ state { curPos = lnNr }
+    updateStateNextPos xs 
+    newState1 <- get
+    mapM_ evalCommand commands
+    newState2 <- get
+    if (progFinished newState2)
+      then
+        return ()
+      else
+        let realNxPos = (nextPos newState2) 
+        in if (nextPos newState1) == realNxPos 
+             then 
+               interpret xs
+             else 
+               interpret $ getNewList (completeProgram newState2) realNxPos   -}           
     state <- get
     put $ state { curPos = lnNr }
     updateStateNextPos xs 
@@ -135,8 +151,11 @@ evalCommand (ControlStructure End) = do
 --  check this by parsing ??
 evalCommand (ControlStructure (Goto nr)) = do
     state <- get
-    put $ state { nextPos = nr }      
-    return ()
+    --put $ state { nextPos = nr }      
+    --trace ("New list found!") $ interpret $ trace ("Find new list, ln = " ++ show nr) $ getNewList (completeProgram state) nr 
+    interpret $ getNewList (completeProgram state) nr 
+    
+
 
 evalCommand (ControlStructure (If boolExpr commands)) = do
     state <- get
@@ -160,6 +179,7 @@ evalCommand (StringAssignment var stringExpr) = do
     updateStringVar (StringVar_Var var) val
     return ()
 
+{-
 evalCommand (ControlStructure (For var (start,step,end) commands lines)) = do
     -- only reading, should not change state
     start' <- makeFloat start 
@@ -203,6 +223,61 @@ evalCommand (ControlStructure (For var (start,step,end) commands lines)) = do
                  NumVar_Var (FloatVar _ ) -> updateFloatVar var inc
                  NumVar_Var (IntVar _ )   -> updateIntVar var (truncate inc)
             evalFor var' start step end commands False
+-}
+
+-- this implementation works only with correct folded fors and nexts
+--evalCommand (ControlStructure (For var (start,step,end))) = do
+evalCommand (ControlStructure (For var (start,_,_))) = do
+    state  <- get
+    -- only reading, should not change state
+    start' <- makeFloat start 
+    --step'  <- makeFloat step   
+    --stop'  <- makeFloat end   
+    if fromNext state 
+      then 
+        put $ state { 
+                fromNext  = False 
+              }
+      else do -- first iteration
+        -- set body var to init value
+        updateFloatVar (NumVar_Var var) start' -- can only be float var!
+        --trace ("First It Var: " ++ show var) $ updateFloatVar (NumVar_Var var) start' -- can only be float var!
+        -- put this for line at the top of the for stack and set the
+        --  come from next flag to false
+        state' <- get
+        put $ state' { 
+                for_lines = (curPos state') : (for_lines state'),
+                fromNext  = False 
+              }
+
+
+evalCommand (Next (For var (start,step,end))) = do
+    state <- get
+    step' <- makeFloat step   
+    end'  <- makeFloat end   
+    let i = getMapVal $ M.lookup (NumVar_Var var) (floatVars state)
+    --let i = trace ("look for for var: " ++ show var) $ getMapVal $ M.lookup (NumVar_Var var) (floatVars state)
+    let i' = i + step'
+    let fors = for_lines state
+    if i' > end'
+      then -- for is completed
+        put $ state { for_lines = tail fors } -- delete head == my for
+        -- return ()
+      else do -- start next iteration
+        updateFloatVar (NumVar_Var var) i' -- increment var
+        state' <- get
+        put $ state' { fromNext = True } -- say the for, this is not first iteration
+        -- finally make some kind of goto to the for header, this is not
+        --  a normal goto, because can happen, that you jump not only between
+        --   lines, but also between commands in a single line
+        let nlist    = getNewList (completeProgram state) $ head fors
+            com'     = dropWhile ((/=) (ControlStructure (For var (start,step,end)))) $ snd $ head nlist
+            fstline' = (fst $ head nlist, com')
+        interpret (fstline' : tail nlist)   
+        
+
+
+
 
 evalCommand (ControlStructure (GoSub lnNr)) = do
     state <- get
@@ -282,5 +357,6 @@ insertIOValue var ioAct = insertValue var (liftIO $ ioAct) id read read
 --getConstant (TkFloatConst x) = -1
 
 
+getNewList oldList nxPos = dropWhile (\(a,_) -> a /= nxPos) oldList
     
     

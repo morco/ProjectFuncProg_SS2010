@@ -20,8 +20,8 @@
 -- 100 if (l$ = "j") then goto 30
 100 if q$ = "j" then goto 30
 110 print "Auf Wiedersehen";
-120 for i = 1 to 200
-120 REM for i = 1 to 200 step 1
+120 REM for i = 1 to 200
+120 for i = 1 to 200 step 1
 130 print a$; " ";
 140 next i
 150 print
