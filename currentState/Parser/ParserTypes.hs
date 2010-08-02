@@ -108,7 +108,8 @@ data Token
      | TkConst                  Constant 
      | TkStringVar                String 
      | TkIntVar                   String 
-     | TkFloatVar_Or_DataString   String 
+     | TkFloatVar_Or_DataString   String
+     | TkDim 
 
 ----- </Variables, Strings, Numbers> -----
 
@@ -192,10 +193,11 @@ data Command
     | Read               [Var]
     | Data               [DataContent]
     | Restore
-    | Def                String          Var          NumExpr
+    | Def                String          FloatVar       NumExpr
 --    | Next               [String]
   --  | Next               NumVar
     | Next               ControlStruct
+    | Dim                [(Var,[Operand])]
     deriving (Show,Eq)
 
 data StringExpr
@@ -203,7 +205,7 @@ data StringExpr
    -- | StringExpr (BasicString,BasicString) String
     | StringExpr (StringExpr,StringExpr) String
     | StringFunc  StringFunction
-    deriving (Show,Eq)
+    deriving (Show,Eq,Ord)
 
 data StringFunction
     = ChrFunc  NumExpr
@@ -211,12 +213,12 @@ data StringFunction
     | MidFunc  StringExpr NumExpr NumExpr
     | RightFunc  StringExpr NumExpr
     | StrFunc  NumExpr
-    deriving (Show,Eq)
+    deriving (Show,Eq,Ord)
 
 data BasicString
     = StringVar_BString   StringVar
     | StringLiteral       String
-    deriving (Show,Eq)
+    deriving (Show,Eq,Ord)
 
 data NumFunction
     = Len      String
@@ -235,14 +237,15 @@ data NumFunction
     | SqrFunc  NumExpr
     | TanFunc  NumExpr
     | Fnxx     String     NumExpr
-    deriving (Show,Eq)
+    deriving (Show,Eq,Ord)
 
 
 data ControlStruct
     = If BoolExpr [Command]
 --    | For NumVar  (Operand,Operand,Operand) [(Int,[Command])]
 --    | For NumVar  (Operand,Operand,Operand) [Command] Program
-    | For NumVar  (Operand,Operand,Operand) 
+--    | For NumVar  (Operand,Operand,Operand) 
+    | For FloatVar  (Operand,Operand,Operand) 
     | GoSub       Int 
     | Goto        Int
     | On_Goto     NumExpr                   [Int]
@@ -284,17 +287,19 @@ data NumExpr
     | NumOp      Operand
     | NumFunc    NumFunction
     | NumMinus   NumExpr
-    deriving (Show,Eq)
+    deriving (Show,Eq,Ord)
 
 data Operand
     = OpVar        NumVar
     | IntConst     Int
     | FloatConst   Float
-    deriving (Show,Eq)
+    deriving (Show,Eq,Ord)
 
 data NumVar
-    = IntVar    String
-    | FloatVar  String
+  --  = IntVar    String
+  --  | FloatVar  String
+    = NumVar_Int    IntVar
+    | NumVar_Float  FloatVar
     deriving (Eq, Show, Ord)
 
 data Var
@@ -303,7 +308,18 @@ data Var
     deriving (Eq, Show, Ord)
 
 data StringVar
-    = StringVar String
+    = StringVar         String
+    | StringVar_Array   String  [NumExpr]
+    deriving (Eq, Show, Ord)
+
+data IntVar
+    = IntVar         String
+    | IntVar_Array   String  [NumExpr]
+    deriving (Eq, Show, Ord)
+
+data FloatVar
+    = FloatVar         String
+    | FloatVar_Array   String  [NumExpr]
     deriving (Eq, Show, Ord)
 
 

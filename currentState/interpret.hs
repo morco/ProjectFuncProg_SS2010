@@ -166,18 +166,22 @@ evalCommand (ControlStructure (If boolExpr commands)) = do
       else
         return ()
 
-evalCommand (ArithAssignment var numExpr) = do
-    state <- get
+evalCommand (ArithAssignment var numExpr) = 
+    insertValue (NumVar_Var var) (evalExpression numExpr) (\x -> error "strig val in um expr") truncate id
+{-    state <- get
     res <- evalExpression numExpr
     case var of
-       FloatVar _ -> updateFloatVar (NumVar_Var var) res 
-       IntVar   _ -> updateIntVar (NumVar_Var var) (truncate res) 
-    return ()
+       NumVar_Float _ -> updateFloatVar (NumVar_Var var) res 
+       NumVar_Int   _ -> updateIntVar (NumVar_Var var) (truncate res) 
+-}
 
-evalCommand (StringAssignment var stringExpr) = do
-    val <- evalStringExpression stringExpr
-    updateStringVar (StringVar_Var var) val
-    return ()
+evalCommand (StringAssignment var stringExpr) = 
+ --   trace ("Stringasignm: " ++ show var ++ ",  " ++ show stringExpr) $ insertValue (StringVar_Var var) (evalStringExpression stringExpr) id (\x -> error "num value in string expr") (\x -> error "num value in string expr")
+    insertValue (StringVar_Var var) (evalStringExpression stringExpr) id (\x -> error "num value in string expr") (\x -> error "num value in string expr")
+    --val <- evalStringExpression stringExpr
+    --updateStringVar (StringVar_Var var) val
+
+
 
 {-
 evalCommand (ControlStructure (For var (start,step,end) commands lines)) = do
@@ -240,7 +244,7 @@ evalCommand (ControlStructure (For var (start,_,_))) = do
               }
       else do -- first iteration
         -- set body var to init value
-        updateFloatVar (NumVar_Var var) start' -- can only be float var!
+        updateFloatVar (NumVar_Var $ NumVar_Float var) start' -- can only be float var!
         --trace ("First It Var: " ++ show var) $ updateFloatVar (NumVar_Var var) start' -- can only be float var!
         -- put this for line at the top of the for stack and set the
         --  come from next flag to false
@@ -255,7 +259,7 @@ evalCommand (Next (For var (start,step,end))) = do
     state <- get
     step' <- makeFloat step   
     end'  <- makeFloat end   
-    let i = getMapVal $ M.lookup (NumVar_Var var) (floatVars state)
+    let i = getMapVal $ M.lookup (NumVar_Var $ NumVar_Float var) (floatVars state)
     --let i = trace ("look for for var: " ++ show var) $ getMapVal $ M.lookup (NumVar_Var var) (floatVars state)
     let i' = i + step'
     let fors = for_lines state
@@ -264,7 +268,7 @@ evalCommand (Next (For var (start,step,end))) = do
         put $ state { for_lines = tail fors } -- delete head == my for
         -- return ()
       else do -- start next iteration
-        updateFloatVar (NumVar_Var var) i' -- increment var
+        updateFloatVar (NumVar_Var $ NumVar_Float var) i' -- increment var
         state' <- get
         put $ state' { fromNext = True } -- say the for, this is not first iteration
         -- finally make some kind of goto to the for header, this is not
@@ -325,6 +329,40 @@ evalCommand (ControlStructure (On_Goto numExpr lines)) =
 evalCommand (ControlStructure (On_Gosub numExpr lines)) = 
     doOn numExpr GoSub lines
 
+evalCommand (Dim myvars) = mapM_ dimArray myvars  
+
+
+dimArray :: (Var,[Operand]) -> PState ()
+dimArray (var,dim'') = do
+    state <- get
+    dim'  <- mapM makeFloat dim''
+    let dim = map (((+) 1) . truncate) dim' -- because in c64 basic dimension gives the highest index!
+    case var of 
+      StringVar_Var (StringVar name )  -> 
+            -- Check if array was dimensioned already
+            case M.lookup name $ stringArrayVars state of
+                 Just _ -> error "?REDIM'D ARRAY ERROR"
+                 Nothing -> do
+                    let newars = M.alter (\ _ -> Just (dim,M.empty)) name $ stringArrayVars state
+                    put $ state { stringArrayVars = newars }
+      NumVar_Var (NumVar_Int (IntVar name ))   -> 
+            -- Check if array was dimensioned already
+            case M.lookup name $ intArrayVars state of
+                 Just _ -> error "?REDIM'D ARRAY ERROR"
+                 Nothing -> do
+                    let newars = M.alter (\ _ -> Just (dim,M.empty)) name $ intArrayVars state
+                    put $ state { intArrayVars = newars }
+      NumVar_Var (NumVar_Float (FloatVar name )) -> 
+            -- Check if array was dimensioned already
+            case M.lookup name $ floatArrayVars state of
+                 Just _ -> error "?REDIM'D ARRAY ERROR"
+                 Nothing -> do
+                    let newars = M.alter (\ _ -> Just (dim,M.empty)) name $ floatArrayVars state
+                    put $ state { floatArrayVars = newars }
+      _   -> error "non array variable!"
+
+
+
 
 doOn :: NumExpr -> (Int -> ControlStruct) -> [Int] -> PState ()
 doOn numExpr constr lines = do   
@@ -359,4 +397,40 @@ insertIOValue var ioAct = insertValue var (liftIO $ ioAct) id read read
 
 getNewList oldList nxPos = dropWhile (\(a,_) -> a /= nxPos) oldList
     
-    
+   
+
+insertValue :: Var -> PState a -> (a -> String) -> (a -> Int)
+                -> (a -> Float) -> PState ()
+insertValue var getValAct toStringFunc toIntFunc toFloatFunc = do
+      val <- getValAct
+-- trace ("updatevar; " ++ show var) $ case var of
+      case var of
+      -- if there is an unreadable input (no number), the runtime error
+      --  should be thrown immediately, so strict evaluation here
+      --    StringVar_Var _             -> (updateStringVar var) $! (toStringFunc val)
+      --    NumVar_Var (NumVar_Int _)   -> (updateIntVar var) $! (toIntFunc val)
+      --    NumVar_Var (NumVar_Float _) -> (updateFloatVar var) $! (toFloatFunc val)
+         StringVar_Var (StringVar _) -> (updateStringVar var) $! (toStringFunc val)
+         NumVar_Var (NumVar_Int (IntVar _))   -> (updateIntVar var) $! (toIntFunc val)
+         NumVar_Var (NumVar_Float (FloatVar _)) -> (updateFloatVar var) $! (toFloatFunc val)
+      -- array case
+         StringVar_Var (StringVar_Array name ix)           -> do
+                       res <- mapM evalExpression ix
+                       let key   = StringVar_Array name ix
+                           index = map truncate res
+                       (updateStringArrayVar key index) $! (toStringFunc val)
+               --        stnew <- get
+               --        return $ trace ("update string arrays! " ++ (show $ stringArrayVars stnew)) ()
+         NumVar_Var (NumVar_Int (IntVar_Array name ix))   -> do
+                       res <- mapM evalExpression ix
+                       let key   = IntVar_Array name ix
+                           index = map truncate res
+                       (updateIntArrayVar key index) $! (toIntFunc val)
+         NumVar_Var (NumVar_Float (FloatVar_Array name ix)) -> do
+                       res <- mapM evalExpression ix
+                       let key   = FloatVar_Array name ix
+                           index = map truncate res
+                       (updateFloatArrayVar key index) $! (toFloatFunc val)
+      
+
+ 

@@ -8,12 +8,19 @@ import Parser.ParserTypes(
                            DataContent(..), 
                            Program, 
                            ParseTree(..),
-                           NumExpr
+                           NumExpr,
+                           FloatVar(..),
+                           IntVar(..),
+                           StringVar(..)
                          )
 import qualified Data.Map as M
 import Control.Monad.State
 
 import Random(randoms, mkStdGen)
+
+-- import Expressions(evalExpression) cylces aaaaaaaaahhhhhhhh!!!
+
+import Debug.Trace
 
 ------------------------------ </Imports> -----------------------------------
 
@@ -44,12 +51,18 @@ data ProgramState =
        randomNumbers :: [Float],
        _data :: [DataContent],
        dataPointer :: Int,
-       custom_funcs  :: (M.Map String (Var,NumExpr)),
+     --  custom_funcs  :: (M.Map String (Var,NumExpr)),
+       custom_funcs  :: (M.Map String (FloatVar,NumExpr)),
        for_lines    :: [Int],
-       fromNext     :: Bool
+       fromNext     :: Bool,
+       stringArrayVars :: (M.Map String ([Int],M.Map [Int] String)),
+       intArrayVars    :: (M.Map String ([Int],M.Map [Int] Int)),
+       floatArrayVars  :: (M.Map String ([Int],M.Map [Int] Float))
     } deriving Show
 
 
+
+defaultArrayDim = 11
 
 ----------------------------- </Data types> ---------------------------------
 
@@ -71,7 +84,10 @@ getNewState parseTree =
        dataPointer = 0,
        custom_funcs = M.empty,
        for_lines = [],
-       fromNext = False
+       fromNext = False,
+       stringArrayVars = M.empty,
+       intArrayVars    = M.empty,
+       floatArrayVars  = M.empty
     }
 
 
@@ -130,6 +146,124 @@ updateStringVar var val = do
 
 
 
+updateFloatArrayVar :: FloatVar -> [Int] -> Float -> PState ()
+updateFloatArrayVar (FloatVar_Array name ix) index val = do
+    state <- get
+    let key    = name 
+        flvars = floatArrayVars state
+    case M.lookup key flvars of
+         Just (dim,ar) -> -- Array exist, so change simply value
+                          -- 1. Check for dimensions
+                          if length index == length dim && allSmaller index dim
+                            then do
+                              let newar     = M.alter (\ _ -> Just val) index ar
+                                  newflvars = M.alter (\ _ -> Just (dim,newar)) key flvars
+                              put $ state { 
+                                      floatArrayVars = newflvars 
+                                    }
+                            else
+                              error "invalid array index!"
+         Nothing     -> do -- array is new, init with default dimension
+                        let nrdim = length index 
+                            dim   = take nrdim $ repeat defaultArrayDim
+                        if allSmaller index dim
+                          then do
+                              let newar     = M.alter (\ _ -> Just val) index M.empty
+                                  newflvars = M.alter (\ _ -> Just (dim,newar)) key flvars
+                              put $ state { 
+                                      floatArrayVars = newflvars 
+                                    }
+                          else
+                            error "invalid array index, you have to dimension your array first!"
+updateFloatArrayVar _ _ _ = error "Not an array variable!"
+
+
+updateIntArrayVar :: IntVar -> [Int] -> Int -> PState ()
+updateIntArrayVar (IntVar_Array name ix) index val = do
+    state <- get
+    let key   = name
+        ivars = intArrayVars state
+    case M.lookup key ivars of
+         Just (dim,ar) -> -- Array exist, so change simply value
+                          -- 1. Check for dimensions
+                          if length index == length dim && allSmaller index dim
+                            then do
+                              let newar    = M.alter (\ _ -> Just val) index ar
+                                  newivars = M.alter (\ _ -> Just (dim,newar)) key ivars
+                              put $ state { 
+                                      intArrayVars = newivars 
+                                    }
+                            else
+                              error "invalid array index!"
+         Nothing     -> do -- array is new, init with default dimension
+                        let nrdim = length index 
+                            dim   = take nrdim $ repeat defaultArrayDim
+                        if allSmaller index dim
+                          then do
+                              let newar    = M.alter (\ _ -> Just val) index M.empty
+                                  newivars = M.alter (\ _ -> Just (dim,newar)) key ivars
+                              put $ state { 
+                                      intArrayVars = newivars 
+                                    }
+                          else
+                            error "invalid array index, you have to dimension your array first!"
+updateIntArrayVar _ _ _ = error "Not an array variable!"
+
+
+updateStringArrayVar :: StringVar -> [Int] -> String -> PState ()
+updateStringArrayVar (StringVar_Array name ix) index val = do
+    state <- get
+    let key     = name 
+        strvars = stringArrayVars state
+--    trace "updStringArrays!" $ case M.lookup key strvars of
+    case M.lookup key strvars of
+         Just (dim,ar) -> -- Array exist, so change simply value
+                          -- 1. Check for dimensions
+                          if length index == length dim && allSmaller index dim
+                            then do
+                              let newar      = M.alter (\ _ -> Just val) index ar
+                                  newstrvars = M.alter (\ _ -> Just (dim,newar)) key strvars
+                              put $ state { 
+                                      --stringArrayVars = trace ("new string vars: " ++ show newstrvars) newstrvars
+                                      stringArrayVars = newstrvars
+                                    }
+                            else
+                              error "invalid array index!"
+         Nothing     -> do -- array is new, init with default dimension
+                        let nrdim = length index 
+                            dim   = take nrdim $ repeat defaultArrayDim
+                        if allSmaller index dim
+                          then do
+                              let newar     = M.alter (\ _ -> Just val) index M.empty
+                                  newstrvars = M.alter (\ _ -> Just (dim,newar)) key strvars
+                              put $ state { 
+                                    --stringArrayVars = trace ("new string vars: " ++ show newstrvars) newstrvars 
+                                      stringArrayVars = newstrvars 
+                                    }
+                          else
+                            error "invalid array index, you have to dimension your array first!"
+updateStringArrayVar _ _ _ = error "Not an array variable!"
+
+
+
+allSmaller :: (Ord a) => [a] -> [a] -> Bool
+allSmaller []     []   = True
+allSmaller (x:xs) []   = error "lists have different size!"
+allSmaller [] (y:ys)   = error "lists have different size!"
+allSmaller (x:xs) (y:ys)
+    | x < y = allSmaller xs ys
+    | otherwise = False
+
+insertAtPos :: Int -> a -> [a] -> [a]
+insertAtPos pos elem  []   
+    | pos == 0  = elem : []
+    | otherwise = error "position is bigger than list"
+insertAtPos pos elem (x:xs) 
+    | pos == 0  = elem : xs
+    | pos > 0   = x : insertAtPos (pos - 1) elem xs
+    | otherwise = error "Insert pos lower than 0!"
+
+
 getNextDataElement :: PState DataContent
 getNextDataElement = do
     state <- get
@@ -165,7 +299,7 @@ getDataFloat other =
     error $ "TYPE MISMATCH ERROR: Unallowed data value '" 
             ++ (show other) ++ "', expected NUMERICAL!"
 
-
+{-
 insertValue :: Var -> PState a -> (a -> String) -> (a -> Int)
                 -> (a -> Float) -> PState ()
 insertValue var getValAct toStringFunc toIntFunc toFloatFunc = do
@@ -173,8 +307,25 @@ insertValue var getValAct toStringFunc toIntFunc toFloatFunc = do
     case var of
       -- if there is an unreadable input (no number), the runtime error
       --  should be thrown immediately, so strict evaluation here
-         StringVar_Var _         -> (updateStringVar var) $! (toStringFunc val)
-         NumVar_Var (IntVar _)   -> (updateIntVar var) $! (toIntFunc val)
-         NumVar_Var (FloatVar _) -> (updateFloatVar var) $! (toFloatFunc val)
-      
+     --    StringVar_Var _             -> (updateStringVar var) $! (toStringFunc val)
+     --    NumVar_Var (NumVar_Int _)   -> (updateIntVar var) $! (toIntFunc val)
+     --    NumVar_Var (NumVar_Float _) -> (updateFloatVar var) $! (toFloatFunc val)
+         StringVar_Var (StringVar _) -> (updateStringVar var) $! (toStringFunc val)
+         NumVar_Var (NumVar_Int (IntVar _))   -> (updateIntVar var) $! (toIntFunc val)
+         NumVar_Var (NumVar_Float (FloatVar _)) -> (updateFloatVar var) $! (toFloatFunc val)
+      -- array case
+         StringVar_Var (StringVar_Array _ ix)           -> do
+                          res <- evalExpression ix
+                          error $ "StringArray " ++ show res
+                                            --(updateStringVar var) $! (toStringFunc val)
+         NumVar_Var (NumVar_Int (IntVar_Array _ ix))   -> do 
+                          res <- evalExpression ix
+                          error $ "IntArray " ++ show res
+                          -- (updateIntVar var) $! (toIntFunc val) 
+         NumVar_Var (NumVar_Float (FloatVar_Array _ ix)) -> do 
+                          res <- evalExpression ix
+                          error $ "FloatArray " ++ show res
+                          -- (updateFloatVar var) $! (toFloatFunc val) 
+  -}
+
 

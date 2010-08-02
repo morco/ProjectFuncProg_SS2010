@@ -101,6 +101,7 @@ import Debug.Trace
     stringVar                     { TokenWrap _type pos (TkStringVar val)  }
     intVar                        { TokenWrap _type pos (TkIntVar val)     }
     floatVar_or_datastring { TokenWrap _t p (TkFloatVar_Or_DataString val) }
+    dim                           { TokenWrap _type pos TkDim              }
 
 -- Constants
     stringLiteral                 { TokenWrap _type pos (TkString val)     }
@@ -190,8 +191,9 @@ Command             : IOCommand                    { IO_Com $1              }
                                            return NOOP                      }
                     | restore                      { Restore                }
                     | comment                      { NOOP                   }
+                    | dim DimBody                  { Dim $2                 }
  | def fnxx "(" floatVar_or_datastring ")" "=" NumExpr 
-         { Def (getTkStrVal $2) (NumVar_Var $ FloatVar $ getTkStrVal $4) $7 } 
+         { Def (getTkStrVal $2) (FloatVar $ getTkStrVal $4) $7 } 
 
 
 
@@ -207,11 +209,26 @@ DataContent         : int                  {       DataInt $ getTkIntVal $1 }
               | floatVar_or_datastring     { DataString $ getTkStrVal $1    }
 
 
+DimBody             : DimVar "(" DimIndex ")" { [($1,$3)] }
+                    | DimVar "(" DimIndex ")" "," DimBody { ($1,$3) : $6 }
+
+DimIndex            : Operand                { [$1] }
+                    | Operand "," DimIndex   { $1 : $3 }
+                   
+
+
+DimVar              : stringVar              { StringVar_Var $ StringVar $ getTkStrVal $1 }
+                    | intVar                 { NumVar_Var $ NumVar_Int $ IntVar $ getTkStrVal $1 }
+                    | floatVar_or_datastring { NumVar_Var $ NumVar_Float $ FloatVar $ getTkStrVal $1 }
+
+
+
 Assignment          : NumVar "=" NumExpr           { ArithAssignment $1 $3  }
-                    | stringVar "=" StringExpr { let {
-                                                      str = getTkStrVal $1;
-                                                      str' = StringVar str
-                                               } in StringAssignment str' $3}
+                    | StringVar "=" StringExpr { StringAssignment $1 $3 }
+          -- { let {
+            --                                          str = getTkStrVal $1;
+              --                                        str' = StringVar str
+                       --                        } in StringAssignment str' $3}
 
 
 StringExpr          : BasicString                  { $1                     }
@@ -228,10 +245,11 @@ StringFunction      : chrfunc "(" NumExpr ")"      { ChrFunc $3             }
 BasicString         : stringLiteral     { let str = getTkStrVal $1
                                           in StringOp $ StringLiteral str   }
 --                  | StringOperation   { StringOp $ String_Operation $1    }
-                    | stringVar       { let {
-                                              str = getTkStrVal $1;
-                                              str' = StringVar str
-                                      } in StringOp $ StringVar_BString str'}
+    --                | stringVar       { let {
+      --                                        str = getTkStrVal $1;
+        --                                      str' = StringVar str
+          --                            } in StringOp $ StringVar_BString str'}
+                    | StringVar         { StringOp $ StringVar_BString $1   }
                     | StringFunction               { StringFunc $1          }
 
 
@@ -285,19 +303,19 @@ Operand             : NumVar                       { OpVar $1               }
 
 ControlStruct                   : if BoolExpr IfBody           { If $2 $3               }
  
- | for floatVar_or_datastring "=" Operand to Operand step Operand 
+ | for FloatVar "=" Operand to Operand step Operand 
                                              {% do
                                     st <- get
-                                    let myvar =  (FloatVar $ getTkStrVal $2)
-                                    let com = For myvar ($4,$8,$6)
+                                    -- let myvar =  (FloatVar $ getTkStrVal $2)
+                                    let com = For $2 ($4,$8,$6)
                                     put $ st { last_for = com : (last_for st) }
                                     return com } 
 
- | for floatVar_or_datastring "=" Operand to Operand 
+ | for FloatVar "=" Operand to Operand 
                                              {% do
                                     st <- get
-                                    let myvar =  (FloatVar $ getTkStrVal $2)
-                                    let com = For myvar ($4,(IntConst 1),$6)
+                                    -- let myvar =  (FloatVar $ getTkStrVal $2)
+                                    let com = For $2 ($4,(IntConst 1),$6)
                                  --   put $ st { last_for = trace ("myfors: " ++ show (com : (last_for st))) $ com : (last_for st) }
                                     put $ st { last_for = com : (last_for st) }
                                     return com }
@@ -380,20 +398,29 @@ Var                 : stringVar  {StringVar_Var (StringVar $ getTkStrVal $1)}
                     | NumVar                       { NumVar_Var $1          }
 
 
-NumVar              : intVar                    {   IntVar $ getTkStrVal $1 }
-                    | floatVar_or_datastring    { FloatVar $ getTkStrVal $1 }
+--NumVar              : intVar                    {   IntVar $ getTkStrVal $1 }
+--                    | floatVar_or_datastring    { FloatVar $ getTkStrVal $1 }
 
--- StringVar       : stringVar                     
-  --              | stringVar "(" ArrayIndex ")"
 
--- IntVar          : intVar
-  --              | intVar "(" ArrayIndex ")"
+NumVar              : IntVar                       { NumVar_Int   $1        }
+                    | FloatVar                     { NumVar_Float $1        }
 
--- FloatVar        : floatVar_or_datastring
-  --              | floatVar_or_datastring "(" ArrayIndex ")"
 
--- ArrayIndex      : NumExpr
-  --              : NumExpr "," ArrayIndex 
+
+StringVar           : stringVar                 { StringVar $ getTkStrVal $1 }   
+                    | stringVar "(" ArrayIndex ")"  { StringVar_Array (getTkStrVal $1) $3 }
+
+-- Achtung, eventuell reverse noetig, damit die reihenfolge stimmt!
+IntVar              : intVar                       { IntVar $ getTkStrVal $1 }
+                    | intVar "(" ArrayIndex ")"  { IntVar_Array (getTkStrVal $1) $3 }
+
+
+FloatVar            : floatVar_or_datastring     { FloatVar $ getTkStrVal $1 }
+                    | floatVar_or_datastring "(" ArrayIndex ")" { FloatVar_Array (getTkStrVal $1) $3 }
+
+
+ArrayIndex          : NumExpr                    { [$1] }
+                    | NumExpr "," ArrayIndex     { $1 : $3 }
 
 {
 

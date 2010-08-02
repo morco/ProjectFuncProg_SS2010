@@ -179,6 +179,7 @@ buildResWord str =
             | str == "mid$"     = [TkMidFunc] 
             | str == "right$"   = [TkRightFunc] 
             | str == "str$"     = [TkStrFunc] 
+            | str == "dim"      = [TkDim] 
             | str == "def"      = [TkDef]
             | isPrefixOf "fn" str = 
                   let len = length str

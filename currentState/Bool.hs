@@ -5,9 +5,9 @@ module Bool (evalBoolExpression) where
 import Parser.ParserTypes(BoolExpr(..))
 import Control.Monad.State
 
-import Strings
+--import Strings
 import ProgrammState
-import Nums
+import Expressions
 
 ------------------------------------------------- </Imports> -----------------------------------------------------
 

@@ -17,7 +17,10 @@ import Parser.ParserTypes(
                            Operand(..), 
                            StringExpr(..), 
                            BasicString(..),
-                           StringFunction(..)
+                           StringFunction(..),
+                           FloatVar(..),
+                           IntVar(..),
+                           StringVar(..)
                          )
 import Parser.Lexer.BasicParseStringToVal
 
@@ -26,6 +29,8 @@ import Control.Monad.State
 import Data.Char (ord, chr, isDigit )
 
 import ProgrammState
+
+import Debug.Trace
 
 -------------------------------- </Imports> ---------------------------------
 
@@ -58,14 +63,40 @@ evalExpression (NumExpr (op1, op2) op) = do
 --  base, considering type safety it is maybe not the best way to deal 
 --   with int values
 makeFloat :: Operand -> PState Float
-makeFloat (OpVar (IntVar x)) = do
+makeFloat (OpVar (NumVar_Int (IntVar x))) = do
     state <- get
-    let val = getMapVal $ M.lookup (NumVar_Var (IntVar x)) (intVars state)
+    let val = getMapVal $ M.lookup (NumVar_Var (NumVar_Int (IntVar x))) (intVars state)
     return $ fromIntegral val
 
-makeFloat (OpVar (FloatVar x)) = do
+makeFloat (OpVar (NumVar_Float (FloatVar x))) = do
     state <- get 
-    return $ getMapVal $ M.lookup (NumVar_Var (FloatVar x)) (floatVars state)
+    return $ getMapVal $ M.lookup (NumVar_Var (NumVar_Float (FloatVar x))) (floatVars state)
+
+makeFloat (OpVar (NumVar_Int (IntVar_Array name ix))) = do
+    state <- get
+    res <- mapM evalExpression ix
+    let key       = name
+        ind       = map truncate res
+        (dim,ar)  = getMapVal $ M.lookup key (intArrayVars state)
+    if length ind == length dim && allSmaller ind dim
+      then do
+        let val   = getMapVal $ M.lookup ind ar
+        return $ fromIntegral val
+      else
+        error "invalid array index!"
+
+makeFloat (OpVar (NumVar_Float (FloatVar_Array name ix))) = do
+    state <- get 
+    res <- mapM evalExpression ix
+    let key       = name
+        ind       = map truncate res
+        (dim,ar)  = getMapVal $ M.lookup key (floatArrayVars state)
+    if length ind == length dim && allSmaller ind dim
+      then do
+        let val   = getMapVal $ M.lookup ind ar
+        return val
+      else
+        error "invalid array index!"
 
 makeFloat (IntConst x) = return $ fromIntegral x
 makeFloat (FloatConst x) = return x
@@ -129,7 +160,8 @@ evalNumFunc (Fnxx name numExpr) = do
     state <- get
     let fn = M.lookup name $ custom_funcs state
     case fn of
-         Just (var,expr)  ->  
+         Just (var',expr)  -> do
+              let var = NumVar_Var $ NumVar_Float var'  
               case M.lookup var $ floatVars state of
                    Just x -> do
                              arg <- evalExpression numExpr
@@ -190,9 +222,26 @@ evalStringExpression (StringExpr (bstr1,bstr2) strOp) = do
 
 evalBasicString :: BasicString -> PState String
 evalBasicString (StringLiteral x) = return x
-evalBasicString (StringVar_BString x) = do
+evalBasicString (StringVar_BString (StringVar x)) = do
     state <- get
-    return $ getMapVal $ M.lookup (StringVar_Var x) (stringVars state)
+    let key = StringVar_Var (StringVar x)
+    return $ getMapVal $ M.lookup key (stringVars state)
+
+evalBasicString (StringVar_BString (StringVar_Array name ix)) = do
+    -- error $ "is string var: " ++ show (StringVar_Array name ix)
+    state <- get 
+    res <- mapM evalExpression ix
+    let key       = name
+        ind       = map truncate res
+        (dim,ar)  = getMapVal $ M.lookup key (stringArrayVars state)
+        --(dim,ar)  = trace ("found array with key = " ++ show key) $ getMapVal $ M.lookup key (stringArrayVars state)
+        --val       = trace ("found val=" ++(show $ getMapVal $ M.lookup ind ar)++"and indey = " ++ show ind) $ getMapVal $ M.lookup ind ar
+    if length ind == length dim && allSmaller ind dim
+      then do
+        let val   = getMapVal $ M.lookup ind ar
+        return val
+      else
+        error "invalid array index!"
 
 
 evalStringOp :: String -> String -> String -> String
