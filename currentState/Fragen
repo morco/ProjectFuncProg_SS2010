@@ -1,20 +1,24 @@
 Ist für Step bei for auch Variablen erlaubt?
+- Ja
 
 Was passiert genau, wenn bei next die Variable weggelassen wird?
+- Wird genau zum letzten for zurückgesprungen
 
 Benutzung von Variablen ohne Init gestattet(z.B. S$ = S$ + "*")?
+-Ja, auto init mit 0 oder "" ---> TODO!!
 
 Vergleich von int und floats (cast)??
 
-kann beim if das then weggelassen werden? - Ja
+kann beim if das then weggelassen werden? 
+- Ja
 
 gosub: 
-  - Rückgabewert? 
-  - localer Scope, Stack?
-  - mehrere returns möglich, z.B. in if?
+  - Rückgabewert? -Nein
+  - localer Scope, Stack? -Nein
+  - mehrere returns möglich, z.B. in if? -Ja, geht!
 
 Allg gotos:
-Wenn Init var in Zeile 100, und dann goto Zeile 30, ist dann var noch da?
+Wenn Init var in Zeile 100, und dann goto Zeile 30, ist dann var noch da? --> Autoinit, oder??
  (hmm, dieser Fall geht eigentlich gar nicht, denn schließlich müsste die Var ja auch im ersten durchgang da sein,
    wobei, wenn sie da wg nem if übersprungen wurde)? Bsp?
 
@@ -29,4 +33,7 @@ Wenn Init var in Zeile 100, und dann goto Zeile 30, ist dann var noch da?
 
 
 String vergleich mit numerical ?
+-> Type Mismatch error !!
 
+170 if 5 = 2 and 2 ... ---> logisches oder arithmetisches und ??
+(then print "" : REM 2<3 or "bla" = "bla" then print "Should come here! ln: 170")

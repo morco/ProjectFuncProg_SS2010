@@ -241,7 +241,9 @@ data NumFunction
 
 
 data ControlStruct
-    = If BoolExpr [Command]
+--    = If BoolExpr [Command]
+  -- = If NumExpr [Command]
+   = If Expr [Command]
 --    | For NumVar  (Operand,Operand,Operand) [(Int,[Command])]
 --    | For NumVar  (Operand,Operand,Operand) [Command] Program
 --    | For NumVar  (Operand,Operand,Operand) 
@@ -265,7 +267,10 @@ data BoolExpr
     = BoolExprString  (StringExpr,StringExpr) String
     | BoolExprNum     (NumExpr,NumExpr) String
     | BoolExprLog     (BoolExpr,BoolExpr) String
-    deriving (Show,Eq)
+    | BoolExprSimpleString   StringExpr
+    | BoolExprSimpleNum      NumExpr
+    | BoolNot                BoolExpr
+    deriving (Show,Eq,Ord)
 
 data IOCommand 
     = Print   ([Output], Bool)
@@ -287,6 +292,13 @@ data NumExpr
     | NumOp      Operand
     | NumFunc    NumFunction
     | NumMinus   NumExpr
+    | NumNot     NumExpr
+    | NumBool    BoolExpr
+    deriving (Show,Eq,Ord)
+
+data Expr 
+    = Expr_Num NumExpr
+    | Expr_Str StringExpr
     deriving (Show,Eq,Ord)
 
 data Operand

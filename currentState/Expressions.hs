@@ -20,7 +20,8 @@ import Parser.ParserTypes(
                            StringFunction(..),
                            FloatVar(..),
                            IntVar(..),
-                           StringVar(..)
+                           StringVar(..),
+                           BoolExpr(..)
                          )
 import Parser.Lexer.BasicParseStringToVal
 
@@ -29,6 +30,7 @@ import Control.Monad.State
 import Data.Char (ord, chr, isDigit )
 
 import ProgrammState
+import BinaryOps
 
 import Debug.Trace
 
@@ -53,10 +55,47 @@ evalExpression (NumOp x) = makeFloat x
 evalExpression (NumMinus expr) = do
     res <- evalExpression expr  
     return (-res)
+evalExpression (NumNot expr) = do
+    res <- evalExpression expr  
+    return $ fromIntegral $ evalLogicExpression "not" res 0
 evalExpression (NumExpr (op1, op2) op) = do
     val1 <- evalExpression op1
     val2 <- evalExpression op2
-    return $ evalArithFunc op val1 val2 
+    return $ evalArithFunc op val1 val2
+
+evalExpression (NumBool boolExpr) = do
+    res <- evalCompareExpression boolExpr 
+    return $ fromIntegral $ boolToInt $ res
+    
+
+
+
+evalCompareExpression :: BoolExpr -> PState Bool
+evalCompareExpression (BoolExprNum (numExpr1,numExpr2) strOp) = do
+    val1 <- evalExpression numExpr1
+    val2 <- evalExpression numExpr2
+    return $ evalBoolFunc strOp val1 val2
+
+evalCompareExpression (BoolExprString (strExpr1,strExpr2) strOp) = do
+    val1 <- evalStringExpression strExpr1
+    val2 <- evalStringExpression strExpr2
+    return $ evalBoolFunc strOp val1 val2
+
+
+evalBoolFunc :: (Ord a) => String -> a -> a -> Bool
+evalBoolFunc str arg1 arg2
+    | str == "==" = arg1 == arg2
+    | str == "/=" = arg1 /= arg2
+    | str == "<" = arg1 < arg2
+    | str == ">" = arg1 > arg2
+    | str == "<=" = arg1 <= arg2
+    | str == ">=" = arg1 >= arg2
+
+
+boolToInt :: Bool -> Int
+boolToInt True = (-1)
+boolToInt False = 0
+
 
 
 -- Takes an operand an makes it to a float value to have an intern unique
@@ -181,11 +220,15 @@ evalNumFunc (Fnxx name numExpr) = do
 
 
 --evalArithFunc :: (Num a) => String -> a -> a -> a
+evalArithFunc :: String -> Float -> Float -> Float
 evalArithFunc str arg1 arg2 
     | str == "+" = arg1 + arg2
     | str == "-" = arg1 - arg2
     | str == "*" = arg1 * arg2
     | str == "/" = arg1 / arg2
+    | str == "&&" = fromIntegral $ evalLogicExpression str arg1 arg2
+    | str == "||" = fromIntegral $ evalLogicExpression str arg1 arg2
+    | otherwise = error $ "Arithfunc: op = " ++ str
 
 
 -- This function returns the next random number, and to consume it really, 

@@ -154,6 +154,7 @@ buildResWord str =
             | str == "len"      = [TkLen]
             | str == "or"       = [TkLogOr]
             | str == "and"      = [TkLogAnd]
+            | str == "not"      = [TkLogNeg]
             | str == "return"   = [TkReturn]
             | str == "gosub"    = [TkGoSub]
             | str == "end"      = [TkEnd]

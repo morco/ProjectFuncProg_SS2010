@@ -156,10 +156,20 @@ evalCommand (ControlStructure (Goto nr)) = do
     interpret $ getNewList (completeProgram state) nr 
     
 
-
+{-
 evalCommand (ControlStructure (If boolExpr commands)) = do
     state <- get
     bVal <- evalBoolExpression boolExpr
+    if bVal
+      then
+        mapM_ evalCommand commands
+      else
+        return ()
+-}
+
+evalCommand (ControlStructure (If expr commands)) = do
+    state <- get
+    bVal <- evalBoolExpression expr
     if bVal
       then
         mapM_ evalCommand commands

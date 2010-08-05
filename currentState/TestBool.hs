@@ -1,16 +1,9 @@
-module Bool (evalBoolExpression) where
-
+module Bool  where
 
 ------------------------------------------------- <Imports> ------------------------------------------------------
 
---import Parser.ParserTypes(BoolExpr(..), )
-import Parser.ParserTypes(Expr(..) )
 import Control.Monad.State
 
---import Strings
-import ProgrammState
-import Expressions
-import BinaryOps
 
 ------------------------------------------------- </Imports> -----------------------------------------------------
 
@@ -22,86 +15,6 @@ import BinaryOps
 --   -> Adjunction of 2 boolean values with logical operators
 --
 -- Now in state monad cause it reads maybe variables and can also change the state.
-
-{-
-evalBoolExpression :: BoolExpr -> PState Bool
-evalBoolExpression (BoolExprNum (numExpr1,numExpr2) strOp) = do
-    val1 <- evalExpression numExpr1
-    val2 <- evalExpression numExpr2
-    return $ evalBoolFunc strOp val1 val2
-
-evalBoolExpression (BoolExprSimpleNum numExpr1) = do
-    val <- evalExpression numExpr1 
-    return $ intToBool $ truncate val
-
-evalBoolExpression (BoolExprString (strExpr1,strExpr2) strOp) = do
-    val1 <- evalStringExpression strExpr1
-    val2 <- evalStringExpression strExpr2 
-    return $ evalBoolFunc strOp val1 val2
- 
-evalBoolExpression (BoolExprSimpleString strExpr1) = do
-    val <- evalStringExpression strExpr1
-    return $ stringToBool val
-
-evalBoolExpression (BoolExprLog (boolExpr1,boolExpr2) strOp) = do
-    val1 <- evalBoolExpression boolExpr1 
-    val2 <- evalBoolExpression boolExpr2 
-    return $ intToBool $ evalLogicExpression strOp (fromIntegral $ boolToInt val1) (fromIntegral $ boolToInt val2)
-
-evalBoolExpression (BoolNot boolExpr1) = do
-    val <- evalBoolExpression boolExpr1
-    return $ intToBool $ evalLogicExpression "not" (fromIntegral $ boolToInt val) 0
--}
-
-evalBoolExpression :: Expr -> PState Bool
-evalBoolExpression (Expr_Str strExpr) = do
-    val <- evalStringExpression strExpr
-    return $ stringToBool val
-
-evalBoolExpression (Expr_Num numExpr) = do
-    val <- evalExpression numExpr
-    return $ intToBool $ truncate val
-    
-
-
-
-
-stringToBool :: String -> Bool
-stringToBool "" = False
-stringToBool _  = True
-
-intToBool :: Int -> Bool
-intToBool 0 = False
-intToBool _ = True
-
-{-
-boolToInt :: Bool -> Int
-boolToInt True = (-1)
-boolToInt False = 0
--}
-
-
-{-
-evalBoolLogic :: String -> Bool -> Bool -> Bool
-evalBoolLogic str arg1 arg2
-    | str == "||" = arg1 || arg2
-    | str == "&&" = arg1 && arg2
---       | str == "neg"
--}
-
-{-
-evalBoolFunc :: (Ord a) => String -> a -> a -> Bool
-evalBoolFunc str arg1 arg2
-    | str == "==" = arg1 == arg2
-    | str == "/=" = arg1 /= arg2
-    | str == "<" = arg1 < arg2
-    | str == ">" = arg1 > arg2
-    | str == "<=" = arg1 <= arg2
-    | str == ">=" = arg1 >= arg2
--}
-
-
-{-
 
 binaryFormatSize = 16 -- c64 standard
 
@@ -202,4 +115,20 @@ combine2Lists []     []     _ = []
 combine2Lists (x:xs) (y:ys) f = (f x y) : combine2Lists xs ys f
 combine2Lists _      _      _ = error "Combine2lists awaits lists of same length!"
 
--}
+evalBoolLogic :: String -> Bool -> Bool -> Bool
+evalBoolLogic str arg1 arg2
+    | str == "||" = arg1 || arg2
+    | str == "&&" = arg1 && arg2
+--       | str == "neg"
+
+
+evalBoolFunc :: (Ord a) => String -> a -> a -> Bool
+evalBoolFunc str arg1 arg2
+    | str == "==" = arg1 == arg2
+    | str == "/=" = arg1 /= arg2
+    | str == "<" = arg1 < arg2
+    | str == ">" = arg1 > arg2
+    | str == "<=" = arg1 <= arg2
+    | str == ">=" = arg1 >= arg2
+
+

@@ -20,14 +20,6 @@ import Debug.Trace
 %monad { State ParserState }
 
 
-%left or
-%left and
-%left "<" ">" "<>" "=" "<=" ">="
-%left "+" "-"
---%right "+" "-"
-%left "*" "/"
-%left NEG not
-
 %token
 
 -- Reserved words
@@ -94,7 +86,7 @@ import Debug.Trace
 -- Boolean operators
     or                            { TokenWrap _type pos TkLogOr            }
     and                           { TokenWrap _type pos TkLogAnd           } 
-    not                           { TokenWrap _type pos TkLogNeg           }
+    neg                           { TokenWrap _type pos TkLogNeg           }
 
   -- Compare operators
     "="                           { TokenWrap _type pos TkEqual            }
@@ -127,10 +119,6 @@ import Debug.Trace
     "("                           { TokenWrap _type pos TkBracketOpen      }
     ")"                           { TokenWrap _type pos TkBracketClose     }
       
-
-
-
-
 
     
 %%
@@ -285,70 +273,59 @@ NumFunction         : len "(" stringLiteral ")"    { Len $ getTkStrVal $3   }
                     | fnxx "(" NumExpr ")"      { Fnxx (getTkStrVal $1)  $3 } 
 
 
+NumExpr             : NumExpr or NumExprExt2 { NumExpr ($1,$3) "||" }
+                    | Term                             { $1                 }
+                    | NumExprExt                          { $1 }
+                    | NumExprExt2                          { $1 }
+                    | NumFunction                      { NumFunc $1         }
+                    | "-" NumExpr                      { NumMinus $2        }
+                    | neg NumExpr                      { NumNot $2          }
+--                    | SimpleBoolExpr        { NumBool $1 }
+
+
+NumExprExt2         : NumExprExt2 and NumExprExt { NumExpr ($1,$3) "&&" }
+                    | Term                             { $1                 }
+                    | NumExprExt                          { $1 }
 
 
 
 
+--NumExpr             : NumExpr NumOperationsLev2 Term   { NumExpr ($1,$3) $2 }
+  --                  | Term                             { $1                 }
+    --                | NumFunction                      { NumFunc $1         }
+      --              | "-" NumExpr                      { NumMinus $2        }
+        --            | neg NumExpr                      { NumNot $2          }
 
 
+NumExprExt             : NumExprExt NumOperationsLev2 Term   { NumExpr ($1,$3) $2 }
+                    | Term                             { $1                 }
 
-Operator   : and                          { "&&"                    }          
+
+NumOperationsLev3   : and                          { "&&"                    }          
                     | or                           { "||"                    }
- | "+"                          { "+"                    }          
+
+
+NumOperationsLev2   : "+"                          { "+"                    }          
                     | "-"                          { "-"                    }
-| "*"                          { "*"                    }
+
+
+NumOperationsLev1   : "*"                          { "*"                    }
                     | "/"                          { "/"                    }
 
 
+Term                : Term NumOperationsLev1 Factor   { NumExpr ($1,$3) $2  }
+                    | Factor                          { $1                  }
 
 
+Factor              : Operand                         { NumOp $1            }
+                    | "(" NumExpr ")"                 { $2                  }
+                --    | "(" NumExprExt2 ")"                 { $2                  }
+                    |  NumFunction                    { NumFunc $1          }
+                    |  SimpleBoolExpr                 { NumBool $1 }
 
 
 Operand             : NumVar                       { OpVar $1               }
                     | Constant                     { $1                     }
-
-
-
---NumExpr   : NumExpr Operator Term             { NumExpr ($1,$3) $2 }
---NumExpr   : NumExpr Operator NumExpr             { NumExpr ($1,$3) $2 }
---NumExpr   : NumExpr "+" NumExpr             { NumExpr ($1,$3) "+" }
-BinaryNumExpr   : NumExpr "+" NumExpr             { NumExpr ($1,$3) "+" }
-          | NumExpr "-" NumExpr             { NumExpr ($1,$3) "-" }
-          | NumExpr "*" NumExpr             { NumExpr ($1,$3) "*" }
-          | NumExpr "/" NumExpr             { NumExpr ($1,$3) "/" }
-          | NumExpr and NumExpr             { NumExpr ($1,$3) "&&" }
-          | NumExpr or NumExpr             { NumExpr ($1,$3) "||" }
-          | StringExpr "=" StringExpr     {NumBool $ BoolExprString ($1,$3) "=="}
-          | StringExpr "<" StringExpr     {NumBool $ BoolExprString ($1,$3) "<"}
-          | StringExpr ">" StringExpr     {NumBool $ BoolExprString ($1,$3) ">"}
-          | StringExpr "<>" StringExpr     {NumBool $ BoolExprString ($1,$3) "/="}
-          | StringExpr "<=" StringExpr     {NumBool $ BoolExprString ($1,$3) "<="}
-          | StringExpr ">=" StringExpr     {NumBool $ BoolExprString ($1,$3) ">="}
-          | NumExpr "=" NumExpr    { NumBool $ BoolExprNum ($1,$3) "==" }
-          | NumExpr "<" NumExpr    { NumBool $ BoolExprNum ($1,$3) "<" }
-          | NumExpr ">" NumExpr    { NumBool $ BoolExprNum ($1,$3) ">" }
-          | NumExpr "<>" NumExpr    { NumBool $ BoolExprNum ($1,$3) "/=" }
-          | NumExpr "<=" NumExpr    { NumBool $ BoolExprNum ($1,$3) "<=" }
-          | NumExpr ">=" NumExpr    { NumBool $ BoolExprNum ($1,$3) ">=" }
-     --     | Term                              { $1 }
-
-NumExpr : BinaryNumExpr            { $1 }
-      | "(" NumExpr ")"             { $2 }
-      | "-" NumExpr %prec NEG       { NumMinus $2 }
-      | not NumExpr        { NumNot $2 }
-                    |  NumFunction                    { NumFunc $1          }
---                    |  SimpleBoolExpr                 { NumBool $1 }
-                    | Operand                         { NumOp $1            }
-
-
-Term  : "(" NumExpr ")"             { $2 }
-      | "-" NumExpr %prec NEG       { NumMinus $2 }
-      | not NumExpr        { NumNot $2 }
-                    |  NumFunction                    { NumFunc $1          }
-                    |  SimpleBoolExpr                 { NumBool $1 }
-                    | Operand                         { NumOp $1            }
-
-
 
 
 
@@ -397,18 +374,18 @@ IfBody              : then int            { let nr  = getTkIntVal $2
                                             in [ControlStructure $ Goto nr] }
 
 
--- BoolExpr   : SimpleBoolExpr                           { $1                  }
+BoolExpr   : SimpleBoolExpr                           { $1                  }
 -- | "(" BoolExpr ")" LogicOperation "(" BoolExpr ")"  {BoolExprLog ($2,$6) $4}
--- |  BoolExpr or  BoolExprLev2   {BoolExprLog ($1,$3) "||"}
-  --                  | BoolExprLev2        { $1 }
-    --                | neg BoolExpr                 { BoolNot $2             }
+ |  BoolExpr or  BoolExprLev2   {BoolExprLog ($1,$3) "||"}
+                    | BoolExprLev2        { $1 }
+                    | neg BoolExpr                 { BoolNot $2             }
 
 
 -- LogicOperation      : or                {"||"} -- Kurzschlussauswertung ???
    --                 | and                          { "&&"                   }
 
--- BoolExprLev2     : SimpleBoolExpr                   { $1 }
-   --              | BoolExprLev2  and  SimpleBoolExpr { BoolExprLog ($1,$3) "&&"}
+BoolExprLev2     : SimpleBoolExpr                   { $1 }
+                 | BoolExprLev2  and  SimpleBoolExpr { BoolExprLog ($1,$3) "&&"}
 
 
 SimpleBoolExpr   : StringExpr CompareOperator StringExpr   
@@ -427,10 +404,10 @@ CompareOperator     : "="                          { "=="                   }
                     | ">="                         { ">="                   }
 
 
---onstant            : int                        { let int = getTkIntVal $1
-  --                                                 in IntConst int          }
-    --                | float                      { let flt = getTkFltVal $1
-      --                                             in FloatConst flt        }
+onstant            : int                        { let int = getTkIntVal $1
+                                                   in IntConst int          }
+                    | float                      { let flt = getTkFltVal $1
+                                                   in FloatConst flt        }
 
 IOCommand           : print Output                 { Print $2               }
                     | print                        { Print ([], True)       }
