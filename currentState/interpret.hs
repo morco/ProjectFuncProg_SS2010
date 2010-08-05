@@ -17,7 +17,7 @@ import Control.Monad.State
 --import Strings
 import Expressions
 import ProgrammState
-import Bool
+--import Bool
 
 import Debug.Trace
 

@@ -265,6 +265,43 @@ BasicString         : stringLiteral     { let str = getTkStrVal $1
                     | StringFunction               { StringFunc $1          }
 
 
+-- Numerical Expressions
+
+NumExpr             : BinaryNumExpr                { $1                     }
+                    | "(" NumExpr ")"              { $2                     }
+                    | "-" NumExpr %prec NEG        { NumMinus $2            }
+                    | not NumExpr                  { NumNot $2              }
+                    |  NumFunction                 { NumFunc $1             }
+                    | Operand                      { NumOp $1               }
+
+
+-- For precedence and associativity to work right, it seems that all this 
+--  rules have to be on the same level, so further 
+--   likeable(at least for me ;D) hierarchical structuring, something like
+--    this: "NumExpr Operator NumExpr", seems not possible
+BinaryNumExpr       : NumExpr "+" NumExpr          { NumExpr ($1,$3) "+"    }
+                    | NumExpr "-" NumExpr          { NumExpr ($1,$3) "-"    }
+                    | NumExpr "*" NumExpr          { NumExpr ($1,$3) "*"    }
+                    | NumExpr "/" NumExpr          { NumExpr ($1,$3) "/"    }  
+ -- binary operators
+                    | NumExpr and NumExpr          { NumExpr ($1,$3) "&&"   }
+                    | NumExpr or  NumExpr          { NumExpr ($1,$3) "||"   }
+ -- string compare
+       | StringExpr "="  StringExpr     { NumComp $ StrCompare ($1,$3) "==" }
+       | StringExpr "<"  StringExpr     { NumComp $ StrCompare ($1,$3) "<"  }
+       | StringExpr ">"  StringExpr     { NumComp $ StrCompare ($1,$3) ">"  }
+       | StringExpr "<>" StringExpr     { NumComp $ StrCompare ($1,$3) "/=" }
+       | StringExpr "<=" StringExpr     { NumComp $ StrCompare ($1,$3) "<=" }
+       | StringExpr ">=" StringExpr     { NumComp $ StrCompare ($1,$3) ">=" }
+ -- num compare
+              | NumExpr "="  NumExpr    { NumComp $ NumCompare ($1,$3) "==" }
+              | NumExpr "<"  NumExpr    { NumComp $ NumCompare ($1,$3) "<"  }
+              | NumExpr ">"  NumExpr    { NumComp $ NumCompare ($1,$3) ">"  }
+              | NumExpr "<>" NumExpr    { NumComp $ NumCompare ($1,$3) "/=" }
+              | NumExpr "<=" NumExpr    { NumComp $ NumCompare ($1,$3) "<=" }
+              | NumExpr ">=" NumExpr    { NumComp $ NumCompare ($1,$3) ">=" }
+
+
 NumFunction         : len "(" stringLiteral ")"    { Len $ getTkStrVal $3   }
                     | len "(" stringVar ")"    { let str = getTkStrVal $3
                                                  in LenVar (StringVar $ str)}
@@ -285,69 +322,8 @@ NumFunction         : len "(" stringLiteral ")"    { Len $ getTkStrVal $3   }
                     | fnxx "(" NumExpr ")"      { Fnxx (getTkStrVal $1)  $3 } 
 
 
-
-
-
-
-
-
-
-Operator   : and                          { "&&"                    }          
-                    | or                           { "||"                    }
- | "+"                          { "+"                    }          
-                    | "-"                          { "-"                    }
-| "*"                          { "*"                    }
-                    | "/"                          { "/"                    }
-
-
-
-
-
-
 Operand             : NumVar                       { OpVar $1               }
                     | Constant                     { $1                     }
-
-
-
---NumExpr   : NumExpr Operator Term             { NumExpr ($1,$3) $2 }
---NumExpr   : NumExpr Operator NumExpr             { NumExpr ($1,$3) $2 }
---NumExpr   : NumExpr "+" NumExpr             { NumExpr ($1,$3) "+" }
-BinaryNumExpr   : NumExpr "+" NumExpr             { NumExpr ($1,$3) "+" }
-          | NumExpr "-" NumExpr             { NumExpr ($1,$3) "-" }
-          | NumExpr "*" NumExpr             { NumExpr ($1,$3) "*" }
-          | NumExpr "/" NumExpr             { NumExpr ($1,$3) "/" }
-          | NumExpr and NumExpr             { NumExpr ($1,$3) "&&" }
-          | NumExpr or NumExpr             { NumExpr ($1,$3) "||" }
-          | StringExpr "=" StringExpr     {NumBool $ BoolExprString ($1,$3) "=="}
-          | StringExpr "<" StringExpr     {NumBool $ BoolExprString ($1,$3) "<"}
-          | StringExpr ">" StringExpr     {NumBool $ BoolExprString ($1,$3) ">"}
-          | StringExpr "<>" StringExpr     {NumBool $ BoolExprString ($1,$3) "/="}
-          | StringExpr "<=" StringExpr     {NumBool $ BoolExprString ($1,$3) "<="}
-          | StringExpr ">=" StringExpr     {NumBool $ BoolExprString ($1,$3) ">="}
-          | NumExpr "=" NumExpr    { NumBool $ BoolExprNum ($1,$3) "==" }
-          | NumExpr "<" NumExpr    { NumBool $ BoolExprNum ($1,$3) "<" }
-          | NumExpr ">" NumExpr    { NumBool $ BoolExprNum ($1,$3) ">" }
-          | NumExpr "<>" NumExpr    { NumBool $ BoolExprNum ($1,$3) "/=" }
-          | NumExpr "<=" NumExpr    { NumBool $ BoolExprNum ($1,$3) "<=" }
-          | NumExpr ">=" NumExpr    { NumBool $ BoolExprNum ($1,$3) ">=" }
-     --     | Term                              { $1 }
-
-NumExpr : BinaryNumExpr            { $1 }
-      | "(" NumExpr ")"             { $2 }
-      | "-" NumExpr %prec NEG       { NumMinus $2 }
-      | not NumExpr        { NumNot $2 }
-                    |  NumFunction                    { NumFunc $1          }
---                    |  SimpleBoolExpr                 { NumBool $1 }
-                    | Operand                         { NumOp $1            }
-
-
-Term  : "(" NumExpr ")"             { $2 }
-      | "-" NumExpr %prec NEG       { NumMinus $2 }
-      | not NumExpr        { NumNot $2 }
-                    |  NumFunction                    { NumFunc $1          }
-                    |  SimpleBoolExpr                 { NumBool $1 }
-                    | Operand                         { NumOp $1            }
-
 
 
 
@@ -397,40 +373,7 @@ IfBody              : then int            { let nr  = getTkIntVal $2
                                             in [ControlStructure $ Goto nr] }
 
 
--- BoolExpr   : SimpleBoolExpr                           { $1                  }
--- | "(" BoolExpr ")" LogicOperation "(" BoolExpr ")"  {BoolExprLog ($2,$6) $4}
--- |  BoolExpr or  BoolExprLev2   {BoolExprLog ($1,$3) "||"}
-  --                  | BoolExprLev2        { $1 }
-    --                | neg BoolExpr                 { BoolNot $2             }
 
-
--- LogicOperation      : or                {"||"} -- Kurzschlussauswertung ???
-   --                 | and                          { "&&"                   }
-
--- BoolExprLev2     : SimpleBoolExpr                   { $1 }
-   --              | BoolExprLev2  and  SimpleBoolExpr { BoolExprLog ($1,$3) "&&"}
-
-
-SimpleBoolExpr   : StringExpr CompareOperator StringExpr   
-                                                  {BoolExprString ($1,$3) $2}
-          | NumExpr CompareOperator NumExpr        { BoolExprNum ($1,$3) $2 }
---                | NumExpr                          { BoolExprSimpleNum $1 }
-  --             | StringExpr                          { BoolExprSimpleString $1 }
-    --            | "(" BoolExpr ")"                { $2 }
- 
-
-CompareOperator     : "="                          { "=="                   }
-                    | "<"                          { "<"                    }
-                    | ">"                          { ">"                    }
-                    | "<>"                         { "/="                   }
-                    | "<="                         { "<="                   }
-                    | ">="                         { ">="                   }
-
-
---onstant            : int                        { let int = getTkIntVal $1
-  --                                                 in IntConst int          }
-    --                | float                      { let flt = getTkFltVal $1
-      --                                             in FloatConst flt        }
 
 IOCommand           : print Output                 { Print $2               }
                     | print                        { Print ([], True)       }
@@ -459,9 +402,6 @@ Vars                : Var                          { [$1]                   }
 Var                 : stringVar  {StringVar_Var (StringVar $ getTkStrVal $1)} 
                     | NumVar                       { NumVar_Var $1          }
 
-
---NumVar              : intVar                    {   IntVar $ getTkStrVal $1 }
---                    | floatVar_or_datastring    { FloatVar $ getTkStrVal $1 }
 
 
 NumVar              : IntVar                       { NumVar_Int   $1        }

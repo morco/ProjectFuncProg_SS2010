@@ -2,7 +2,8 @@ module Expressions
 (
   makeFloat,
   evalExpression,
-  evalStringExpression
+  evalStringExpression,
+  evalBoolExpression
 )
 where 
 
@@ -21,7 +22,8 @@ import Parser.ParserTypes(
                            FloatVar(..),
                            IntVar(..),
                            StringVar(..),
-                           BoolExpr(..)
+                           CompExpr(..),
+                           Expr(..)
                          )
 import Parser.Lexer.BasicParseStringToVal
 
@@ -62,21 +64,21 @@ evalExpression (NumExpr (op1, op2) op) = do
     val1 <- evalExpression op1
     val2 <- evalExpression op2
     return $ evalArithFunc op val1 val2
-
-evalExpression (NumBool boolExpr) = do
-    res <- evalCompareExpression boolExpr 
+evalExpression (NumComp compExpr) = do
+    res <- evalCompareExpression compExpr 
     return $ fromIntegral $ boolToInt $ res
     
 
 
 
-evalCompareExpression :: BoolExpr -> PState Bool
-evalCompareExpression (BoolExprNum (numExpr1,numExpr2) strOp) = do
+--evalCompareExpression :: BoolExpr -> PState Bool
+evalCompareExpression :: CompExpr -> PState Bool
+evalCompareExpression (NumCompare (numExpr1,numExpr2) strOp) = do
     val1 <- evalExpression numExpr1
     val2 <- evalExpression numExpr2
     return $ evalBoolFunc strOp val1 val2
 
-evalCompareExpression (BoolExprString (strExpr1,strExpr2) strOp) = do
+evalCompareExpression (StrCompare (strExpr1,strExpr2) strOp) = do
     val1 <- evalStringExpression strExpr1
     val2 <- evalStringExpression strExpr2
     return $ evalBoolFunc strOp val1 val2
@@ -91,11 +93,11 @@ evalBoolFunc str arg1 arg2
     | str == "<=" = arg1 <= arg2
     | str == ">=" = arg1 >= arg2
 
-
+{-
 boolToInt :: Bool -> Int
 boolToInt True = (-1)
 boolToInt False = 0
-
+-}
 
 
 -- Takes an operand an makes it to a float value to have an intern unique
@@ -355,3 +357,35 @@ evalStringFunc (MidFunc strExpr numExpr1 numExpr2) = do
 
 
 -------------------------------- </Strings> ---------------------------------
+
+
+---------------------------------- <Bools> ----------------------------------
+
+evalBoolExpression :: Expr -> PState Bool
+evalBoolExpression (Expr_Str strExpr) = do
+    val <- evalStringExpression strExpr
+    return $ stringToBool val
+
+evalBoolExpression (Expr_Num numExpr) = do
+    val <- evalExpression numExpr
+    return $ intToBool $ truncate val
+    
+
+
+
+stringToBool :: String -> Bool
+stringToBool "" = False
+stringToBool _  = True
+
+intToBool :: Int -> Bool
+intToBool 0 = False
+intToBool _ = True
+
+
+boolToInt :: Bool -> Int
+boolToInt True  = (-1)
+boolToInt False = 0
+
+
+---------------------------------- </Bools> ---------------------------------
+

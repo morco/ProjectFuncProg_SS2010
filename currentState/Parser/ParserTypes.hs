@@ -257,12 +257,6 @@ data ControlStruct
     deriving (Show,Eq)
 
 {-
-data ForBody 
-    = ForLines Program
-    | ForSingleLine [Command]
-    deriving Show
--}
-
 data BoolExpr
     = BoolExprString  (StringExpr,StringExpr) String
     | BoolExprNum     (NumExpr,NumExpr) String
@@ -271,6 +265,12 @@ data BoolExpr
     | BoolExprSimpleNum      NumExpr
     | BoolNot                BoolExpr
     deriving (Show,Eq,Ord)
+-}
+data CompExpr
+    = NumCompare (NumExpr   ,NumExpr   ) String
+    | StrCompare (StringExpr,StringExpr) String
+    deriving (Show,Eq,Ord)
+
 
 data IOCommand 
     = Print   ([Output], Bool)
@@ -293,7 +293,8 @@ data NumExpr
     | NumFunc    NumFunction
     | NumMinus   NumExpr
     | NumNot     NumExpr
-    | NumBool    BoolExpr
+--    | NumBool    BoolExpr
+    | NumComp    CompExpr
     deriving (Show,Eq,Ord)
 
 data Expr 
