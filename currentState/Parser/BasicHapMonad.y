@@ -24,7 +24,6 @@ import Debug.Trace
 %left and
 %left "<" ">" "<>" "=" "<=" ">="
 %left "+" "-"
---%right "+" "-"
 %left "*" "/"
 %left NEG not
 
@@ -237,10 +236,6 @@ DimVar              : stringVar              { StringVar_Var $ StringVar $ getTk
 
 Assignment          : NumVar "=" NumExpr           { ArithAssignment $1 $3  }
                     | StringVar "=" StringExpr { StringAssignment $1 $3 }
-          -- { let {
-            --                                          str = getTkStrVal $1;
-              --                                        str' = StringVar str
-                       --                        } in StringAssignment str' $3}
 
 
 StringExpr          : BasicString                  { $1                     }
@@ -256,11 +251,6 @@ StringFunction      : chrfunc "(" NumExpr ")"      { ChrFunc $3             }
 
 BasicString         : stringLiteral     { let str = getTkStrVal $1
                                           in StringOp $ StringLiteral str   }
---                  | StringOperation   { StringOp $ String_Operation $1    }
-    --                | stringVar       { let {
-      --                                        str = getTkStrVal $1;
-        --                                      str' = StringVar str
-          --                            } in StringOp $ StringVar_BString str'}
                     | StringVar         { StringOp $ StringVar_BString $1   }
                     | StringFunction               { StringFunc $1          }
 
@@ -328,8 +318,6 @@ Operand             : NumVar                       { OpVar $1               }
 
 
 
---ControlStruct                   : if BoolExpr IfBody           { If $2 $3               }
---ControlStruct                   : if NumExpr IfBody           { If $2 $3               }
 ControlStruct                   : if IfExpr IfBody           { If $2 $3               }
  
  | for FloatVar "=" Operand to Operand step Operand 
@@ -378,7 +366,7 @@ IfBody              : then int            { let nr  = getTkIntVal $2
 IOCommand           : print Output                 { Print $2               }
                     | print                        { Print ([], True)       }
                     | input Input                  { Input $2               }
-                    | get Var                      { Get $2                 }
+                    | get Vars                     { Get $2                 }
 
 
 Output              : OutputAtom                   { ([$1], True)           }
@@ -412,7 +400,6 @@ NumVar              : IntVar                       { NumVar_Int   $1        }
 StringVar           : stringVar                 { StringVar $ getTkStrVal $1 }   
                     | stringVar "(" ArrayIndex ")"  { StringVar_Array (getTkStrVal $1) $3 }
 
--- Achtung, eventuell reverse noetig, damit die reihenfolge stimmt!
 IntVar              : intVar                       { IntVar $ getTkStrVal $1 }
                     | intVar "(" ArrayIndex ")"  { IntVar_Array (getTkStrVal $1) $3 }
 

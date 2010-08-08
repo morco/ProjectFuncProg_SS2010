@@ -7,7 +7,7 @@ import Parser.ParserTypes(Token(..),TokenWrap(..),Constant(..))
 import Data.List(isSuffixOf,isPrefixOf)
 import Data.Char(toLower,isAlpha,isAlphaNum)
 
-import Debug.Trace
+import Debug.Trace(trace)
 
 }
 
@@ -136,8 +136,8 @@ buildVar str
 
 
 buildResWord :: String -> [Token] 
-buildResWord str = 
-    let nmstr = map toLower str
+buildResWord str' = 
+    let nmstr = map toLower str'
     in buildResWord' nmstr
   where
         buildResWord' str
@@ -222,13 +222,14 @@ scanner str = runAlex str $ do
 
 
 
+alexEOF :: Alex TokenWrap
 alexEOF = return TkEOF
 
 
 filterToks :: TokenWrap -> Alex TokenWrap
-filterToks (TokenWrap typ pos TkStringStart) = do
+filterToks (TokenWrap _ pos' TkStringStart) = do
      str <- buildStateString 
-     return $ TokenWrap { _type = "STRING_LITERAL", pos = pos, _token = TkString $ str}
+     return $ TokenWrap { _type = "STRING_LITERAL", pos = pos', _token = TkString $ str}
 filterToks tok = return tok
 
 

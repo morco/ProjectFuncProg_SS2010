@@ -1,10 +1,13 @@
 module ProgrammState where
 
 ------------------------------ <Imports> ------------------------------------
+
+import Random(randoms, mkStdGen)
+import qualified Data.Map as M
+import Control.Monad.State
+
 import Parser.ParserTypes( 
                            Var(..), 
-                           Command(..), 
-                           NumVar(..), 
                            DataContent(..), 
                            Program, 
                            ParseTree(..),
@@ -13,22 +16,17 @@ import Parser.ParserTypes(
                            IntVar(..),
                            StringVar(..)
                          )
-import qualified Data.Map as M
-import Control.Monad.State
 
-import Random(randoms, mkStdGen)
 
--- import Expressions(evalExpression) cylces aaaaaaaaahhhhhhhh!!!
-
-import Debug.Trace
+import Debug.Trace(trace)
 
 ------------------------------ </Imports> -----------------------------------
 
 
 ----------------------------- <Data types> ----------------------------------
 
-type PState a = StateT ProgramState IO a
-
+type PState a   = StateT ProgramState IO a
+type LineNumber = Int
 
 -- This type is for recording the state of the programm, which means 
 --  currently the values of the variables, the whole program as list 
@@ -40,28 +38,28 @@ type PState a = StateT ProgramState IO a
 --       number functions, the data array and the pointer for this
 data ProgramState =
     ProgramState {
-       stringVars :: (M.Map Var String),
-       intVars    :: (M.Map Var Int),
-       floatVars  :: (M.Map Var Float),
-       completeProgram :: Program,
-       curPos :: Int,
-       nextPos :: Int,
+       stringVars          :: (M.Map StringVar String),
+       stringArrayVars     :: (M.Map String ([Int],M.Map [Int] String)),
+       intVars             :: (M.Map IntVar Int),
+       intArrayVars        :: (M.Map String ([Int],M.Map [Int] Int)),
+       floatVars           :: (M.Map FloatVar Float),
+       floatArrayVars      :: (M.Map String ([Int],M.Map [Int] Float)),
+       curPos              :: Int,
+       nextPos             :: Int,
+       progFinished        :: Bool,
+       completeProgram     :: Program,
        backJumpAdressStack :: [Int],
-       progFinished :: Bool,
-       randomNumbers :: [Float],
-       _data :: [DataContent],
-       dataPointer :: Int,
-     --  custom_funcs  :: (M.Map String (Var,NumExpr)),
-       custom_funcs  :: (M.Map String (FloatVar,NumExpr)),
-       for_lines    :: [Int],
-       fromNext     :: Bool,
-       stringArrayVars :: (M.Map String ([Int],M.Map [Int] String)),
-       intArrayVars    :: (M.Map String ([Int],M.Map [Int] Int)),
-       floatArrayVars  :: (M.Map String ([Int],M.Map [Int] Float))
+       randomNumbers       :: [Float],
+       _data               :: [DataContent],
+       dataPointer         :: Int,
+       custom_funcs        :: (M.Map String (FloatVar,NumExpr)),
+       for_lines           :: [Int],
+       fromNext            :: Bool
     } deriving Show
 
 
 
+defaultArrayDim :: Int
 defaultArrayDim = 11
 
 ----------------------------- </Data types> ---------------------------------
@@ -71,37 +69,24 @@ defaultArrayDim = 11
 getNewState :: ParseTree -> ProgramState
 getNewState parseTree = 
     ProgramState { 
-       stringVars = M.empty, 
-       intVars    = M.empty, 
-       floatVars  = M.empty,
-       completeProgram = program parseTree,
-       curPos = 0,
-       nextPos = 0,
+       stringVars          = M.empty, 
+       stringArrayVars     = M.empty,
+       intVars             = M.empty, 
+       intArrayVars        = M.empty,
+       floatVars           = M.empty,
+       floatArrayVars      = M.empty,
+       curPos              = 0,
+       nextPos             = 0,
+       progFinished        = False,
+       completeProgram     = program parseTree,
        backJumpAdressStack = [],
-       progFinished = False,
-       randomNumbers = randoms (mkStdGen 1),
-       _data = pdata parseTree,
-       dataPointer = 0,
-       custom_funcs = M.empty,
-       for_lines = [],
-       fromNext = False,
-       stringArrayVars = M.empty,
-       intArrayVars    = M.empty,
-       floatArrayVars  = M.empty
+       randomNumbers       = randoms (mkStdGen 1),
+       _data               = pdata parseTree,
+       dataPointer         = 0,
+       custom_funcs        = M.empty,
+       for_lines           = [],
+       fromNext            = False
     }
-
-
-
-{-
-getNextRandomNumber = do
-    state <- get
-    dropWhile ((==) 0) randomNumbers state
-  where 
-    nextNumberNotNull [] = error "random val list empty!"
-    nextNumberNotNull (x:xs) = 
-        if x /= 0 
-          then x
-          else nextNumberNotNull xs-}
    
          
 -- This action is only used to set the nextPos pointer to the right 
@@ -128,26 +113,38 @@ getMapVal _  = error "Var not found!"
 
 
 
-updateFloatVar :: Var -> Float -> PState ()
-updateFloatVar var val = do
-    state <- get
-    put $ state { floatVars = (M.alter (\ _ -> Just val) var $ floatVars state ) }
 
-updateIntVar :: Var -> Int -> PState ()
-updateIntVar var val = do
+updateFloatVar :: FloatVar -> Float -> PState ()
+updateFloatVar (FloatVar x) val = do
     state <- get
-    put $ state { intVars = (M.alter (\ _ -> Just val) var $ intVars state ) }
+    let key = FloatVar x
+    put $ state { 
+            floatVars = (M.alter (\ _ -> Just val) key $ floatVars state ) 
+          }
+updateFloatVar _ _ = error "Array var!"
 
-
-updateStringVar :: Var -> String -> PState ()
-updateStringVar var val = do
+updateIntVar :: IntVar -> Int -> PState ()
+updateIntVar (IntVar x) val = do
     state <- get
-    put $ state { stringVars = (M.alter (\ _ -> Just val) var $ stringVars state ) }
+    let key = IntVar x
+    put $ state { 
+            intVars = (M.alter (\ _ -> Just val) key $ intVars state ) 
+          }
+updateIntVar _ _ = error "Array var!"
+
+updateStringVar :: StringVar -> String -> PState ()
+updateStringVar (StringVar x) val = do
+    state <- get
+    let key = StringVar x
+    put $ state { 
+            stringVars = (M.alter (\ _ -> Just val) key $ stringVars state ) 
+          }
+updateStringVar _ _ = error "Array var!"
 
 
 
 updateFloatArrayVar :: FloatVar -> [Int] -> Float -> PState ()
-updateFloatArrayVar (FloatVar_Array name ix) index val = do
+updateFloatArrayVar (FloatVar_Array name _) index val = do
     state <- get
     let key    = name 
         flvars = floatArrayVars state
@@ -179,7 +176,7 @@ updateFloatArrayVar _ _ _ = error "Not an array variable!"
 
 
 updateIntArrayVar :: IntVar -> [Int] -> Int -> PState ()
-updateIntArrayVar (IntVar_Array name ix) index val = do
+updateIntArrayVar (IntVar_Array name _) index val = do
     state <- get
     let key   = name
         ivars = intArrayVars state
@@ -211,7 +208,7 @@ updateIntArrayVar _ _ _ = error "Not an array variable!"
 
 
 updateStringArrayVar :: StringVar -> [Int] -> String -> PState ()
-updateStringArrayVar (StringVar_Array name ix) index val = do
+updateStringArrayVar (StringVar_Array name _) index val = do
     state <- get
     let key     = name 
         strvars = stringArrayVars state
@@ -248,19 +245,19 @@ updateStringArrayVar _ _ _ = error "Not an array variable!"
 
 allSmaller :: (Ord a) => [a] -> [a] -> Bool
 allSmaller []     []   = True
-allSmaller (x:xs) []   = error "lists have different size!"
-allSmaller [] (y:ys)   = error "lists have different size!"
+allSmaller (_:_) []   = error "lists have different size!"
+allSmaller [] (_:_)   = error "lists have different size!"
 allSmaller (x:xs) (y:ys)
     | x < y = allSmaller xs ys
     | otherwise = False
 
 insertAtPos :: Int -> a -> [a] -> [a]
-insertAtPos pos elem  []   
-    | pos == 0  = elem : []
+insertAtPos pos el  []   
+    | pos == 0  = el : []
     | otherwise = error "position is bigger than list"
-insertAtPos pos elem (x:xs) 
-    | pos == 0  = elem : xs
-    | pos > 0   = x : insertAtPos (pos - 1) elem xs
+insertAtPos pos el (x:xs) 
+    | pos == 0  = el : xs
+    | pos > 0   = x : insertAtPos (pos - 1) el xs
     | otherwise = error "Insert pos lower than 0!"
 
 

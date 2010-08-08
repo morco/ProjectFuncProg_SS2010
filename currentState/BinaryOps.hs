@@ -1,4 +1,4 @@
-module BinaryOps where
+module BinaryOps(evalLogicExpression) where
 
 ------------------------------------------------- <Imports> ------------------------------------------------------
 
@@ -6,6 +6,7 @@ module BinaryOps where
 ------------------------------------------------- </Imports> -----------------------------------------------------
 
 
+binaryFormatSize :: Int
 binaryFormatSize = 16 -- c64 standard
 
 
@@ -45,7 +46,7 @@ toIntFromBin bin
                   in -(toIntFromBin' c2bin ((length c2bin) - 1))
   where
         toIntFromBin' []     (-1) = 0
-        toIntFromBin' (x:xs) exp  = x * 2 ^ exp + toIntFromBin' xs (exp - 1)
+        toIntFromBin' (x:xs) idx  = x * 2 ^ idx + toIntFromBin' xs (idx - 1)
         toIntFromBin' _      _    = error "Error by concerting from bin to int!"
 
 
@@ -56,7 +57,7 @@ toBin x
   where
         toBin' :: Int -> [Int]
         toBin' 0 = []
-        toBin' x = (mod x 2) : (toBin' $ div x 2)
+        toBin' y = (mod y 2) : (toBin' $ div y 2)
 
 
 binaryAdd :: [Int] -> [Int] -> [Int]

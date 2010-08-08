@@ -29,12 +29,13 @@ import Parser.Lexer.BasicParseStringToVal
 
 import qualified Data.Map as M
 import Control.Monad.State
-import Data.Char (ord, chr, isDigit )
+--import Data.Char (ord, chr, isDigit )
+import Data.Char (ord, chr)
 
 import ProgrammState
 import BinaryOps
 
-import Debug.Trace
+import Debug.Trace(trace)
 
 -------------------------------- </Imports> ---------------------------------
 
@@ -92,6 +93,7 @@ evalBoolFunc str arg1 arg2
     | str == ">" = arg1 > arg2
     | str == "<=" = arg1 <= arg2
     | str == ">=" = arg1 >= arg2
+    | otherwise = error $ "Evaluation error: Unsupported compare operator '" ++ str ++ "' !"
 
 {-
 boolToInt :: Bool -> Int
@@ -106,12 +108,12 @@ boolToInt False = 0
 makeFloat :: Operand -> PState Float
 makeFloat (OpVar (NumVar_Int (IntVar x))) = do
     state <- get
-    let val = getMapVal $ M.lookup (NumVar_Var (NumVar_Int (IntVar x))) (intVars state)
+    let val = getMapVal $ M.lookup (IntVar x) (intVars state)
     return $ fromIntegral val
 
 makeFloat (OpVar (NumVar_Float (FloatVar x))) = do
     state <- get 
-    return $ getMapVal $ M.lookup (NumVar_Var (NumVar_Float (FloatVar x))) (floatVars state)
+    return $ getMapVal $ M.lookup (FloatVar x) (floatVars state)
 
 makeFloat (OpVar (NumVar_Int (IntVar_Array name ix))) = do
     state <- get
@@ -147,14 +149,14 @@ makeFloat (FloatConst x) = return x
 evalNumFunc :: NumFunction -> PState Float
 evalNumFunc (LenVar strVar) = do
     state <- get
-    let val = getMapVal $ M.lookup (StringVar_Var strVar) (stringVars state)
+    let val = getMapVal $ M.lookup strVar (stringVars state)
     return $ fromIntegral $ length $ val
 
 evalNumFunc (Random _) = getNextRandomValue
 
 evalNumFunc (IntFunc numExpr) = do
     res <- evalExpression numExpr
-    return $ fromIntegral $ floor res
+    return $ fromIntegral $ (floor res :: Int)
 
 
 evalNumFunc (AbsFunc numExpr) = evalExpression numExpr >>= (return . abs)
@@ -201,8 +203,8 @@ evalNumFunc (Fnxx name numExpr) = do
     state <- get
     let fn = M.lookup name $ custom_funcs state
     case fn of
-         Just (var',expr)  -> do
-              let var = NumVar_Var $ NumVar_Float var'  
+         Just (var,expr)  -> do
+              --let var = NumVar_Var $ NumVar_Float var'  
               case M.lookup var $ floatVars state of
                    Just x -> do
                              arg <- evalExpression numExpr
@@ -220,6 +222,7 @@ evalNumFunc (Fnxx name numExpr) = do
          Nothing -> error $ "?UNDEF`D FUNCTION ERROR in line " 
                             ++ (show $ curPos state) ++ " !"
 
+evalNumFunc fnc = error $ "Evaluation error: Unsupported numerical function '" ++ show fnc ++ "'"
 
 --evalArithFunc :: (Num a) => String -> a -> a -> a
 evalArithFunc :: String -> Float -> Float -> Float
@@ -269,18 +272,15 @@ evalBasicString :: BasicString -> PState String
 evalBasicString (StringLiteral x) = return x
 evalBasicString (StringVar_BString (StringVar x)) = do
     state <- get
-    let key = StringVar_Var (StringVar x)
+    let key = StringVar x
     return $ getMapVal $ M.lookup key (stringVars state)
 
 evalBasicString (StringVar_BString (StringVar_Array name ix)) = do
-    -- error $ "is string var: " ++ show (StringVar_Array name ix)
     state <- get 
     res <- mapM evalExpression ix
     let key       = name
         ind       = map truncate res
         (dim,ar)  = getMapVal $ M.lookup key (stringArrayVars state)
-        --(dim,ar)  = trace ("found array with key = " ++ show key) $ getMapVal $ M.lookup key (stringArrayVars state)
-        --val       = trace ("found val=" ++(show $ getMapVal $ M.lookup ind ar)++"and indey = " ++ show ind) $ getMapVal $ M.lookup ind ar
     if length ind == length dim && allSmaller ind dim
       then do
         let val   = getMapVal $ M.lookup ind ar
@@ -292,6 +292,7 @@ evalBasicString (StringVar_BString (StringVar_Array name ix)) = do
 evalStringOp :: String -> String -> String -> String
 evalStringOp op op1 op2
     | op == "+" = op1 ++ op2
+    | otherwise = error $ "Evaluation error: Unsupported STRING operation '" ++ op ++ "' !"
 
 
 evalStringFunc :: StringFunction -> PState String

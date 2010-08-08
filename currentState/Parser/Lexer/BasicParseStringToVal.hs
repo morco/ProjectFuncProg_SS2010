@@ -216,7 +216,7 @@ alex_deflt :: Array Int Int
 alex_deflt = listArray (0,18) [18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
 alex_accept = listArray (0::Int,18) [[],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAcc (alex_action_1))],[(AlexAcc (alex_action_1))],[(AlexAcc (alex_action_1))],[],[(AlexAcc (alex_action_3))],[],[],[(AlexAcc (alex_action_2))],[(AlexAcc (alex_action_2))],[(AlexAcc (alex_action_2))],[(AlexAcc (alex_action_3))],[],[],[],[],[(AlexAcc (alex_action_3))]]
-{-# LINE 30 "BasicParseStringToVal.x" #-}
+{-# LINE 31 "BasicParseStringToVal.x" #-}
 
 
 
@@ -225,15 +225,9 @@ alex_accept = listArray (0::Int,18) [[],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAc
 -- In this version scanner returns a list of all read tokens
 scanner :: String -> Either String Float
 scanner str = runAlex str alexMonadScan
-  {-  tok <- alexMonadScan;
-                  tok <- filterToks tok'
-                  --let tok = tok'
-                  if tok == TkEOF -- || tok == "error."
-                    then return i 
-                    else do let i' = i ++ [tok] in i' `seq` loop i'
--}
 
 
+alexEOF :: Alex Float
 alexEOF = return 0
 
 
@@ -245,21 +239,11 @@ uneither (Left x) = error x
 
 
 
-{-
-wrapMonadic :: AlexInput -> Int -> (String -> Token) -> String -> Alex TokenWrap
-wrapMonadic (AlexPn _ lnNr col,_,inp) len f tp = 
-    return $ TokenWrap { 
-                _type  = tp, 
-                pos   = (lnNr,col), 
-                _token = f (take len inp)
-             }
--}
-
-
 getNumberParseablePart :: String -> Float
 getNumberParseablePart str = uneither $ scanner str
 
-main = interact (flip (++) "\n" . show . getNumberParseablePart)
+-- only for testing
+-- main = interact (flip (++) "\n" . show . getNumberParseablePart)
 
 alex_action_1 = \(_,_,inp) len -> return $ read $ "0" ++ (take len inp)
 alex_action_2 = \(_,_,inp) len -> do 

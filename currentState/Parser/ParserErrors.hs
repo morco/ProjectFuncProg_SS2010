@@ -1,12 +1,14 @@
 module Parser.ParserErrors where
 
-import Parser.ParserTypes(Token(..),Constant(..),TokenWrap(..),ParserState(..),getTkIntVal)
+import Parser.ParserTypes(Token(..),
+                         -- Constant(..),
+                         TokenWrap(..),ParserState(..),getTkIntVal)
 
 import qualified Data.Map as M
 import Data.List(intercalate,delete) 
 import Control.Monad.State
 
-import Debug.Trace
+import Debug.Trace(trace)
 
 
 
@@ -50,9 +52,10 @@ tokenToRuleType (TkFloatVar_Or_DataString _) = FLOAT_VARIABLE -- TODO!!!
 tokenToRuleType (TkStringConcat) = STRING_NL_SURPRESSOR ";"
 tokenToRuleType (TkString _) = STRING_LITERAL
 --tokenToRuleType other = error ("not implement token: " ++ show other)
-tokenToRuleType other = NOT_IMPLEMENTED
+tokenToRuleType _ = NOT_IMPLEMENTED
 
 
+expecting :: M.Map [RuleType] [RuleType] 
 expecting = 
     M.fromList 
     [
@@ -81,10 +84,10 @@ context =
 
 
 getExpectingMessage :: TokenWrap -> State ParserState (String,String)
-getExpectingMessage ertok = do
+getExpectingMessage errortok = do
     state <- get
     let allToks = tokenList state 
-    let (expect,cont) = getExpecting ertok allToks
+    let (expect,cont) = getExpecting errortok allToks
     return ("Expecting: " ++ (intercalate " or " $ map show expect), cont)
 
   where
@@ -93,12 +96,12 @@ getExpectingMessage ertok = do
          let preds = reverse $ takeWhile ((/=) ertok) tkList
          in getExpecting' preds []
 
-     getExpecting' [] key = ([LINE_NUMBER],"")
+     getExpecting' [] _ = ([LINE_NUMBER],"")
      getExpecting' (x:xs) key = 
          let newKey = key ++ [tokenToRuleType $ _token x]
-             exp = M.lookup newKey expecting
-         in case exp of
-                 Just x -> (x, getContext (reverse newKey) [])
+             expect = M.lookup newKey expecting
+         in case expect of
+                 Just y -> (y, getContext (reverse newKey) [])
                  Nothing -> getExpecting' xs newKey
 
      getContext [] _ = ""
@@ -107,7 +110,7 @@ getExpectingMessage ertok = do
              -- cxt = trace (show newKey') $ M.lookup newKey' context
              cxt = M.lookup newKey' context
          in case cxt of
-                 Just x -> x
+                 Just y -> y
                  Nothing -> getContext xs newKey'
      
 
@@ -152,12 +155,12 @@ checkAllExpectedLineNumbersGot = do
 
 parseError :: [TokenWrap] -> State ParserState a
 parseError ls = do
-    (exp,context) <- getExpectingMessage (head ls)
+    (expect,coxt) <- getExpectingMessage (head ls)
     -- error ("Parse error on: " ++ (show ls))
     let (ln,col) = pos $ head ls
     let posText = "Line " ++ (show ln) ++ "," ++ "Column " ++ (show col) ++ ": "
     let erTk = (", but was: " ++ (show $ tokenToRuleType $ _token $ head ls))
     -- error ("Used rules(" ++ (show $ length readStr) ++ "): " ++ (foldl (\s y -> s ++ " " ++ y) "" readStr) ++ erTk)
-    let cxt = "\n        Context seems to be: " ++ context
-    error (posText ++ exp ++ erTk ++ cxt)
+    let cxt = "\n        Context seems to be: " ++ coxt
+    error (posText ++ expect ++ erTk ++ cxt)
 

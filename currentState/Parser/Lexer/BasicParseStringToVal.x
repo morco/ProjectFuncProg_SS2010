@@ -38,6 +38,7 @@ scanner :: String -> Either String Float
 scanner str = runAlex str alexMonadScan
 
 
+alexEOF :: Alex Float
 alexEOF = return 0
 
 
@@ -53,6 +54,6 @@ getNumberParseablePart :: String -> Float
 getNumberParseablePart str = uneither $ scanner str
 
 -- only for testing
---main = interact (flip (++) "\n" . show . getNumberParseablePart)
+-- main = interact (flip (++) "\n" . show . getNumberParseablePart)
 }
 

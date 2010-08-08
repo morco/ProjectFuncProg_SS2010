@@ -170,12 +170,7 @@ data ParserState
          lineNumbers         :: [Int], 
          expectedLineNumbers :: [Int],
          data_temp           :: [DataContent],
-       --  last_for            :: Int,
-      --   last_forvar         :: String,
-      --   last_forvar         :: [NumVar],
-         last_for         :: [ControlStruct],
-      --   for_lines           :: M.Map String Int,
-      --   cur_forscope        :: [String],
+         last_for            :: [ControlStruct],
          cur_basline         :: Int
       }
 
@@ -194,15 +189,12 @@ data Command
     | Data               [DataContent]
     | Restore
     | Def                String          FloatVar       NumExpr
---    | Next               [String]
-  --  | Next               NumVar
     | Next               ControlStruct
     | Dim                [(Var,[Operand])]
     deriving (Show,Eq)
 
 data StringExpr
     = StringOp    BasicString
-   -- | StringExpr (BasicString,BasicString) String
     | StringExpr (StringExpr,StringExpr) String
     | StringFunc  StringFunction
     deriving (Show,Eq,Ord)
@@ -241,12 +233,7 @@ data NumFunction
 
 
 data ControlStruct
---    = If BoolExpr [Command]
-  -- = If NumExpr [Command]
-   = If Expr [Command]
---    | For NumVar  (Operand,Operand,Operand) [(Int,[Command])]
---    | For NumVar  (Operand,Operand,Operand) [Command] Program
---    | For NumVar  (Operand,Operand,Operand) 
+    = If Expr [Command]
     | For FloatVar  (Operand,Operand,Operand) 
     | GoSub       Int 
     | Goto        Int
@@ -256,16 +243,6 @@ data ControlStruct
     | Return
     deriving (Show,Eq)
 
-{-
-data BoolExpr
-    = BoolExprString  (StringExpr,StringExpr) String
-    | BoolExprNum     (NumExpr,NumExpr) String
-    | BoolExprLog     (BoolExpr,BoolExpr) String
-    | BoolExprSimpleString   StringExpr
-    | BoolExprSimpleNum      NumExpr
-    | BoolNot                BoolExpr
-    deriving (Show,Eq,Ord)
--}
 data CompExpr
     = NumCompare (NumExpr   ,NumExpr   ) String
     | StrCompare (StringExpr,StringExpr) String
@@ -275,7 +252,7 @@ data CompExpr
 data IOCommand 
     = Print   ([Output], Bool)
     | Input   (InputStuff, Bool)
-    | Get     Var
+    | Get     [Var]
     deriving (Show,Eq)
 
 data Output
@@ -293,7 +270,6 @@ data NumExpr
     | NumFunc    NumFunction
     | NumMinus   NumExpr
     | NumNot     NumExpr
---    | NumBool    BoolExpr
     | NumComp    CompExpr
     deriving (Show,Eq,Ord)
 
@@ -309,8 +285,6 @@ data Operand
     deriving (Show,Eq,Ord)
 
 data NumVar
-  --  = IntVar    String
-  --  | FloatVar  String
     = NumVar_Int    IntVar
     | NumVar_Float  FloatVar
     deriving (Eq, Show, Ord)
