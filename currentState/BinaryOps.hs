@@ -1,4 +1,4 @@
-module BinaryOps(evalLogicExpression) where
+module BinaryOps(evalLogicExpression,toBin,toIntFromBin) where
 
 ------------------------------------------------- <Imports> ------------------------------------------------------
 

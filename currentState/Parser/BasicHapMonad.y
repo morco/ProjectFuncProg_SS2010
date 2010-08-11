@@ -33,8 +33,14 @@ import Debug.Trace
 
   -- IO commands 
     input                         { TokenWrap _type pos TkInput            }
+    "input#"                      { TokenWrap _type pos TkInputF           }
     print                         { TokenWrap _type pos TkPrint            }
+    "print#"                      { TokenWrap _type pos TkPrintF           }
     get                           { TokenWrap _type pos TkGet              }
+    "get#"                        { TokenWrap _type pos TkGetF             }
+    open                          { TokenWrap _type pos TkOpen             }
+    close                         { TokenWrap _type pos TkClose            }
+    cmd                           { TokenWrap _type pos TkCmd              }
 
   -- Control structures
     if                            { TokenWrap _type pos TkIf               }
@@ -114,6 +120,7 @@ import Debug.Trace
     stringLiteral                 { TokenWrap _type pos (TkString val)     }
     float               { TokenWrap _type pos (TkConst (TkFloatConst val)) }
     int                 { TokenWrap _type pos (TkConst (TkIntConst val))   }
+    ti_reg              { TokenWrap _type pos (TkTI_Reg)                   }
 
 
 -- Special symbols
@@ -239,7 +246,7 @@ Assignment          : NumVar "=" NumExpr           { ArithAssignment $1 $3  }
 
 
 StringExpr          : BasicString                  { $1                     }
-                    | BasicString "+" BasicString  { StringExpr ($1,$3) "+" } 
+                    | StringExpr "+" StringExpr    { StringExpr ($1,$3) "+" } 
 
 
 StringFunction      : chrfunc "(" NumExpr ")"      { ChrFunc $3             }
@@ -292,11 +299,8 @@ BinaryNumExpr       : NumExpr "+" NumExpr          { NumExpr ($1,$3) "+"    }
               | NumExpr ">=" NumExpr    { NumComp $ NumCompare ($1,$3) ">=" }
 
 
-NumFunction         : len "(" stringLiteral ")"    { Len $ getTkStrVal $3   }
-                    | len "(" stringVar ")"    { let str = getTkStrVal $3
-                                                 in LenVar (StringVar $ str)}
-                    | rand "(" int ")"            { Random $ getTkIntVal $3 } 
-                                                         -- TODO: Argument
+NumFunction         : len "(" StringExpr ")"       { Len $3                 }
+                    | rand "(" NumExpr ")"         { Random $3              } 
                     | valfunc "(" StringExpr ")"   { ValFunc $3             } 
                     | ascfunc "(" StringExpr ")"   { AscFunc $3             } 
                     | intfunc "(" NumExpr ")"      { IntFunc $3             } 
@@ -366,7 +370,25 @@ IfBody              : then int            { let nr  = getTkIntVal $2
 IOCommand           : print Output                 { Print $2               }
                     | print                        { Print ([], True)       }
                     | input Input                  { Input $2               }
+                    | "input#" int "," Vars    { InputF (getTkIntVal $2) $4 }
                     | get Vars                     { Get $2                 }
+                    | "get#" int Vars            { GetF (getTkIntVal $2) $3 }
+                    | open OpenBody  { let (fid,dev_id,sec_id,path_mode) = $2 
+                                       in Open fid dev_id sec_id path_mode  }
+                    | close int                    { Close $ getTkIntVal $2 }
+                    | "print#" int "," Output  { PrintF (getTkIntVal $2) $4 }
+                    | "print#" int      { PrintF (getTkIntVal $2) ([],True) }
+                    | cmd CmdBody      { $2 }
+
+CmdBody   : int                       { Cmd (getTkIntVal $1) Nothing }
+          | int stringLiteral         { Cmd (getTkIntVal $1) $ Just $ getTkStrVal $2 }
+
+OpenBody            : int                { (getTkIntVal $1,Nothing,Nothing,Nothing) }
+                    | int "," int  { (getTkIntVal $1,Just $ getTkIntVal $3,Nothing,Nothing) }
+                    | int "," int "," int { (getTkIntVal $1,Just $ getTkIntVal $3,Just $ getTkIntVal $5,Nothing) }
+                    | int "," stringLiteral { (getTkIntVal $1,Nothing,Nothing,Just $ getTkStrVal $3) }
+         | int "," int "," stringLiteral { (getTkIntVal $1,Just $ getTkIntVal $3,Nothing,Just $ getTkStrVal $5) }
+| int "," int "," int "," stringLiteral { (getTkIntVal $1,Just $ getTkIntVal $3,Just $ getTkIntVal $5,Just $ getTkStrVal $7) }
 
 
 Output              : OutputAtom                   { ([$1], True)           }
@@ -416,6 +438,7 @@ Constant            : int                        { let int = getTkIntVal $1
                                                    in IntConst int          }
                     | float                      { let flt = getTkFltVal $1
                                                    in FloatConst flt        }
+                    | ti_reg                     { TI_Reg                   }
 
 
 {

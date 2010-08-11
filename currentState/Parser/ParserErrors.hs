@@ -39,11 +39,14 @@ data RuleType
     | LINE
 
     | NOT_IMPLEMENTED
+
+    | COMMAND_GETF
     deriving (Ord, Show, Eq)
 
 
 tokenToRuleType :: Token -> RuleType
 tokenToRuleType TkInput = COMMAND_INPUT
+tokenToRuleType TkGetF  = COMMAND_GETF
 tokenToRuleType (TkLineNumber _) = LINE_NUMBER
 tokenToRuleType (TkStringVar _) = STRING_VARIABLE
 tokenToRuleType (TkIntVar _) = INT_VARIABLE
@@ -65,6 +68,8 @@ expecting =
      ([INT_VARIABLE,LINE_NUMBER], [OPERATOR "="] ),
      ([STRING_VARIABLE,LINE_NUMBER], [OPERATOR "="] ),
      ([COMMAND_INPUT], [STRING_LITERAL,VARIABLE] ),
+     ([COMMAND_GETF], [INT_CONSTANT] ),
+     ([INT_CONSTANT,COMMAND_GETF], [VARIABLE] ),
      ([STRING_NL_SURPRESSOR ";",STRING_LITERAL,COMMAND_INPUT], [VARIABLE] ),
      ([STRING_LITERAL,COMMAND_INPUT], [STRING_NL_SURPRESSOR ";",VARIABLE] )
     ]
@@ -78,7 +83,8 @@ context =
      ([LINE_NUMBER,STRING_VARIABLE], "String Assignment" ),
      ([LINE_NUMBER,FLOAT_VARIABLE], "Float Assignment" ),
      ([LINE_NUMBER,INT_VARIABLE], "Int Assignment" ),
-     ([COMMAND_INPUT], "Input Command" )
+     ([COMMAND_INPUT], "Input Command" ),
+     ([COMMAND_GETF], "File IO with get# Command" )
     ]
 
 

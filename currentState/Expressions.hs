@@ -8,7 +8,7 @@ module Expressions
 where 
 
 
---------------------------------- <Imports> ---------------------------------
+--------------------------------- <Imports> --------------------------------
 
 import Parser.ParserTypes(
                            NumExpr(..), 
@@ -27,27 +27,34 @@ import Parser.ParserTypes(
                          )
 import Parser.Lexer.BasicParseStringToVal
 
-import qualified Data.Map as M
+import qualified Data.Map as M (lookup)
+import System.Time (getClockTime, ClockTime(..))
 import Control.Monad.State
---import Data.Char (ord, chr, isDigit )
 import Data.Char (ord, chr)
 
-import ProgrammState
+import {-# SOURCE #-} ProgrammState
+import Definitions
 import BinaryOps
 
-import Debug.Trace(trace)
+import BasicTime
 
--------------------------------- </Imports> ---------------------------------
+--import Debug.Trace(trace)
+
+-------------------------------- </Imports> --------------------------------
 
 
 
----------------------------------- <Nums> -----------------------------------
+---------------------------------- <Nums> ----------------------------------
 
 -- Evaluates a numerical expression, which means...
 --    1. For an Operand, make a float value out of it
 --    2. For a numerical function, returns the result of this function
 --    3. For a numerical expression, evaluate both operands (can also be 
 --        numerical expressions) and combine them wit the given operation
+--    4. For an unary minus, eval expression and return the negative value
+--    5. For binary not, eval expression and invert all bits  
+--    6. For compare operation: Compare logical and convert bool value to 
+--        int c64-like (0 = False, other = True)
 --
 --  This function is in State Monad because it can contain variables and 
 --   also alter state (currently only by random number operations, maybe 
@@ -60,11 +67,13 @@ evalExpression (NumMinus expr) = do
     return (-res)
 evalExpression (NumNot expr) = do
     res <- evalExpression expr  
+    -- for "not" second parameter is ignored
     return $ fromIntegral $ evalLogicExpression "not" res 0
 evalExpression (NumExpr (op1, op2) op) = do
-    val1 <- evalExpression op1
-    val2 <- evalExpression op2
-    return $ evalArithFunc op val1 val2
+    val1  <- evalExpression op1
+    val2  <- evalExpression op2
+    state <- get 
+    return $ evalArithFunc op val1 val2 $ curPos state
 evalExpression (NumComp compExpr) = do
     res <- evalCompareExpression compExpr 
     return $ fromIntegral $ boolToInt $ res
@@ -72,92 +81,123 @@ evalExpression (NumComp compExpr) = do
 
 
 
---evalCompareExpression :: BoolExpr -> PState Bool
 evalCompareExpression :: CompExpr -> PState Bool
 evalCompareExpression (NumCompare (numExpr1,numExpr2) strOp) = do
     val1 <- evalExpression numExpr1
     val2 <- evalExpression numExpr2
-    return $ evalBoolFunc strOp val1 val2
+    state <- get
+    return $ evalCompFunc strOp val1 val2 $ curPos state
 
-evalCompareExpression (StrCompare (strExpr1,strExpr2) strOp) = do
+evalCompareExpression (StrCompare (strExpr1,strExpr2) strOp) = do  
     val1 <- evalStringExpression strExpr1
     val2 <- evalStringExpression strExpr2
-    return $ evalBoolFunc strOp val1 val2
+    state <- get
+    return $ evalCompFunc strOp val1 val2 $ curPos state
 
 
-evalBoolFunc :: (Ord a) => String -> a -> a -> Bool
-evalBoolFunc str arg1 arg2
+evalCompFunc :: (Ord a) => Operator -> a -> a -> LineNumber -> Bool
+evalCompFunc str arg1 arg2 ln_nr
     | str == "==" = arg1 == arg2
     | str == "/=" = arg1 /= arg2
-    | str == "<" = arg1 < arg2
-    | str == ">" = arg1 > arg2
+    | str == "<"  = arg1 <  arg2
+    | str == ">"  = arg1 >  arg2
     | str == "<=" = arg1 <= arg2
     | str == ">=" = arg1 >= arg2
-    | otherwise = error $ "Evaluation error: Unsupported compare operator '" ++ str ++ "' !"
+    | otherwise   = let ermsg = "Unsupported compare operator '" 
+                                ++ str ++ "'"
+                    in eval_error ermsg ln_nr
 
-{-
-boolToInt :: Bool -> Int
-boolToInt True = (-1)
-boolToInt False = 0
--}
 
 
 -- Takes an operand an makes it to a float value to have an intern unique
 --  base, considering type safety it is maybe not the best way to deal 
 --   with int values
 makeFloat :: Operand -> PState Float
-makeFloat (OpVar (NumVar_Int (IntVar x))) = do
+makeFloat (OpVar (NumVar_Int (IntVar name))) = do
     state <- get
-    let val = getMapVal $ M.lookup (IntVar x) (intVars state)
+    let val = getMapVal $ M.lookup name (intVars state)
     return $ fromIntegral val
 
-makeFloat (OpVar (NumVar_Float (FloatVar x))) = do
+makeFloat (OpVar (NumVar_Float (FloatVar "ST"))) = do
+    state <- get
+    let st_reg = getMapVal $ M.lookup "ST" (floatVars state)
+    updateFloatVar (FloatVar "ST") 0 -- reset state register by every lookup, good idea??
+    return st_reg
+
+makeFloat (OpVar (NumVar_Float (FloatVar name))) = do
     state <- get 
-    return $ getMapVal $ M.lookup (FloatVar x) (floatVars state)
+    return $ getMapVal $ M.lookup name (floatVars state)
 
 makeFloat (OpVar (NumVar_Int (IntVar_Array name ix))) = do
     state <- get
     res <- mapM evalExpression ix
     let key       = name
-        ind       = map truncate res
+        ind       = map floatToIntConvert res
         (dim,ar)  = getMapVal $ M.lookup key (intArrayVars state)
     if length ind == length dim && allSmaller ind dim
       then do
         let val   = getMapVal $ M.lookup ind ar
         return $ fromIntegral val
       else
-        error "invalid array index!"
+        let ln_nr = curPos state
+        in printArrayIndex_error ind name dim ln_nr
 
 makeFloat (OpVar (NumVar_Float (FloatVar_Array name ix))) = do
     state <- get 
     res <- mapM evalExpression ix
     let key       = name
-        ind       = map truncate res
+        ind       = map floatToIntConvert res
         (dim,ar)  = getMapVal $ M.lookup key (floatArrayVars state)
     if length ind == length dim && allSmaller ind dim
       then do
         let val   = getMapVal $ M.lookup ind ar
         return val
       else
-        error "invalid array index!"
+        let ln_nr = curPos state
+        in printArrayIndex_error ind name dim ln_nr
 
-makeFloat (IntConst x) = return $ fromIntegral x
+makeFloat (IntConst   x) = return $ fromIntegral x
 makeFloat (FloatConst x) = return x
+makeFloat TI_Reg         = do
+    curtime <- getTimeCountValue
+    return curtime
 
 
 
 evalNumFunc :: NumFunction -> PState Float
-evalNumFunc (LenVar strVar) = do
-    state <- get
-    let val = getMapVal $ M.lookup strVar (stringVars state)
-    return $ fromIntegral $ length $ val
+evalNumFunc (Len strExpr)     = do
+    res <- evalStringExpression strExpr
+    return $ fromIntegral $ length $ res
 
-evalNumFunc (Random _) = getNextRandomValue
+evalNumFunc (Random numExpr)      = do
+    arg <- evalExpression numExpr
+    if arg > 0
+      -- use the current random sequence, so do nothing here
+      then return ()
+      else do
+        seed <- if arg == 0
+                  -- create a new sequence (with random seed??)
+                  then makeRandomSeed
+                  -- create a new sequence with argument as seed             
+                  else
+                    -- haskell only takes ints as seed!
+                    return $ floatToIntConvert arg
+        createNewRandomSequence seed
+    -- return the next random value of current random sequence 
+    getNextRandomValue 
+        
+  where
+        makeRandomSeed :: PState Int
+        makeRandomSeed = do
+            nr1 <- getNextRandomValue
+            nr2 <- getNextRandomValue
+            nr3 <- getNextRandomValue
+            let flt_rand = (nr1 * 1000) * (nr2 * 1000) / (nr3 * 1000)
+            return $ floatToIntConvert flt_rand
 
 evalNumFunc (IntFunc numExpr) = do
     res <- evalExpression numExpr
-    return $ fromIntegral $ (floor res :: Int)
-
+    return $ fromIntegral $ (floatToIntConvert res :: Int)
 
 evalNumFunc (AbsFunc numExpr) = evalExpression numExpr >>= (return . abs)
 
@@ -170,18 +210,23 @@ evalNumFunc (CosFunc numExpr) = evalExpression numExpr >>= (return . cos)
 
 evalNumFunc (ExpFunc numExpr) = do
     res <- evalExpression numExpr 
-    if res < 88.0296919
+    if res < max_exp
       then return $ exp res
-      else error $ "?OVERFLOW ERROR: EXP argument '" 
-                   ++ show res ++ "' is bigger than max" 
-                   ++ "allowed value '88.0296919'"
+      else do
+        state <- get
+        let ermsg = "EXP argument '" ++ show res ++ "' is bigger than max" 
+                    ++ " allowed value '" ++ show max_exp ++ "'"
+        overflw_error ermsg $ curPos state
 
 evalNumFunc (LogFunc numExpr) = do
     res <- evalExpression numExpr 
     if res > 0
       then return $ log res
-      else error $ "?ILLEGAL QUANTITY ERROR: LOG argument '" 
-                   ++ show res ++ "' is zero or negative!"
+      else do
+        state <- get
+        let ermsg = "LOG argument '" ++ show res 
+                    ++ "' is zero or negative!"
+        illqua_error ermsg $ curPos state
 
 evalNumFunc (ValFunc strExpr) = 
     evalStringExpression strExpr >>= (return . getNumberParseablePart) 
@@ -194,8 +239,10 @@ evalNumFunc (SqrFunc numExpr) = do
     res <- evalExpression numExpr 
     if res >= 0
       then return $ sqrt res
-      else error $ "?ILLEGAL QUANTITY ERROR: SQR argument '"
-                   ++ show res ++ "' is negative!"
+      else do
+        state <- get
+        let ermsg = "SQR argument '" ++ show res ++ "' is negative!"
+        illqua_error ermsg $ curPos state
  
 evalNumFunc (TanFunc numExpr) = evalExpression numExpr >>= (return . tan)
 
@@ -203,37 +250,43 @@ evalNumFunc (Fnxx name numExpr) = do
     state <- get
     let fn = M.lookup name $ custom_funcs state
     case fn of
-         Just (var,expr)  -> do
-              --let var = NumVar_Var $ NumVar_Float var'  
-              case M.lookup var $ floatVars state of
-                   Just x -> do
-                             arg <- evalExpression numExpr
-                             updateFloatVar var arg
-                             res <- evalExpression expr 
-                             updateFloatVar var x
-                             return res
-                   Nothing -> do 
-                             arg <- evalExpression numExpr
-                             updateFloatVar var arg
-                             res <- evalExpression expr 
-                             updateFloatVar var 0
-                             return res
+         Just ((FloatVar var_name),expr)  -> do
+              -- because variables of "def fnxx" can have same names 
+              --  as regular float vars and seems to shadow them for their
+              --   execution time (experimenting with emulator), we have 
+              --    to save the old value of an maybe existing regular var
+              --     With this, we can use normal expression evaluation
+              --      for dealing with custom functions
+              let oldval = case M.lookup var_name $ floatVars state of
+                                Just x  -> x
+                                Nothing -> 0
+                  var    = FloatVar var_name
+              -- evaluate the argument
+              arg <- evalExpression numExpr
+              -- save the evaluated argument as variable contents
+              updateFloatVar var arg
+              -- evaluate the saved formula (= num expr)
+              res <- evalExpression expr 
+              -- write original value back
+              updateFloatVar var oldval
+              -- return the result of the formula
+              return res
 
-         Nothing -> error $ "?UNDEF`D FUNCTION ERROR in line " 
-                            ++ (show $ curPos state) ++ " !"
+         Nothing -> undeffn_error [] $ curPos state
 
-evalNumFunc fnc = error $ "Evaluation error: Unsupported numerical function '" ++ show fnc ++ "'"
+--evalNumFunc fnc = error $ "Evaluation error: Unsupported numerical function '" ++ show fnc ++ "'"
 
---evalArithFunc :: (Num a) => String -> a -> a -> a
-evalArithFunc :: String -> Float -> Float -> Float
-evalArithFunc str arg1 arg2 
-    | str == "+" = arg1 + arg2
-    | str == "-" = arg1 - arg2
-    | str == "*" = arg1 * arg2
-    | str == "/" = arg1 / arg2
+evalArithFunc :: Operator -> Float -> Float -> LineNumber -> Float
+evalArithFunc str arg1 arg2 ln_nr 
+    | str == "+"  = arg1 + arg2
+    | str == "-"  = arg1 - arg2
+    | str == "*"  = arg1 * arg2
+    | str == "/"  = arg1 / arg2
     | str == "&&" = fromIntegral $ evalLogicExpression str arg1 arg2
     | str == "||" = fromIntegral $ evalLogicExpression str arg1 arg2
-    | otherwise = error $ "Arithfunc: op = " ++ str
+    | otherwise   = let ermsg = "Unsupported arithmetical operator '" 
+                                ++ str ++ "'"
+                    in eval_error ermsg ln_nr
 
 
 -- This function returns the next random number, and to consume it really, 
@@ -258,103 +311,109 @@ getNextRandomValue = do
 -------------------------------- <Strings> ----------------------------------
 
 evalStringExpression :: StringExpr -> PState String
-evalStringExpression (StringOp x) = evalBasicString x 
+evalStringExpression (StringOp x)   = evalBasicString x 
 evalStringExpression (StringFunc x) = evalStringFunc x
 evalStringExpression (StringExpr (bstr1,bstr2) strOp) = do
-    --val1 <- evalBasicString bstr1 
-    --val2 <- evalBasicString bstr2 
-    val1 <- evalStringExpression bstr1 
-    val2 <- evalStringExpression bstr2 
-    return $ evalStringOp strOp val1 val2
+    val1  <- evalStringExpression bstr1 
+    val2  <- evalStringExpression bstr2
+    state <- get 
+    return $ evalStringOp strOp val1 val2 $ curPos state
 
 
 evalBasicString :: BasicString -> PState String
 evalBasicString (StringLiteral x) = return x
-evalBasicString (StringVar_BString (StringVar x)) = do
+evalBasicString (StringVar_BString (StringVar "TI$")) = do
+    updateTimeValue 
     state <- get
-    let key = StringVar x
-    return $ getMapVal $ M.lookup key (stringVars state)
+    return $ getMapVal $ M.lookup "TI$" (stringVars state)
+evalBasicString (StringVar_BString (StringVar name)) = do
+    state <- get
+    return $ getMapVal $ M.lookup name (stringVars state)
 
 evalBasicString (StringVar_BString (StringVar_Array name ix)) = do
     state <- get 
     res <- mapM evalExpression ix
     let key       = name
-        ind       = map truncate res
+        ind       = map floatToIntConvert res
         (dim,ar)  = getMapVal $ M.lookup key (stringArrayVars state)
     if length ind == length dim && allSmaller ind dim
       then do
         let val   = getMapVal $ M.lookup ind ar
         return val
       else
-        error "invalid array index!"
+        let ln_nr = curPos state
+        in printArrayIndex_error ind name dim ln_nr
 
 
-evalStringOp :: String -> String -> String -> String
-evalStringOp op op1 op2
+evalStringOp :: Operator -> String -> String -> LineNumber -> String
+evalStringOp op op1 op2 ln_nr
     | op == "+" = op1 ++ op2
-    | otherwise = error $ "Evaluation error: Unsupported STRING operation '" ++ op ++ "' !"
+    | otherwise = let ermsg = "Unsupported STRING operator '" 
+                              ++ op ++ "'"
+                  in eval_error ermsg ln_nr
 
 
 evalStringFunc :: StringFunction -> PState String
 evalStringFunc (ChrFunc numExpr) = do
-    state <- get
     res <- evalExpression numExpr 
     if res >= 0 && res <= 255
-      then return $ [chr $ truncate res]
-      else error $ "?ILLEGAL QUANTITY ERROR in line " 
-                   ++ (show $ curPos state)  ++ ": Converting number '" 
-                   ++ show res ++ "' to ASCII char not possible!"
+      then return $ [chr $ floatToIntConvert res]
+      else do
+        state <- get
+        let ermsg = "Converting number '" ++ show res 
+                    ++ "' to ASCII char not possible!"
+        illqua_error ermsg $ curPos state
 
 evalStringFunc (StrFunc numExpr) = do
     res <- evalExpression numExpr
     return $ show res
 
 evalStringFunc (LeftFunc strExpr numExpr) = do
-    state <- get
     res <- evalExpression numExpr
     if res >= 0
       then do
         str <- evalStringExpression strExpr
-        return $ take (truncate res) str
-      else error $ "?ILLEGAL QUANTITY ERROR in line " 
-                   ++ (show $ curPos state)  
-                   ++ ": Length argument for string function '" 
-                   ++ show res ++ "' is negative!"
+        return $ take (floatToIntConvert res) str
+      else do 
+        state <- get
+        let ermsg = "Length argument for string function '" 
+                    ++ show res ++ "' is negative!" 
+        illqua_error ermsg $ curPos state
 
 evalStringFunc (RightFunc strExpr numExpr) = do
-    state <- get
     res <- evalExpression numExpr
     if res >= 0
       then do
         str <- evalStringExpression strExpr
-        let len = length str
-            res' = truncate res
+        let len  = length str
+            res' = floatToIntConvert res
         if res' < len
           then return $ drop (len - res') str
           else return str
-      else error $ "?ILLEGAL QUANTITY ERROR in line " 
-                   ++ (show $ curPos state)  
-                   ++ ": Length argument for string function '" 
-                   ++ show res ++ "' is negative!"
+      else do 
+        state <- get
+        let ermsg = "Length argument for string function '" 
+                    ++ show res ++ "' is negative!" 
+        illqua_error ermsg $ curPos state
 
 evalStringFunc (MidFunc strExpr numExpr1 numExpr2) = do
-    state <- get
     startPos <- evalExpression numExpr1
     len <- evalExpression numExpr2
     if startPos > 0 && len >= 0
       then do
         str <- evalStringExpression strExpr
-        let hsStartPos = (truncate startPos) - 1
+        let hsStartPos = (floatToIntConvert startPos) - 1
             len_str    = length str
         if hsStartPos < len_str
-          then return $ take (truncate len) $ drop hsStartPos str
+          then return $ take (floatToIntConvert len) $ drop hsStartPos str
           else return ""
-      else error $ "?ILLEGAL QUANTITY ERROR in line " 
-                   ++ (show $ curPos state)  
-                   ++ ": Length argument for string function '" 
-                   ++ show len ++ "' is negative "
-                   ++ "or index for string function '" 
-                   ++ show startPos ++ "' is negative or zero!"
+      else do 
+        state <- get
+        let ermsg = "Length argument for string function '" 
+                    ++ show len ++ "' is negative "
+                    ++ "or index for string function '" 
+                    ++ show startPos ++ "' is negative or zero!"
+        illqua_error ermsg $ curPos state
 
 
 -------------------------------- </Strings> ---------------------------------
@@ -369,7 +428,7 @@ evalBoolExpression (Expr_Str strExpr) = do
 
 evalBoolExpression (Expr_Num numExpr) = do
     val <- evalExpression numExpr
-    return $ intToBool $ truncate val
+    return $ intToBool $ floatToIntConvert val
     
 
 

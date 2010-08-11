@@ -2,9 +2,10 @@
 
 import IO
 import System ( getArgs )
-import qualified Data.Map as M
+import qualified Data.Map as M (lookup,insert,delete)
 import Control.Monad.State
-
+import Data.Char (toLower)
+import Data.List (findIndices)
 
 import Parser.BasicHapMonad
 import Parser.ParserTypes hiding (
@@ -16,11 +17,18 @@ import Parser.ParserTypes hiding (
 
 import Expressions
 import ProgrammState
+import Definitions
+
+import BinaryOps
 
 import Debug.Trace(trace)
 
 --------------------------------- </Imports> -------------------------------
 
+--data HandleWrapper 
+ --   = HandleWrapper Handle
+ --   deriving (Eq,Ord)
+     
 
 --------------------------------- <Main> -----------------------------------
 
@@ -72,7 +80,7 @@ doOn :: NumExpr -> (LineNumber -> ControlStruct) -> [LineNumber]
          -> PState ()
 doOn numExpr constr linenums = do   
     res <- evalExpression numExpr
-    let res' = truncate res
+    let res' = floatToIntConvert res
     if res' > 0 && res' <= length linenums
       then evalCommand $ ControlStructure $ constr $ linenums !! (res' - 1)
       else 
@@ -85,11 +93,12 @@ doOn numExpr constr linenums = do
           else return ()
 
 
-
 -- A simple wrapper for inserting vars from IO actions. Simple said it
 --  generalize the lift operation
-insertIOValue :: Var -> IO String -> PState ()
-insertIOValue var ioAct = insertValue var (liftIO $ ioAct) id read read
+--insertIOValue :: Var -> IO String -> PState ()
+--insertIOValue var ioAct = insertValue var (liftIO $ ioAct) id read read
+insertIOValue :: Var -> PState String -> PState ()
+insertIOValue var ioAct = insertValue var ioAct id read read
 
 
 -- With this function a program jump is executed by taking the whole
@@ -98,78 +107,7 @@ insertIOValue var ioAct = insertValue var (liftIO $ ioAct) id read read
 jump_prog :: Program -> LineNumber -> Program
 jump_prog oldprog nxPos = dropWhile (\(a,_) -> a /= nxPos) oldprog
     
-   
--- This action generalize the insertion of a variable pattern 
---  (there is made no difference between first time and update)
---   Because variables have different types (Strings, Ints, Floats) we need
---    some arguments here ;D. Of course the variable than a monadic action 
---     which determines how to get the value, and at least 3 functions who
---      say, how to convert the value get by the monadic action into an 
---       String, Int and Float value.
---        If you want some conversions to be impossible you have to make an
---         error function as conversions function
-insertValue :: Var -> PState a -> (a -> String) -> (a -> Int)
-                -> (a -> Float) -> PState ()
-insertValue var getValAct toStringFunc toIntFunc toFloatFunc = do
-      val <- getValAct
-      case var of
-      -- if there is an unreadable input (no number), the runtime error
-      --  should be thrown immediately, so strict evaluation here
-         -- non array vars
-         StringVar_Var (StringVar x)            -> do
-                   let key = StringVar x
-                   (updateStringVar key) $! (toStringFunc val)
-         NumVar_Var (NumVar_Int (IntVar x))     -> do
-                   let key = IntVar x
-                   (updateIntVar key)    $! (toIntFunc val)
-         NumVar_Var (NumVar_Float (FloatVar x)) -> do
-                   let key = FloatVar x
-                   (updateFloatVar key)  $! (toFloatFunc val)
-         -- array vars
-         StringVar_Var (StringVar_Array name ix)            -> do
-                   res <- mapM evalExpression ix
-                   let key   = StringVar_Array name ix
-                       index = map truncate res
-                   (updateStringArrayVar key index) $! (toStringFunc val)
-         NumVar_Var (NumVar_Int (IntVar_Array name ix))     -> do
-                   res <- mapM evalExpression ix
-                   let key   = IntVar_Array name ix
-                       index = map truncate res
-                   (updateIntArrayVar key index) $! (toIntFunc val)
-         NumVar_Var (NumVar_Float (FloatVar_Array name ix)) -> do
-                   res <- mapM evalExpression ix
-                   let key   = FloatVar_Array name ix
-                       index = map truncate res
-                   (updateFloatArrayVar key index) $! (toFloatFunc val)
-      
 ----------------------------- </Helping functions> ------------------------
-
- 
------------------------------ <Error definitions> -------------------------
-
-redim_error :: String -> LineNumber -> a
-redim_error comment nr = printError "?REDIM'D ARRAY ERROR" comment nr
-
-illqua_error :: String -> LineNumber -> a
-illqua_error comment nr = printError "?ILLEGAL QUANTIFY ERROR" comment nr
-
-
-undefst_error :: String -> LineNumber -> a
-undefst_error comment nr = printError "?UNDEF'D STATEMENT ERROR" comment nr
-
-interprete_error :: String -> LineNumber -> a
-interprete_error comment nr = printError "INTERPRETE ERROR" comment nr
-
-
-
-printError :: String -> String -> LineNumber -> a
-printError err comment nr =
-    let msg_tail = if null comment
-                     then " !"
-                     else ": " ++ comment ++ " !"
-    in error $ err ++ " in line " ++ show nr ++ msg_tail
-
------------------------------ </Error definitions> ------------------------
 
 
 -- The main interpret function, works on a Program, which means a list 
@@ -210,27 +148,34 @@ interpret ((lnNr,commands):xs) = do
 --     -> action is very, very ugly!!! (Generalizing things seems possible
 evalCommand :: Command -> PState ()
 evalCommand (IO_Com (Input ((InputStuff lsComment vars), printLn))) = do
-    state <- get 
+    state <- get
+    let out_handle = basic_stdout state 
     liftIO $ case lsComment of
                []  -> return ()
                [x] -> if printLn
                          then
-                           putStrLn x
+                           hPutStrLn out_handle x
                          else
-                           putStr x
+                           hPutStr out_handle x
                _   -> let ermsg = "Comment of INPUT command" 
                                   ++ " can only be a single STRING"
                       in interprete_error ermsg $ curPos state
-    mapM_ (flip insertIOValue (putStr "? " >> getLine)) vars
+    mapM_ (flip insertIOValue (liftIO $ (putStr "? " >> getLine))) vars
 
 -- The easiest way to get input chars and strings together is to make
 --  the chars to strings by combining with the empty list, so this is done
 evalCommand (IO_Com (Get vars)) = do
-    let get_act = putStr "? " >> getChar >>= (return . flip (:) [])
-    mapM_ (flip insertIOValue get_act) vars
+    state <- get
+    let out_h = Just $ basic_stdout state
+    getCommand stdin out_h vars
+   -- let get_act = putStr "? " >> getChar >>= (return . flip (:) [])
+  --  mapM_ (flip insertIOValue get_act) vars
 
 evalCommand (IO_Com (Print (list, printLn))) = do 
-    outStr <- mapM outputToString list
+    state <- get
+    let out_h = basic_stdout state
+    printCommand out_h list printLn 
+{-    outStr <- mapM outputToString list
     let printStr = foldl (++) "" $ outStr
     liftIO $ if printLn
                then
@@ -238,10 +183,21 @@ evalCommand (IO_Com (Print (list, printLn))) = do
                else
                  putStr printStr
   where
-    -- TODO: Int values should be ints, so no floats (no after komma signs) 
     outputToString :: Output -> PState String 
     outputToString (OutStringExpr x) = evalStringExpression x 
-    outputToString (OutNumExpr x) = evalExpression x >>= (return . show)
+    outputToString (OutNumExpr    x) = do
+        res <- evalExpression x 
+        let str = if isIntValue res
+                    then show $ truncate res
+                    else show res
+        return str
+  
+    isIntValue :: Float -> Bool 
+    isIntValue flnr = 
+        let coma_part = flnr - (fromIntegral $ truncate flnr)
+        in if coma_part == 0
+             then True
+             else False-}
 
 evalCommand NOOP = return ()            
 
@@ -275,7 +231,7 @@ evalCommand (ArithAssignment var numExpr) = do
         get_act    = evalExpression numExpr
         str_err    = "STRING value in numerical expression"
         toStr_func = \_ -> interprete_error str_err ln_nr
-        toInt_func = truncate
+        toInt_func = floatToIntConvert
         toFlt_func = id
     insertValue var' get_act toStr_func toInt_func toFlt_func
 
@@ -311,12 +267,13 @@ evalCommand (ControlStructure (For var (start,_,_))) = do
                 fromNext  = False 
               }
 
-evalCommand (Next (For var (start,step,end))) = do
+evalCommand (Next (For (FloatVar name) (start,step,end))) = do
     state <- get
     step' <- makeFloat step   
     end'  <- makeFloat end   
     let flvars = floatVars state
-        i      = getMapVal $ M.lookup var flvars
+        var    = FloatVar name
+        i      = getMapVal $ M.lookup name flvars
         i'     = i + step'
         fors   = for_lines state
     if i' > end'
@@ -359,10 +316,12 @@ evalCommand (Read vars) = mapM_ readVar vars
   where
         readVar :: Var -> PState ()
         readVar var = do
+            state <- get
             let get_act    = getNextDataElement
+                ln_nr      = curPos state
                 toStr_func = getDataString
-                toInt_func = getDataInt
-                toFlt_func = getDataFloat
+                toInt_func = flip getDataInt ln_nr
+                toFlt_func = flip getDataFloat ln_nr
             insertValue var get_act toStr_func toInt_func toFlt_func    
 
 evalCommand Restore = do
@@ -381,44 +340,186 @@ evalCommand (ControlStructure (On_Gosub numExpr linenums)) =
     doOn numExpr GoSub linenums
 
 evalCommand (Dim myvars) = mapM_ dimArray myvars  
-  where
+  {-where
         dimArray :: (Var,[Operand]) -> PState ()
         dimArray (var,dim'') = do
             state <- get
             dim'  <- mapM makeFloat dim''
             -- +1 because in c64 basic dimension gives the highest index!
-            let dim      = map (((+) 1) . truncate) dim'
+            let dim      = map (((+) 1) . floatToIntConvert) dim'
                 ins_func = \ _ -> Just (dim,M.empty)
-                ln_nr = curPos state
-            case var of 
-                 StringVar_Var (StringVar name )            -> 
-                      -- Check if array was dimensioned already
-                      case M.lookup name $ stringArrayVars state of
-                           Just _  -> redim_error [] ln_nr
-                           Nothing -> do
-                              let map    = stringArrayVars state
-                                  newars = M.alter ins_func name map
-                              put $ state { stringArrayVars = newars }
-                 NumVar_Var (NumVar_Int (IntVar name ))     -> 
-                      -- Check if array was dimensioned already
-                      case M.lookup name $ intArrayVars state of
-                           Just _  -> redim_error [] ln_nr
-                           Nothing -> do
-                              let map    = intArrayVars state
-                                  newars = M.alter ins_func name map
-                              put $ state { intArrayVars = newars }
-                 NumVar_Var (NumVar_Float (FloatVar name )) -> 
-                      -- Check if array was dimensioned already
-                      case M.lookup name $ floatArrayVars state of
-                           Just _  -> redim_error [] ln_nr
-                           Nothing -> do
-                              let map    = floatArrayVars state
-                                  newars = M.alter ins_func name map
-                              put $ state { floatArrayVars = newars }
-                 _   -> do
-                        let ermsg = "Dimensioning of non array"
-                                    ++ " variable tried" 
-                        interprete_error ermsg ln_nr 
+                ln_nr    = curPos state
+                test_dim = filter ((<=) 1) dim
+            if dim == test_dim
+              then
+                case var of 
+                     StringVar_Var (StringVar name )            -> 
+                          -- Check if array was dimensioned already
+                          case M.lookup name $ stringArrayVars state of
+                               Just _  -> redim_error [] ln_nr
+                               Nothing -> do
+                                  let map    = stringArrayVars state
+                                      newars = M.alter ins_func name map
+                                  put $ state { stringArrayVars = newars }
+                     NumVar_Var (NumVar_Int (IntVar name ))     -> 
+                          -- Check if array was dimensioned already
+                          case M.lookup name $ intArrayVars state of
+                               Just _  -> redim_error [] ln_nr
+                               Nothing -> do
+                                  let map    = intArrayVars state
+                                      newars = M.alter ins_func name map
+                                  put $ state { intArrayVars = newars }
+                     NumVar_Var (NumVar_Float (FloatVar name )) -> 
+                          -- Check if array was dimensioned already
+                          case M.lookup name $ floatArrayVars state of
+                               Just _  -> redim_error [] ln_nr
+                               Nothing -> do
+                                  let map    = floatArrayVars state
+                                      newars = M.alter ins_func name map
+                                  put $ state { floatArrayVars = newars }
+                     other -> do
+                          let ermsg = "Dimensioning of non array"
+                                      ++ " variable '" ++ show other 
+                                      ++ "' tried" 
+                          interprete_error ermsg ln_nr
+              else do
+                let ermsg = "Tried Dimensioning '" ++ show dim 
+                            ++ "' contains 0 or negative value" 
+                illqua_error ermsg ln_nr    -}
+
+evalCommand (IO_Com (Open fileID devID secID path_mode)) = do
+    state <- get
+    let (fid_min,fid_max) = file_id_range
+        ln_nr             = curPos state
+    if fileID >= fid_min && fileID <= fid_max
+      then do
+        let devID' = getDevID devID ln_nr 
+        handleDevices fileID devID' secID path_mode     
+        {-let devID' = getDevID devID ln_nr
+        if devID' == devID_monitor && secID == Nothing
+          -- standard output
+          then insertFileHandle fileID stdout            
+          -- currently have to be device == filesys, now we need a 
+          --  valid second id
+          else if devID' == devID_filesys
+                 then do
+            {-
+            -- sec id needed???
+            let secID' = case secID of
+                              Nothing             -> defaultSecondID 
+                              Just secID_read     -> secID_read
+                              Just secID_write    -> secID_write
+                              -- eof is written automatically every time
+                              Just secID_writeEOF -> secID_write 
+                              Just other          -> do
+                                    let ermsg = "Unsupported SecondID '" 
+                                                ++ show other ++ "'"
+                                    io_error ermsg ln_nr
+             -}
+                -- middle args ftype needed for something??
+                   let (path,_,mode) = case path_mode of 
+                                            Nothing -> 
+                                               let ermsg = "You have to give a " 
+                                                           ++ "path/mode for "
+                                                           ++ "file system IO"
+                                               in io_error ermsg ln_nr
+                                            Just x  -> 
+                                               splitpath_mode x ln_nr
+                   handle <- liftIO $ openFile path mode
+                   insertFileHandle fileID handle
+                 else io_error "Invalid OPEN configuration" ln_nr
+         -}
+      else do
+        let ermsg = "FileID '" ++ show fileID ++ "' is not in valid range " 
+                    ++ show file_id_range
+        io_error ermsg ln_nr
+ 
+   where
+     handleDevices :: Int -> Int -> Maybe Int -> Maybe String -> PState () 
+     handleDevices fileID devID secID path_mode
+      | devID == devID_monitor  = 
+           if secID == Nothing
+             -- standard output
+             then insertFileHandle fileID stdout
+             else do 
+               state <- get
+               io_error "Invalid OPEN configuration" $ curPos state
+      | devID == devID_filesys  = do
+           state <- get
+           let ln_nr = curPos state
+            {-
+            -- sec id needed???
+            let secID' = case secID of
+                              Nothing             -> defaultSecondID 
+                              Just secID_read     -> secID_read
+                              Just secID_write    -> secID_write
+                              -- eof is written automatically every time
+                              Just secID_writeEOF -> secID_write 
+                              Just other          -> do
+                                    let ermsg = "Unsupported SecondID '" 
+                                                ++ show other ++ "'"
+                                    io_error ermsg ln_nr
+             -}
+           -- middle args ftype needed for something??
+           let (path,_,mode) = case path_mode of 
+                                    Nothing -> 
+                                       let ermsg = "You have to give a " 
+                                                   ++ "path/mode for "
+                                                   ++ "file system IO"
+                                        in io_error ermsg ln_nr
+                                    Just x  -> splitpath_mode x ln_nr
+           handle <- liftIO $ openFile path mode
+           insertFileHandle fileID handle
+      | devID == devID_keyboard = do
+           if secID == Nothing
+             -- standard input
+             then insertFileHandle fileID stdin
+             else do 
+               state <- get
+               io_error "Invalid OPEN configuration" $ curPos state
+      | otherwise               = do
+           state <- get
+           io_error "Invalid OPEN configuration" $ curPos state
+
+evalCommand (IO_Com (Close fileID)) = do
+    state <- get
+    let handle       = getMapVal $ M.lookup fileID $ file_handles state
+        new_fhandles = M.delete fileID $ file_handles state
+        new_eofs     = M.delete (show handle) $ eof_reached state
+    liftIO $ hClose handle
+    put $ state { 
+            file_handles = new_fhandles, 
+            eof_reached  = new_eofs
+          }
+    
+evalCommand (IO_Com (GetF fileID vars)) = do
+    state <- get
+    let my_handle = getMapVal $ M.lookup fileID $ file_handles state
+    getCommand my_handle Nothing vars
+
+evalCommand (IO_Com (PrintF fileID (output,printLn))) = do
+    state <- get
+    let my_handle = getMapVal $ M.lookup fileID $ file_handles state
+        bs_stdout = basic_stdout state
+    if my_handle == bs_stdout
+      then if null output
+             then put $ state { basic_stdout = stdout }
+             else return ()
+      else return ()
+    printCommand my_handle output printLn 
+
+evalCommand (IO_Com (InputF fileID vars)) = do
+    state <- get
+    let my_handle = getMapVal $ M.lookup fileID $ file_handles state
+    mapM_ (flip insertIOValue (getfileInput my_handle)) vars
+
+evalCommand (IO_Com (Cmd fileID m_string)) = do
+    state <- get
+    let my_handle = getMapVal $ M.lookup fileID $ file_handles state
+    put $ state { basic_stdout = my_handle }
+    case m_string of
+         Nothing -> return ()
+         Just x  -> evalCommand $ IO_Com $ Print ([OutStringExpr $ StringOp $ StringLiteral $ x],True)
 
 evalCommand com = do
     state <- get
@@ -426,4 +527,99 @@ evalCommand com = do
     interprete_error ("Unknown command '" ++ show com ++ "'") ln_nr 
 
 
+getfileInput :: Handle -> PState String
+getfileInput handleIn = do
+    inp <- myHGetChar handleIn
+    if inp == io_sep || inp == '\n'
+      then return [] -- seperator case, stop parsing, ignore separator sign
+      else do
+        rst <- getfileInput handleIn
+        return (inp : rst)
 
+getCommand :: Handle -> Maybe Handle -> [Var] -> PState ()
+getCommand handleIn handleOut vars = do
+    let pre_liner = case handleOut of
+                         Just h  -> liftIO $ hPutStr h "? "
+                         Nothing -> return ()
+        get       = myHGetChar handleIn
+        get_act   = pre_liner >> get >>= (return . flip (:) [])
+    mapM_ (flip insertIOValue get_act) vars
+
+
+--hgetCharEOF :: Handle -> IO Char
+hGetCharEOF handle =  (hGetChar handle) `catch` eofHandler 
+  where
+    eofHandler e = if isEOFError e 
+                     then return '\0' -- safe way ??
+                     else error "getCHar error; TODO!!!"
+
+myHGetChar :: Handle -> PState Char
+myHGetChar handle =  do
+    nc <- liftIO $ hGetCharEOF handle
+    if nc == '\0'
+      then do -- EOF case
+         state <- get 
+         let eofs = eof_reached state
+         case M.lookup (show handle) $ eofs of
+              Nothing -> do -- all ok, set the register flag
+                  let new_eofs = M.insert (show handle) True eofs
+                      st_ref   = getMapVal $ M.lookup "ST" $ floatVars state
+                      st_ref_bin = reverse $ toBin $ floatToIntConvert st_ref
+                      st_ref_bin' = reverse $ take 5 st_ref_bin ++ [1] ++ drop 6 st_ref_bin
+                      new_st_ref  = fromIntegral $ toIntFromBin $ trace ("new ST val in bin = " ++ show st_ref_bin) st_ref_bin'
+                  trace ("updating ST var to: " ++ show new_st_ref) $ updateFloatVar (FloatVar "ST") new_st_ref
+                  state' <- get
+                  put $ state' { eof_reached = new_eofs } 
+                  return '\n'
+              Just _  -> -- eof thrown second time, error case
+                  error "EOF ERROR: TODO!"
+      else return nc
+
+
+printCommand :: Handle -> [Output] -> Bool -> PState ()
+printCommand handleOut output printLn = do
+    outStr <- mapM outputToString output
+    let printStr = foldl (++) "" $ outStr
+    liftIO $ if printLn
+               then
+                 hPutStrLn handleOut printStr
+               else
+                 hPutStr handleOut printStr
+  where
+    outputToString :: Output -> PState String 
+    outputToString (OutStringExpr x) = evalStringExpression x 
+    outputToString (OutNumExpr    x) = do
+        res <- evalExpression x 
+        let str = if isIntValue res
+                    then show $ truncate res
+                    else show res
+        return str
+  
+    isIntValue :: Float -> Bool 
+    isIntValue flnr = 
+        let coma_part = flnr - (fromIntegral $ truncate flnr)
+        in if coma_part == 0
+             then True
+             else False
+
+splitpath_mode :: String -> LineNumber -> (String,String,IOMode)
+splitpath_mode str ln_nr =
+    let seps = findIndices ((==) io_sep) str
+    in case length seps of
+            0 -> (str,default_type,default_mode)
+            1 -> let (path,ftype) = splitAt (head seps) str
+                     nm_ftype     = getType $ map toLower ftype
+                 in (path,nm_ftype,default_mode)
+            2 -> let (path,rst)   = splitAt (head seps) str
+                     rst'         = tail rst -- first sign is the first comma!
+	             newIdx       = findIndices ((==) io_sep) rst'
+                     (ftype,mode) = splitAt (head newIdx) rst'
+                     nm_ftype     = getType $ map toLower ftype
+                     nm_mode      = basicToHaskellMode $ tail mode -- s.a.
+                 in (path,nm_ftype,nm_mode)
+            x -> let ermsg = "Invalid path/mode format string '" 
+                             ++ str ++ "', correct format is: "
+                             ++ "\"<path>[,<type>][,<mode>]\""
+                 in io_error ermsg ln_nr
+                    
+ 

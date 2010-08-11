@@ -21,7 +21,7 @@ $alpha_num = [$alpha$digit]
 
 $varOrRW_PreContext = [$white \; : \( \)]
 
-@varOrResWord = $alpha $alpha_num*   -- seems not possible to distinguish between reserved 
+@varOrResWord = $alpha [$alpha_num]* \#?  -- seems not possible to distinguish between reserved 
                                                      --  words and variables with regular expressions alone, 
                                                      --   so further processing is handled by myself 
 
@@ -75,8 +75,10 @@ tokens :-
 
   <normal>   \"             {andBegin (\inp len -> wrapMonadic inp len (\_ -> TkStringStart)  "bli") string} 
   <string>   [^\\\"]*       {\inp len -> wrapMonadic inp len TkString "bli" }   -- "
-  <string>   \\             {andBegin (\inp len -> wrapMonadic inp len TkString "bli") escaped} 
-  <escaped>  .              {andBegin (\inp len -> wrapMonadic inp len TkString "bli")  string}
+--  <string>   \\             {andBegin (\inp len -> wrapMonadic inp len TkString "bli") escaped} 
+  <string>   \\             {begin escaped} 
+--  <string>   \\ .            {\inp len -> wrapMonadic inp len TkString "bli" } 
+  <escaped>  .              {andBegin (\inp len -> wrapMonadic inp len buildEscapedSeq "bli")  string}
   <string>   \"             {andBegin (\inp len -> wrapMonadic inp len (\s -> TkStringEnd ) "bli") normal}  
 
 ---------------- </Strings, Number, Vars and Reserved Words> ----------------
@@ -115,6 +117,11 @@ tokens :-
 {
 
 
+buildEscapedSeq :: String -> Token
+buildEscapedSeq str 
+    | str == "n"   = TkString "\n"
+    | str == "\""  = TkString "\""
+
 -- The idea for this function is simple, first check against all reserved 
 --  words, if the input is one of them, if not successful, it should be a 
 --   variable
@@ -141,47 +148,54 @@ buildResWord str' =
     in buildResWord' nmstr
   where
         buildResWord' str
-            | str == "print"    = [TkPrint]
-            | str == "input"    = [TkInput]
-            | str == "for"      = [TkFor]
-            | str == "to"       = [TkTo]
-            | str == "next"     = [TkNext]
-            | str == "on"       = [TkOn]
-            | str == "if"       = [TkIf]
-            | str == "then"     = [TkThen]
-            | str == "goto"     = [TkGoto]
-            | str == "step"     = [TkStep]
-            | str == "len"      = [TkLen]
-            | str == "or"       = [TkLogOr]
-            | str == "and"      = [TkLogAnd]
-            | str == "not"      = [TkLogNeg]
-            | str == "return"   = [TkReturn]
-            | str == "gosub"    = [TkGoSub]
-            | str == "end"      = [TkEnd]
-            | str == "get"      = [TkGet]
-            | str == "rnd"      = [TkRandom]
-            | str == "int"      = [TkIntFunc]
-            | str == "read"     = [TkRead]
-            | str == "data"     = [TkData]
-            | str == "restore"  = [TkRestore]
-            | str == "abs"      = [TkAbsFunc]
-            | str == "asc"      = [TkAscFunc]
-            | str == "atn"      = [TkAtnFunc]
-            | str == "chr$"     = [TkChrFunc] 
-            | str == "cos"      = [TkCosFunc] 
-            | str == "exp"      = [TkExpFunc] 
-            | str == "log"      = [TkLogFunc] 
-            | str == "val"      = [TkValFunc] 
-            | str == "sgn"      = [TkSgnFunc] 
-            | str == "sin"      = [TkSinFunc] 
-            | str == "sqr"      = [TkSqrFunc] 
-            | str == "tan"      = [TkTanFunc] 
-            | str == "left$"    = [TkLeftFunc] 
-            | str == "mid$"     = [TkMidFunc] 
-            | str == "right$"   = [TkRightFunc] 
-            | str == "str$"     = [TkStrFunc] 
-            | str == "dim"      = [TkDim] 
-            | str == "def"      = [TkDef]
+            | str == "open"     = [ TkOpen      ]
+            | str == "cmd"      = [ TkCmd       ]
+            | str == "close"    = [ TkClose     ]
+            | str == "get#"     = [ TkGetF      ]
+            | str == "print"    = [ TkPrint     ]
+            | str == "print#"   = [ TkPrintF    ]
+            | str == "input"    = [ TkInput     ]
+            | str == "input#"   = [ TkInputF    ]
+            | str == "for"      = [ TkFor       ]
+            | str == "to"       = [ TkTo        ]
+            | str == "next"     = [ TkNext      ]
+            | str == "on"       = [ TkOn        ]
+            | str == "if"       = [ TkIf        ]
+            | str == "then"     = [ TkThen      ]
+            | str == "goto"     = [ TkGoto      ]   
+            | str == "step"     = [ TkStep      ]
+            | str == "len"      = [ TkLen       ]
+            | str == "or"       = [ TkLogOr     ]
+            | str == "and"      = [ TkLogAnd    ]
+            | str == "not"      = [ TkLogNeg    ]
+            | str == "return"   = [ TkReturn    ]
+            | str == "gosub"    = [ TkGoSub     ]
+            | str == "end"      = [ TkEnd       ]
+            | str == "get"      = [ TkGet       ]
+            | str == "rnd"      = [ TkRandom    ]
+            | str == "int"      = [ TkIntFunc   ]
+            | str == "read"     = [ TkRead      ]
+            | str == "data"     = [ TkData      ]
+            | str == "restore"  = [ TkRestore   ]
+            | str == "ti"       = [ TkTI_Reg    ]
+            | str == "abs"      = [ TkAbsFunc   ]
+            | str == "asc"      = [ TkAscFunc   ]
+            | str == "atn"      = [ TkAtnFunc   ]
+            | str == "chr$"     = [ TkChrFunc   ] 
+            | str == "cos"      = [ TkCosFunc   ] 
+            | str == "exp"      = [ TkExpFunc   ]   
+            | str == "log"      = [ TkLogFunc   ] 
+            | str == "val"      = [ TkValFunc   ] 
+            | str == "sgn"      = [ TkSgnFunc   ] 
+            | str == "sin"      = [ TkSinFunc   ] 
+            | str == "sqr"      = [ TkSqrFunc   ] 
+            | str == "tan"      = [ TkTanFunc   ] 
+            | str == "left$"    = [ TkLeftFunc  ] 
+            | str == "mid$"     = [ TkMidFunc   ] 
+            | str == "right$"   = [ TkRightFunc ] 
+            | str == "str$"     = [ TkStrFunc   ]  
+            | str == "dim"      = [ TkDim       ] 
+            | str == "def"      = [ TkDef       ]
             | isPrefixOf "fn" str = 
                   let len = length str
                   in if len == 3 || len == 4

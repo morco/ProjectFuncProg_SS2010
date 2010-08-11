@@ -15,6 +15,7 @@ data Token
   -- IO commands
      | TkPrint  
      | TkInput  
+     | TkInputF  
      | TkGet  
 
   -- Controlstructures
@@ -62,6 +63,13 @@ data Token
 
   -- Others
      | TkComment
+     | TkDim 
+
+     | TkOpen
+     | TkClose
+     | TkGetF
+     | TkPrintF
+     | TkCmd
 -------- </Reserved words> ---------------
 
 -------- <Combinators> -------------------
@@ -109,7 +117,7 @@ data Token
      | TkStringVar                String 
      | TkIntVar                   String 
      | TkFloatVar_Or_DataString   String
-     | TkDim 
+     | TkTI_Reg 
 
 ----- </Variables, Strings, Numbers> -----
 
@@ -213,9 +221,8 @@ data BasicString
     deriving (Show,Eq,Ord)
 
 data NumFunction
-    = Len      String
-    | LenVar   StringVar
-    | Random   Int
+    = Len      StringExpr
+    | Random   NumExpr
     | IntFunc  NumExpr
     | AbsFunc  NumExpr
     | AscFunc  StringExpr
@@ -252,7 +259,13 @@ data CompExpr
 data IOCommand 
     = Print   ([Output], Bool)
     | Input   (InputStuff, Bool)
+    | InputF  Int [Var]
     | Get     [Var]
+    | Open    Int (Maybe Int) (Maybe Int) (Maybe String)
+    | Close   Int
+    | GetF    Int [Var]
+    | PrintF  Int ([Output],Bool)
+    | Cmd     Int (Maybe String)
     deriving (Show,Eq)
 
 data Output
@@ -282,6 +295,7 @@ data Operand
     = OpVar        NumVar
     | IntConst     Int
     | FloatConst   Float
+    | TI_Reg
     deriving (Show,Eq,Ord)
 
 data NumVar

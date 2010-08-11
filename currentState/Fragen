@@ -7,7 +7,7 @@ Was passiert genau, wenn bei next die Variable weggelassen wird?
 Benutzung von Variablen ohne Init gestattet(z.B. S$ = S$ + "*")?
 -Ja, auto init mit 0 oder "" ---> TODO!!
 
-Vergleich von int und floats (cast)??
+Vergleich von int und floats (cast) -> jap, geht
 
 kann beim if das then weggelassen werden? 
 - Ja
@@ -35,5 +35,5 @@ Wenn Init var in Zeile 100, und dann goto Zeile 30, ist dann var noch da? --> Au
 String vergleich mit numerical ?
 -> Type Mismatch error !!
 
-170 if 5 = 2 and 2 ... ---> logisches oder arithmetisches und ??
+170 if 5 = 2 and 2 ... ---> logisches oder arithmetisches und ?? --> immer arithmetisch!
 (then print "" : REM 2<3 or "bla" = "bla" then print "Should come here! ln: 170")
