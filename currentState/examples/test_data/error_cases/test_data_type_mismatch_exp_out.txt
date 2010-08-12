@@ -1,0 +1,5 @@
+12
+13.45
+34
+basic_interprete: ?TYPE MISMATCH ERROR in line 10: 
+			Unallowed DATA value 'DataString "Hans"', expected NUMERICAL! !

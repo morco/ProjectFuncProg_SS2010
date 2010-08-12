@@ -1,0 +1,36 @@
+#! /bin/bash
+
+echo "Running all for tests basic progs "
+echo "(a diff will be done comparing exp with produced output)"
+echo "all used files are in the sub dir examples/test_for, "
+echo "if you want to look at them..."
+
+echo 
+
+echo "Test 1: Test easy cases of for"
+echo -e "\t -> standard for with step 2"
+echo -e "\t -> next without var"
+./basic_interprete examples/test_for/test_for_simple_cases.bas &> examples/test_for/temp
+echo "Difference between produced and exp output:"
+diff examples/test_for/temp examples/test_for/test_for_simple_cases_exp_out.txt
+echo "End test 1."
+
+echo
+
+echo "Test 2: Test more cases of for command"
+echo -e "\t -> standard for with float step"
+echo -e "\t -> for with next in one line"
+echo -e "\t -> for and for commands in one line, but next in further line"
+echo -e "\t -> for and next in one line without commands"
+echo -e "\t -> for not the first command in line"
+echo -e "\t -> nested fors with a single next"
+echo -e "\t -> nested fors with 3 nexts but without vars"
+./basic_interprete examples/test_for/test_for_more_cases.bas &> examples/test_for/temp
+echo "Difference between produced and exp output:"
+diff examples/test_for/temp examples/test_for/test_for_more_cases_exp_out.txt
+echo "End test 2."
+
+echo
+
+rm examples/test_for/temp
+ 

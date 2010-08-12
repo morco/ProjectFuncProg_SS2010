@@ -27,5 +27,5 @@ updateFloatVar :: FloatVar -> Float -> PState ()
 
 updateStringVar :: StringVar -> String -> PState ()
 
-allSmaller :: (Ord a) => [a] -> [a] -> Bool
+allSmaller :: (Num a,Ord a) => [a] -> [a] -> Bool
 

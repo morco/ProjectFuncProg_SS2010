@@ -1,0 +1,4 @@
+File was read!
+File was appended!
+File was read again!
+Append successful!

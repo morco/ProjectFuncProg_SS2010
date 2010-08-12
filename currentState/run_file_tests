@@ -1,0 +1,78 @@
+#! /bin/bash
+
+echo "Running all file tests basic progs "
+echo "(a diff will be done comparing expected with produced output)"
+echo "all used files are in the sub dir examples/test_fileIO, "
+echo "if you want to look at them..."
+
+echo 
+
+echo "Test 1: Test get# (character input from file)"
+./basic_interprete examples/test_fileIO/test_getf.bas &> examples/test_fileIO/temp
+echo "Difference between produced and expected output:"
+diff examples/test_fileIO/temp examples/test_fileIO/test_getf_expected_out.txt
+echo "End test 1."
+
+echo
+
+echo "Test 2: Test get# (character input from file) with EOF checking"
+./basic_interprete examples/test_fileIO/test_getf_withEOF.bas &> examples/test_fileIO/temp
+echo "Difference between produced and expected output:"
+diff examples/test_fileIO/temp examples/test_fileIO/test_getf_withEOF_expected_out.txt
+echo "End test 2."
+
+echo
+
+echo "Test 3: Test input# (some kind of line input(not exact!) from file)"
+./basic_interprete examples/test_fileIO/test_inputf.bas &> examples/test_fileIO/temp
+echo "Difference between produced and expected output:"
+diff examples/test_fileIO/temp examples/test_fileIO/test_inputf_expected_out.txt
+echo "End test 3."
+
+echo
+
+echo "Test 4: Test cmd (changing std_out)"
+rm examples/test_fileIO/test_files/test_cmd.txt
+./basic_interprete examples/test_fileIO/test_cmd.bas &> examples/test_fileIO/temp
+echo "Difference between produced and expected output" 
+echo "(for the lines going to std_out):"
+diff examples/test_fileIO/temp examples/test_fileIO/test_cmd_expected_out_std.txt
+echo "Difference between produced and expected output" 
+echo "(for the lines going to file):"
+diff examples/test_fileIO/test_files/test_cmd.txt examples/test_fileIO/test_cmd_expected_out_file.txt
+echo "End test 4."
+
+echo
+
+echo "Test 5: Test print# (output to file)"
+rm examples/test_fileIO/test_files/test_printf.txt
+./basic_interprete examples/test_fileIO/test_printf.bas 
+echo "Difference between produced and expected output:"
+echo "(because this depends on user input 1 difference is normal here)"
+diff examples/test_fileIO/test_files/test_printf.txt examples/test_fileIO/test_printf_expected_out.txt
+echo "End test 5."
+
+echo
+
+echo "Test 6: Test complex example for file append "
+echo "(read a file, append some lines, read the file again, compare)"
+head -n 4 examples/test_fileIO/test_append_expected_out_file.txt > examples/test_fileIO/test_files/test_append.txt
+./basic_interprete examples/test_fileIO/test_file_append.bas &> examples/test_fileIO/temp
+echo "Difference between produced and expected output:"
+echo "(for the lines going to std_out):"
+diff examples/test_fileIO/temp examples/test_fileIO/test_append_expected_out_std.txt
+echo "Difference between produced and expected output" 
+echo "(for the lines going to file):"
+diff examples/test_fileIO/test_files/test_append.txt examples/test_fileIO/test_append_expected_out_file.txt
+echo "End test 6."
+
+echo
+
+echo "Test 7: Test std IO (over device numbers)"
+echo "No diff test here, because of much user interaction, test interactive..."
+./basic_interprete examples/test_fileIO/test_stdIO_withDevNum.bas 
+echo "End test 7."
+ 
+echo
+
+rm examples/test_fileIO/temp 

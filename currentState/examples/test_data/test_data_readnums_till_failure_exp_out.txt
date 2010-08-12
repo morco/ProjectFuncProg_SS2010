@@ -1,0 +1,6 @@
+X IST NUN :1
+X IST NUN :34
+X IST NUN :10.5
+X IST NUN :16
+X IST NUN :234.56
+basic_interprete: ?OUT OF DATA ERROR in line 10 !

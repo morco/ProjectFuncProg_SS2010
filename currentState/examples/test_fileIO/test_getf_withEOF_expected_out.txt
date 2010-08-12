@@ -1,0 +1,225 @@
+ST is = 0
+Gelesen: h
+ST is = 0
+Gelesen: i
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen: r
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: s
+ST is = 0
+Gelesen: t
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen: h
+ST is = 0
+Gelesen: t
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: t
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen: x
+ST is = 0
+Gelesen: t
+ST is = 0
+Gelesen: ,
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: u
+ST is = 0
+Gelesen: m
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: d
+ST is = 0
+Gelesen: i
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: b
+ST is = 0
+Gelesen: a
+ST is = 0
+Gelesen: s
+ST is = 0
+Gelesen: i
+ST is = 0
+Gelesen: c
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: F
+ST is = 0
+Gelesen: I
+ST is = 0
+Gelesen: l
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: I
+ST is = 0
+Gelesen: o
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: z
+ST is = 0
+Gelesen: u
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: t
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen: s
+ST is = 0
+Gelesen: t
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen: n
+ST is = 0
+Gelesen: !
+ST is = 0
+Gelesen: 
+
+ST is = 0
+Gelesen: d
+ST is = 0
+Gelesen: a
+ST is = 0
+Gelesen: s
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: i
+ST is = 0
+Gelesen: s
+ST is = 0
+Gelesen: t
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: s
+ST is = 0
+Gelesen: c
+ST is = 0
+Gelesen: h
+ST is = 0
+Gelesen: o
+ST is = 0
+Gelesen: n
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: d
+ST is = 0
+Gelesen: i
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: 2
+ST is = 0
+Gelesen: t
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: Z
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen: i
+ST is = 0
+Gelesen: l
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen: 
+
+ST is = 0
+Gelesen: k
+ST is = 0
+Gelesen: r
+ST is = 0
+Gelesen: a
+ST is = 0
+Gelesen: m
+ST is = 0
+Gelesen: s
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: i
+ST is = 0
+Gelesen: n
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: 3
+ST is = 0
+Gelesen: 
+
+ST is = 0
+Gelesen: n
+ST is = 0
+Gelesen: o
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: i
+ST is = 0
+Gelesen: d
+ST is = 0
+Gelesen: e
+ST is = 0
+Gelesen: a
+ST is = 0
+Gelesen:  
+ST is = 0
+Gelesen: $
+ST is = 0
+Gelesen: /
+ST is = 0
+Gelesen: /
+ST is = 0
+Gelesen: (
+ST is = 0
+Gelesen: )
+ST is = 0
+Gelesen: §
+ST is = 0
+Gelesen: "
+ST is = 0
+Gelesen: !
+ST is = 0
+Gelesen: !
+ST is = 0
+Gelesen: %
+ST is = 0
+Gelesen: /
+ST is = 0
+Gelesen: =
+ST is = 0
+Gelesen: 
+
+ST is = 0
+Gelesen: 
+

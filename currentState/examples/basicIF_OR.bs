@@ -1,4 +1,0 @@
-30 print "Zurück in die Zukunft!!"
-80 input l$                                     
-100 if (l$ = "J") or (l$ = "j") then goto 30
-

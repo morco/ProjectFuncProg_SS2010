@@ -3,7 +3,8 @@ module Expressions
   makeFloat,
   evalExpression,
   evalStringExpression,
-  evalBoolExpression
+  evalBoolExpression,
+  isIntValue
 )
 where 
 
@@ -225,7 +226,7 @@ evalNumFunc (LogFunc numExpr) = do
       else do
         state <- get
         let ermsg = "LOG argument '" ++ show res 
-                    ++ "' is zero or negative!"
+                    ++ "' is zero or negative"
         illqua_error ermsg $ curPos state
 
 evalNumFunc (ValFunc strExpr) = 
@@ -241,7 +242,7 @@ evalNumFunc (SqrFunc numExpr) = do
       then return $ sqrt res
       else do
         state <- get
-        let ermsg = "SQR argument '" ++ show res ++ "' is negative!"
+        let ermsg = "SQR argument '" ++ show res ++ "' is negative"
         illqua_error ermsg $ curPos state
  
 evalNumFunc (TanFunc numExpr) = evalExpression numExpr >>= (return . tan)
@@ -361,12 +362,15 @@ evalStringFunc (ChrFunc numExpr) = do
       else do
         state <- get
         let ermsg = "Converting number '" ++ show res 
-                    ++ "' to ASCII char not possible!"
+                    ++ "' to ASCII char not possible"
         illqua_error ermsg $ curPos state
 
 evalStringFunc (StrFunc numExpr) = do
     res <- evalExpression numExpr
-    return $ show res
+    let str = if isIntValue res
+                then show $ floatToIntConvert res
+                else show $ res
+    return str
 
 evalStringFunc (LeftFunc strExpr numExpr) = do
     res <- evalExpression numExpr
@@ -377,7 +381,7 @@ evalStringFunc (LeftFunc strExpr numExpr) = do
       else do 
         state <- get
         let ermsg = "Length argument for string function '" 
-                    ++ show res ++ "' is negative!" 
+                    ++ show res ++ "' is negative" 
         illqua_error ermsg $ curPos state
 
 evalStringFunc (RightFunc strExpr numExpr) = do
@@ -393,7 +397,7 @@ evalStringFunc (RightFunc strExpr numExpr) = do
       else do 
         state <- get
         let ermsg = "Length argument for string function '" 
-                    ++ show res ++ "' is negative!" 
+                    ++ show res ++ "' is negative" 
         illqua_error ermsg $ curPos state
 
 evalStringFunc (MidFunc strExpr numExpr1 numExpr2) = do
@@ -411,8 +415,8 @@ evalStringFunc (MidFunc strExpr numExpr1 numExpr2) = do
         state <- get
         let ermsg = "Length argument for string function '" 
                     ++ show len ++ "' is negative "
-                    ++ "or index for string function '" 
-                    ++ show startPos ++ "' is negative or zero!"
+                    ++ "or index for \n\t\t\t  string function '" 
+                    ++ show startPos ++ "' is negative or zero"
         illqua_error ermsg $ curPos state
 
 
@@ -448,4 +452,12 @@ boolToInt False = 0
 
 
 ---------------------------------- </Bools> ---------------------------------
+
+isIntValue :: Float -> Bool
+isIntValue flnr =
+    let coma_part = flnr - (fromIntegral $ truncate flnr)
+    in if coma_part == 0
+         then True
+         else False
+
 

@@ -1,0 +1,2 @@
+basic_interprete: ?BAD SUPSCRIPT ERROR in line 40: 
+			Invalid array index '[7]' for array variable 'b' with dimension '[5]' !

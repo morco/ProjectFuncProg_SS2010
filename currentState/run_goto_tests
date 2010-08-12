@@ -1,0 +1,27 @@
+#! /bin/bash
+
+echo "Running all goto tests basic progs "
+echo "(a diff will be done comparing exp with produced output)"
+echo "all used files are in the sub dir examples/test_goto, "
+echo "if you want to look at them..."
+
+echo 
+
+echo "Test 1: Test gosub (Jump to sub routine == simple method invocing)"
+./basic_interprete examples/test_goto/test_gosub.bas &> examples/test_goto/temp
+echo "Difference between produced and exp output:"
+diff examples/test_goto/temp examples/test_goto/test_gosub_exp_out.txt
+echo "End test 1."
+
+echo
+
+echo "Test 2: Test \"on\" command (Jump to a line, taken from a"
+echo -e "\t list with the index given by a numerical expression)"
+./basic_interprete examples/test_goto/test_on_com.bas &> examples/test_goto/temp
+echo "Difference between produced and exp output:"
+diff examples/test_goto/temp examples/test_goto/test_on_com_exp_out.txt
+echo "End test 2."
+
+echo
+
+rm examples/test_goto/temp 

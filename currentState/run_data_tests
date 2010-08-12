@@ -1,0 +1,62 @@
+#! /bin/bash
+
+echo "Running all data tests basic progs "
+echo "(a diff will be done comparing exp with produced output)"
+echo "all used files are in the sub dir examples/test_data, "
+echo "if you want to look at them..."
+
+echo 
+
+echo "Test 1: Read numbers (with \"out of data\" failure)"
+./basic_interprete examples/test_data/test_data_readnums_till_failure.bas &> examples/test_data/temp
+echo "Difference between produced and exp output:"
+diff examples/test_data/temp examples/test_data/test_data_readnums_till_failure_exp_out.txt
+echo "End test 1."
+
+echo
+
+echo "Test 2: Read numbers (with end flag, so no failure)"
+./basic_interprete examples/test_data/test_data_readnums_with_endflag.bas &> examples/test_data/temp
+echo "Difference between produced and exp output:"
+diff examples/test_data/temp examples/test_data/test_data_readnums_with_endflag_exp_out.txt
+echo "End test 2."
+
+echo
+
+echo "Test 3: Test all data types (string,float,int)"
+./basic_interprete examples/test_data/test_data_alltypes.bas &> examples/test_data/temp
+echo "Difference between produced and exp output:"
+diff examples/test_data/temp examples/test_data/test_data_alltypes_exp_out.txt
+echo "End test 3."
+
+echo
+
+echo "Test 4: Test \"structered\" data (combining numbers and strings useful)"
+./basic_interprete examples/test_data/test_data_structure.bas &> examples/test_data/temp
+echo "Difference between produced and exp output" 
+diff examples/test_data/temp examples/test_data/test_data_structure_exp_out.txt
+echo "End test 4."
+
+echo
+
+echo "Test 5: Test restore command (== resetting data pointer to start)"
+./basic_interprete examples/test_data/test_data_restore.bas &> examples/test_data/temp
+echo "Difference between produced and exp output" 
+diff examples/test_data/temp examples/test_data/test_data_restore_exp_out.txt
+echo "End test 5."
+
+echo
+
+echo "Now running error case tests..."
+
+echo
+
+echo "Test 6: Tests data type mismatch"
+./basic_interprete examples/test_data/error_cases/test_data_type_mismatch.bas &> examples/test_data/temp
+echo "Difference between produced and exp output:"
+diff examples/test_data/temp examples/test_data/error_cases/test_data_type_mismatch_exp_out.txt
+echo "End test 6."
+
+echo
+
+rm examples/test_data/temp 

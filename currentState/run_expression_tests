@@ -1,0 +1,145 @@
+#! /bin/bash
+
+echo "Running all expression tests basic progs "
+echo "(a diff will be done comparing exp with produced output)"
+echo "all used files are in the sub dir examples/test_expression, "
+echo "if you want to look at them..."
+
+echo 
+
+echo "Test 1: Test basic numerical expressions (+,-,*,/,brackets)"
+./basic_interprete examples/test_expressions/test_num_expr.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/test_num_expr_exp_out.txt
+echo "End test 1."
+
+echo
+
+echo "Test 2: Test numerical functions (log,exp,sin,...)"
+echo -e "\t (you have to put in 1 number for absolute fn, atan fn and a sign for" 
+echo -e "\t  ASCII-To-Int fn, this means some difference are normal)"
+./basic_interprete examples/test_expressions/test_num_funcs.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/test_num_funcs_exp_out.txt
+echo "End test 2."
+
+echo
+
+echo "Test 3: Test binary operations (and,or,not) "
+./basic_interprete examples/test_expressions/test_binary_ops.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/test_binary_ops_exp_out.txt
+echo "End test 3."
+
+echo
+
+echo "Test 4: Test user formula define command deffn"
+./basic_interprete examples/test_expressions/test_def_fn.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output" 
+diff examples/test_expressions/temp examples/test_expressions/test_def_fn_exp_out.txt
+echo "End test 4."
+
+echo
+
+echo "Test 5: Test string functions (chr$,left$,...)"
+./basic_interprete examples/test_expressions/test_string_funcs.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output" 
+diff examples/test_expressions/temp examples/test_expressions/test_string_funcs_exp_out.txt
+echo "End test 5."
+
+echo
+
+echo "Test 6: Test boolean expressions "
+echo "(== numerical expressions(even compare!) with 0 == False, -1 == True)"
+./basic_interprete examples/test_expressions/test_bool_expr.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output" 
+diff examples/test_expressions/temp examples/test_expressions/test_bool_expr_exp_out.txt
+echo "End test 6."
+
+echo
+
+echo "Now running error case tests..."
+
+echo
+
+echo "Test 7: Test log argument == 0"
+./basic_interprete examples/test_expressions/error_cases/test_num_funcs_log0.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/error_cases/test_num_funcs_log0_exp_out.txt
+echo "End test 7."
+
+echo
+
+echo "Test 8: Test log argument < 0"
+./basic_interprete examples/test_expressions/error_cases/test_num_funcs_logNeg.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/error_cases/test_num_funcs_logNeg_exp_out.txt
+echo "End test 8."
+
+echo
+
+echo "Test 9: Test sqr argument < 0"
+./basic_interprete examples/test_expressions/error_cases/test_num_funcs_sqrNeg.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/error_cases/test_num_funcs_sqrNeg_exp_out.txt
+echo "End test 9."
+
+echo
+
+echo "Test 10: Test chr$ (== toASCII-Char) argument < 0"
+./basic_interprete examples/test_expressions/error_cases/test_string_funcs_chrNeg.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/error_cases/test_string_funcs_chrNeg_exp_out.txt
+echo "End test 10."
+
+echo
+
+echo "Test 11: Test chr$ argument > 255"
+./basic_interprete examples/test_expressions/error_cases/test_string_funcs_chrTooHigh.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/error_cases/test_string_funcs_chrTooHigh_exp_out.txt
+echo "End test 11."
+
+echo
+
+echo "Test 12: Test left$ (== build left substring) argument < 0"
+./basic_interprete examples/test_expressions/error_cases/test_string_funcs_leftNeg.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/error_cases/test_string_funcs_leftNeg_exp_out.txt
+echo "End test 12."
+
+echo
+
+echo "Test 13: Test right$ (== build right substring) argument < 0"
+./basic_interprete examples/test_expressions/error_cases/test_string_funcs_rightNeg.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/error_cases/test_string_funcs_rightNeg_exp_out.txt
+echo "End test 13."
+
+echo
+
+echo "Test 14: Test mid$ (== build middle substring) length argument  < 0"
+./basic_interprete examples/test_expressions/error_cases/test_string_funcs_midLenNeg.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/error_cases/test_string_funcs_midLenNeg_exp_out.txt
+echo "End test 14."
+
+echo
+
+echo "Test 15: Test mid$ start argument == 0"
+./basic_interprete examples/test_expressions/error_cases/test_string_funcs_midStart0.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/error_cases/test_string_funcs_midStart0_exp_out.txt
+echo "End test 15."
+
+echo
+
+echo "Test 16: Test mid$ start argument < 0"
+./basic_interprete examples/test_expressions/error_cases/test_string_funcs_midStartNeg.bas &> examples/test_expressions/temp
+echo "Difference between produced and exp output:"
+diff examples/test_expressions/temp examples/test_expressions/error_cases/test_string_funcs_midStartNeg_exp_out.txt
+echo "End test 16."
+
+echo
+
+rm examples/test_expressions/temp 

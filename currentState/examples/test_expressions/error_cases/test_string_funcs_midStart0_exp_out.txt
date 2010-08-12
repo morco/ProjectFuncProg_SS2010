@@ -1,0 +1,3 @@
+basic_interprete: ?ILLEGAL QUANTIFY ERROR in line 10: 
+			Length argument for string function '2.0' is negative or index for 
+			  string function '0.0' is negative or zero !

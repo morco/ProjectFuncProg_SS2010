@@ -1,0 +1,9 @@
+ 5 j = 0
+10 FOR X = 1 TO 3
+15 READ A$
+20 PRINT "A$ IST NUN : "; A$
+30 NEXT
+40 DATA DIES, IST, LUSTIG
+45 RESTORE
+47 j = j + 1 
+50 if j < 12 GOTO 10

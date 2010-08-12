@@ -1,0 +1,2 @@
+basic_interprete: ?ILLEGAL QUANTIFY ERROR in line 20: 
+			Invalid array index '[-1]' for array variable 'a' has negative elements !

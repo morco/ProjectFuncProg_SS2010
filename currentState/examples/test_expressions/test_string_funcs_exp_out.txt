@@ -1,0 +1,28 @@
+Test chr$
+Chr from 65 = A
+Chr from 97 = a
+The number for A$=Chr$(97) => 97
+
+Test str$
+Str from 65 = 65
+Strr from 97 = 97
+
+Test left$
+left from "Blabli" with len 3 = Bla
+left from "blub" with len 1 = b
+left from "col" with len 0 => 
+left from "col" with len 234 => col
+
+Test right$
+right from "Blabli" with len 3 = bli
+right from "blub" with len 1 = b
+right from "col" with len 0 => 
+right from "col" with len 234 => col
+
+Test mid$
+mif from "Blabli" with len 3 startpos 2 = lab
+mid from "blub" with len 1 startpos 3 = u
+mid from "col" with len 0 startpos 2 => 
+mid from "col" with len 234 startpos 1 => col
+mid from "col" with len 2 startpos 123 => 
+

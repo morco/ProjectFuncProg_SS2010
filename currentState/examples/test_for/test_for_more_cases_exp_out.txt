@@ -1,0 +1,88 @@
+Test 1: Standard for with float step
+1    1.5    2    2.5    3    3.5    4    After
+
+Test 2: for with next in one line
+i = 1
+i = 2
+i = 3
+i = 4
+i = 5
+After2
+
+Test 3: for and for commands in one line, but next in further line
+i2 = 1
+i2 = 2
+i2 = 3
+i2 = 4
+i2 = 5
+After3
+
+Test 4: for and next in one line without commands
+After4
+
+Test 5: for not the first command in line
+bla
+i = 1
+i = 2
+i = 3
+i = 4
+i = 5
+
+Test 6a: nested fors with a single next
+1,4,7
+1,4,8
+1,4,9
+1,5,7
+1,5,8
+1,5,9
+1,6,7
+1,6,8
+1,6,9
+2,4,7
+2,4,8
+2,4,9
+2,5,7
+2,5,8
+2,5,9
+2,6,7
+2,6,8
+2,6,9
+3,4,7
+3,4,8
+3,4,9
+3,5,7
+3,5,8
+3,5,9
+3,6,7
+3,6,8
+3,6,9
+
+Test 6b: nested fors with 3 nexts but without vars
+1,4,7
+1,4,8
+1,4,9
+1,5,7
+1,5,8
+1,5,9
+1,6,7
+1,6,8
+1,6,9
+2,4,7
+2,4,8
+2,4,9
+2,5,7
+2,5,8
+2,5,9
+2,6,7
+2,6,8
+2,6,9
+3,4,7
+3,4,8
+3,4,9
+3,5,7
+3,5,8
+3,5,9
+3,6,7
+3,6,8
+3,6,9
+

@@ -1,0 +1,19 @@
+Test String
+if = "bla" => Should come here!
+Post if = "bla"
+Post if =""
+
+Test Numerical
+if = 1 => Should come here!
+Post if = 1
+Post if = 0
+if = 4 and 15 => Should come here!
+Post if = 4 and 15
+
+Test complex expressions
+Should come here! ln: 155
+Post unbracket variant
+Should come here! ln: 160
+Should come here! ln: 170
+Should come here! ln: 190
+Should come here! ln: 200

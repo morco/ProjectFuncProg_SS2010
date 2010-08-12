@@ -1,0 +1,116 @@
+Gelesen: h
+Gelesen: i
+Gelesen: e
+Gelesen: r
+Gelesen:  
+Gelesen: s
+Gelesen: t
+Gelesen: e
+Gelesen: h
+Gelesen: t
+Gelesen:  
+Gelesen: t
+Gelesen: e
+Gelesen: x
+Gelesen: t
+Gelesen: ,
+Gelesen:  
+Gelesen: u
+Gelesen: m
+Gelesen:  
+Gelesen: d
+Gelesen: i
+Gelesen: e
+Gelesen:  
+Gelesen: b
+Gelesen: a
+Gelesen: s
+Gelesen: i
+Gelesen: c
+Gelesen:  
+Gelesen: F
+Gelesen: I
+Gelesen: l
+Gelesen: e
+Gelesen:  
+Gelesen: I
+Gelesen: o
+Gelesen:  
+Gelesen: z
+Gelesen: u
+Gelesen:  
+Gelesen: t
+Gelesen: e
+Gelesen: s
+Gelesen: t
+Gelesen: e
+Gelesen: n
+Gelesen: !
+Gelesen: 
+
+Gelesen: d
+Gelesen: a
+Gelesen: s
+Gelesen:  
+Gelesen: i
+Gelesen: s
+Gelesen: t
+Gelesen:  
+Gelesen: s
+Gelesen: c
+Gelesen: h
+Gelesen: o
+Gelesen: n
+Gelesen:  
+Gelesen: d
+Gelesen: i
+Gelesen: e
+Gelesen:  
+Gelesen: 2
+Gelesen: t
+Gelesen: e
+Gelesen:  
+Gelesen: Z
+Gelesen: e
+Gelesen: i
+Gelesen: l
+Gelesen: e
+Gelesen: 
+
+Gelesen: k
+Gelesen: r
+Gelesen: a
+Gelesen: m
+Gelesen: s
+Gelesen:  
+Gelesen: i
+Gelesen: n
+Gelesen:  
+Gelesen: 3
+Gelesen: 
+
+Gelesen: n
+Gelesen: o
+Gelesen:  
+Gelesen: i
+Gelesen: d
+Gelesen: e
+Gelesen: a
+Gelesen:  
+Gelesen: $
+Gelesen: /
+Gelesen: /
+Gelesen: (
+Gelesen: )
+Gelesen: §
+Gelesen: "
+Gelesen: !
+Gelesen: !
+Gelesen: %
+Gelesen: /
+Gelesen: =
+Gelesen: 
+
+Gelesen: 
+
+basic_interprete: EOF ERROR: TODO!

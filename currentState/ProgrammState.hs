@@ -354,12 +354,13 @@ getDataFloat other         ln_nr =
 -------------------------------- </DATA functions> -------------------------
 
 
-allSmaller :: (Ord a) => [a] -> [a] -> Bool
+--allSmaller :: (Ord a) => [a] -> [a] -> Bool
+allSmaller :: (Num a,Ord a) => [a] -> [a] -> Bool
 allSmaller []     []   = True
 allSmaller (_:_) []   = error "lists have different size!"
 allSmaller [] (_:_)   = error "lists have different size!"
 allSmaller (x:xs) (y:ys)
-    | x < y = allSmaller xs ys
+    | x < y && x >= 0 = allSmaller xs ys
     | otherwise = False
 
 insertAtPos :: Int -> a -> [a] -> [a]

@@ -1,0 +1,56 @@
+Test abs
+Put number ? <User INPUT>
+ABS(N * 5 - 3 + N/4 - N * 20) = 11.75
+<INPUT DEPENDED>
+
+Test asc
+The Ascii Val of A = 65
+give a char: ? 
+Now given through var = <INPUT DEPENDED>
+
+Test atn
+Atan von 0 = 0
+PI=3.14:X=ATN(N)*180/PI => <INPUT DEPENDED>
+
+Chr from 65 = A
+Chr from 13 = 
+The number for A$=Chr$(13) =>13
+Test cos
+Cos von 0 = 1
+PI=3.14:X=COS(90*PI/180) => 7.962743e-4
+
+Test exp
+Euler num = 2.7182817
+X=30*EXP(11)+20 => 1796244.3
+
+Test log
+Log(1) = 0
+LOG(e) = 0.99999994
+Log(13) = 2.5649493
+LOG(15*16) = 5.480639
+N=LOG(100)/LOG(10) => 2
+
+Test val
+val("1") = 1
+val("2.3") = 2.3
+val("1"+"2") = 12
+N=val("10") => 10
+X = VAL ("123.456") => 123.456
+X = VAL ("12A13B") => 12
+X = VAL ("RIU017") => 0
+X = VAL ("- 1.23.15.67") => -1.23
+
+Test sin
+Sin von 0 = 0
+PI=3.14:X=sin(90*PI/180) => 0.9999997
+
+Test sqr
+sqr(1) = 1
+sqr((2*2-3+7)/2) = 2
+sqr(2) = 1.4142135
+N=sqr(16)/sqr(4) => 2
+
+Test tan
+tan von 0 = 0
+PI=3.14:X=tan(90*PI/180) => 1255.8483
+

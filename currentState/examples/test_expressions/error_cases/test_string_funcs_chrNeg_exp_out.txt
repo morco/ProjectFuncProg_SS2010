@@ -1,0 +1,2 @@
+basic_interprete: ?ILLEGAL QUANTIFY ERROR in line 10: 
+			Converting number '-1.0' to ASCII char not possible !

@@ -1,0 +1,2 @@
+basic_interprete: ?ILLEGAL QUANTIFY ERROR in line 10: 
+			LOG argument '-2.0' is zero or negative !

@@ -148,17 +148,21 @@ io_error comment nr = printError "IO ERROR" comment nr
 printArrayIndex_error :: Index -> VariableName -> Dimension
                             -> LineNumber -> a
 printArrayIndex_error idx var_name dim ln_nr =
-    let ermsg = "Invalid array index '" ++ show idx ++ "' for array "
-                ++ "variable '" ++ var_name ++ "' with dimension '"
-                ++ show dim ++ "'"
-    in badscrpt_error ermsg ln_nr
+    let ermsg1 = "Invalid array index '" ++ show idx ++ "' for array "
+                 ++ "variable '" ++ var_name ++ "'" 
+        neg    = filter ((>) 0) idx
+    in if null neg
+         then let ermsg2 = " with dimension '" ++ show dim ++ "'"
+              in badscrpt_error (ermsg1 ++ ermsg2) ln_nr
+         else let ermsg2 = " has negative elements"
+              in illqua_error (ermsg1 ++ ermsg2) ln_nr
 
 
 printError :: String -> String -> LineNumber -> a
 printError err comment nr =
     let msg_tail = if null comment
                      then " !"
-                     else ": " ++ comment ++ " !"
+                     else ": " ++ "\n\t\t\t" ++ comment ++ " !"
     in error $ err ++ " in line " ++ show nr ++ msg_tail
 
 ----------------------------- </Error definitions> ------------------------

@@ -1,0 +1,87 @@
+#! /bin/bash
+
+echo "Running all array tests basic progs "
+echo "(a diff will be done comparing exp with produced output)"
+echo "all used files are in the sub dir examples/test_array, "
+echo "if you want to look at them..."
+
+echo 
+
+echo "Test 1: Test string array"
+./basic_interprete examples/test_arrays/test_string_array.bas &> examples/test_arrays/temp
+echo "Difference between produced and exp output:"
+diff examples/test_arrays/temp examples/test_arrays/test_string_array_exp_out.txt
+echo "End test 1."
+
+echo
+
+echo "Test 2: Test matrix"
+./basic_interprete examples/test_arrays/test_matrix.bas &> examples/test_arrays/temp
+echo "Difference between produced and exp output:"
+diff examples/test_arrays/temp examples/test_arrays/test_matrix_exp_out.txt
+echo "End test 2."
+
+echo
+
+echo "Test 3: Test arrays with many dimensions"
+./basic_interprete examples/test_arrays/test_many_dimensions.bas &> examples/test_arrays/temp
+echo "Difference between produced and exp output:"
+diff examples/test_arrays/temp examples/test_arrays/test_many_dimensions_exp_out.txt
+echo "End test 3."
+
+echo
+
+echo "Test 4: Test dim command (for dimensioning an arrays == allocating memory)"
+echo -e "\t (you have to put in 2 numbers as array size)"
+./basic_interprete examples/test_arrays/test_dim_com.bas &> examples/test_arrays/temp
+echo "Difference between produced and exp output" 
+diff examples/test_arrays/temp examples/test_arrays/test_dim_com_exp_out.txt
+echo "End test 4."
+
+echo
+
+echo "Now running error case tests..."
+
+echo
+
+echo "Test 5: Test too low index (== negative index)"
+./basic_interprete examples/test_arrays/error_cases/test_tooLowIndex.bas &> examples/test_arrays/temp
+echo "Difference between produced and exp output:"
+diff examples/test_arrays/temp examples/test_arrays/error_cases/test_tooLowIndex_exp_out.txt
+echo "End test 5."
+
+echo
+
+echo "Test 6: Test too high index (== bigger than dimension size)"
+./basic_interprete examples/test_arrays/error_cases/test_tooHighIndex.bas &> examples/test_arrays/temp
+echo "Difference between produced and exp output:"
+diff examples/test_arrays/temp examples/test_arrays/error_cases/test_tooHighIndex_exp_out.txt
+echo "End test 6."
+
+echo
+
+echo "Test 7: Test wrong dimension read"
+./basic_interprete examples/test_arrays/error_cases/test_wrongDim_read.bas &> examples/test_arrays/temp
+echo "Difference between produced and exp output:"
+diff examples/test_arrays/temp examples/test_arrays/error_cases/test_wrongDim_read_exp_out.txt
+echo "End test 7."
+
+echo
+
+echo "Test 8: Test wrong dimension write"
+./basic_interprete examples/test_arrays/error_cases/test_wrongDim_write.bas &> examples/test_arrays/temp
+echo "Difference between produced and exp output:"
+diff examples/test_arrays/temp examples/test_arrays/error_cases/test_wrongDim_write_exp_out.txt
+echo "End test 8."
+
+echo
+
+echo "Test 9: Test dimensioning arrays smaller than standard size"
+./basic_interprete examples/test_arrays/error_cases/test_down_dim.bas &> examples/test_arrays/temp
+echo "Difference between produced and exp output:"
+diff examples/test_arrays/temp examples/test_arrays/error_cases/test_down_dim_exp_out.txt
+echo "End test 9."
+
+echo
+
+rm examples/test_arrays/temp 

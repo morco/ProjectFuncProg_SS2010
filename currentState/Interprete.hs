@@ -150,6 +150,7 @@ evalCommand :: Command -> PState ()
 evalCommand (IO_Com (Input ((InputStuff lsComment vars), printLn))) = do
     state <- get
     let out_handle = basic_stdout state 
+        pre_liner  = liftIO $ hPutStr out_handle "? "
     liftIO $ case lsComment of
                []  -> return ()
                [x] -> if printLn
@@ -160,7 +161,8 @@ evalCommand (IO_Com (Input ((InputStuff lsComment vars), printLn))) = do
                _   -> let ermsg = "Comment of INPUT command" 
                                   ++ " can only be a single STRING"
                       in interprete_error ermsg $ curPos state
-    mapM_ (flip insertIOValue (liftIO $ (putStr "? " >> getLine))) vars
+    --mapM_ (flip insertIOValue (liftIO $ (putStr "? " >> getLine))) vars
+    mapM_ (flip insertIOValue (pre_liner >> getfileInput stdin)) vars
 
 -- The easiest way to get input chars and strings together is to make
 --  the chars to strings by combining with the empty list, so this is done
@@ -566,8 +568,10 @@ myHGetChar handle =  do
                       st_ref   = getMapVal $ M.lookup "ST" $ floatVars state
                       st_ref_bin = reverse $ toBin $ floatToIntConvert st_ref
                       st_ref_bin' = reverse $ take 5 st_ref_bin ++ [1] ++ drop 6 st_ref_bin
-                      new_st_ref  = fromIntegral $ toIntFromBin $ trace ("new ST val in bin = " ++ show st_ref_bin) st_ref_bin'
-                  trace ("updating ST var to: " ++ show new_st_ref) $ updateFloatVar (FloatVar "ST") new_st_ref
+                      --new_st_ref  = fromIntegral $ toIntFromBin $ trace ("new ST val in bin = " ++ show st_ref_bin) st_ref_bin'
+                      new_st_ref  = fromIntegral $ toIntFromBin $ st_ref_bin'
+                  --trace ("updating ST var to: " ++ show new_st_ref) $ updateFloatVar (FloatVar "ST") new_st_ref
+                  updateFloatVar (FloatVar "ST") new_st_ref
                   state' <- get
                   put $ state' { eof_reached = new_eofs } 
                   return '\n'
@@ -594,13 +598,14 @@ printCommand handleOut output printLn = do
                     then show $ truncate res
                     else show res
         return str
-  
+{-  
     isIntValue :: Float -> Bool 
     isIntValue flnr = 
         let coma_part = flnr - (fromIntegral $ truncate flnr)
         in if coma_part == 0
              then True
              else False
+-}
 
 splitpath_mode :: String -> LineNumber -> (String,String,IOMode)
 splitpath_mode str ln_nr =

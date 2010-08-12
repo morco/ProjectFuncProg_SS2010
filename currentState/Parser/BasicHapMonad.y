@@ -372,7 +372,7 @@ IOCommand           : print Output                 { Print $2               }
                     | input Input                  { Input $2               }
                     | "input#" int "," Vars    { InputF (getTkIntVal $2) $4 }
                     | get Vars                     { Get $2                 }
-                    | "get#" int Vars            { GetF (getTkIntVal $2) $3 }
+                    | "get#" int "," Vars            { GetF (getTkIntVal $2) $4 }
                     | open OpenBody  { let (fid,dev_id,sec_id,path_mode) = $2 
                                        in Open fid dev_id sec_id path_mode  }
                     | close int                    { Close $ getTkIntVal $2 }

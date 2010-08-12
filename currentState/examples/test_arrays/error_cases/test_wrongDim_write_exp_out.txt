@@ -1,0 +1,2 @@
+basic_interprete: ?BAD SUPSCRIPT ERROR in line 30: 
+			Invalid array index '[0,1]' for array variable 'b' with dimension '[11,11,11]' !

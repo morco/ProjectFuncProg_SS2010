@@ -1,0 +1,6 @@
+Test 1: Standard for with step 2
+1    3    5    7    9    After
+
+Test 2: next without var
+1    3    5    7    9    After
+

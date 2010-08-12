@@ -1,3 +1,0 @@
-Meine erste Zeile in einer fremden Datei!
-Jetzt mit Variable: qwertz
-Diesmal nl unterdrueckt! --> Sollte in der gleichen Zeile stehen!

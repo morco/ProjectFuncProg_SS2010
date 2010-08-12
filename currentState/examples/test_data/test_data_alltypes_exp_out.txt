@@ -1,0 +1,10 @@
+DataContent: 6
+DataContent: 4
+DataContent: 7
+DataContent: 3
+DataContent: 8
+DataContent: UTE
+DataContent: SCHNUTE
+DataContent: KASIMIR
+DataContent: LEER- ODER SATZZEICHEN WIE :, MUESSEN IN ANFUEHRUNGZEICHEN STEHEN
+basic_interprete: ?OUT OF DATA ERROR in line 10 !
