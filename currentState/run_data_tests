@@ -15,6 +15,10 @@ echo "End test 1."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 2: Read numbers (with end flag, so no failure)"
 ./basic_interprete examples/test_data/test_data_readnums_with_endflag.bas &> examples/test_data/temp
 echo "Difference between produced and exp output:"
@@ -22,6 +26,10 @@ diff examples/test_data/temp examples/test_data/test_data_readnums_with_endflag_
 echo "End test 2."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test 3: Test all data types (string,float,int)"
 ./basic_interprete examples/test_data/test_data_alltypes.bas &> examples/test_data/temp
@@ -31,6 +39,10 @@ echo "End test 3."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 4: Test \"structered\" data (combining numbers and strings useful)"
 ./basic_interprete examples/test_data/test_data_structure.bas &> examples/test_data/temp
 echo "Difference between produced and exp output" 
@@ -38,6 +50,10 @@ diff examples/test_data/temp examples/test_data/test_data_structure_exp_out.txt
 echo "End test 4."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test 5: Test restore command (== resetting data pointer to start)"
 ./basic_interprete examples/test_data/test_data_restore.bas &> examples/test_data/temp
@@ -50,6 +66,10 @@ echo
 echo "Now running error case tests..."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test 6: Tests data type mismatch"
 ./basic_interprete examples/test_data/error_cases/test_data_type_mismatch.bas &> examples/test_data/temp

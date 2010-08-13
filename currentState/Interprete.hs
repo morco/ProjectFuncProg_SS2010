@@ -272,10 +272,10 @@ evalCommand (ControlStructure (For var (start,_,_))) = do
 evalCommand (Next (For (FloatVar name) (start,step,end))) = do
     state <- get
     step' <- makeFloat step   
-    end'  <- makeFloat end   
-    let flvars = floatVars state
-        var    = FloatVar name
-        i      = getMapVal $ M.lookup name flvars
+    end'  <- makeFloat end  
+    let var    = FloatVar name
+    i     <- getFloatVarValue var
+    let -- flvars = floatVars state
         i'     = i + step'
         fors   = for_lines state
     if i' > end'
@@ -485,7 +485,7 @@ evalCommand (IO_Com (Open fileID devID secID path_mode)) = do
 
 evalCommand (IO_Com (Close fileID)) = do
     state <- get
-    let handle       = getMapVal $ M.lookup fileID $ file_handles state
+    let handle       = unJustHandle $ M.lookup fileID $ file_handles state
         new_fhandles = M.delete fileID $ file_handles state
         new_eofs     = M.delete (show handle) $ eof_reached state
     liftIO $ hClose handle
@@ -496,12 +496,12 @@ evalCommand (IO_Com (Close fileID)) = do
     
 evalCommand (IO_Com (GetF fileID vars)) = do
     state <- get
-    let my_handle = getMapVal $ M.lookup fileID $ file_handles state
+    let my_handle = unJustHandle $ M.lookup fileID $ file_handles state
     getCommand my_handle Nothing vars
 
 evalCommand (IO_Com (PrintF fileID (output,printLn))) = do
     state <- get
-    let my_handle = getMapVal $ M.lookup fileID $ file_handles state
+    let my_handle = unJustHandle $ M.lookup fileID $ file_handles state
         bs_stdout = basic_stdout state
     if my_handle == bs_stdout
       then if null output
@@ -512,12 +512,12 @@ evalCommand (IO_Com (PrintF fileID (output,printLn))) = do
 
 evalCommand (IO_Com (InputF fileID vars)) = do
     state <- get
-    let my_handle = getMapVal $ M.lookup fileID $ file_handles state
+    let my_handle = unJustHandle $ M.lookup fileID $ file_handles state
     mapM_ (flip insertIOValue (getfileInput my_handle)) vars
 
 evalCommand (IO_Com (Cmd fileID m_string)) = do
     state <- get
-    let my_handle = getMapVal $ M.lookup fileID $ file_handles state
+    let my_handle = unJustHandle $ M.lookup fileID $ file_handles state
     put $ state { basic_stdout = my_handle }
     case m_string of
          Nothing -> return ()
@@ -560,12 +560,13 @@ myHGetChar handle =  do
     nc <- liftIO $ hGetCharEOF handle
     if nc == '\0'
       then do -- EOF case
-         state <- get 
-         let eofs = eof_reached state
-         case M.lookup (show handle) $ eofs of
+         state1 <- get
+         case M.lookup (show handle) $ eof_reached state1 of
               Nothing -> do -- all ok, set the register flag
+                  st_ref <- getFloatVarValue $ FloatVar "ST" 
+                  state <- get 
+                  let eofs = eof_reached state
                   let new_eofs = M.insert (show handle) True eofs
-                      st_ref   = getMapVal $ M.lookup "ST" $ floatVars state
                       st_ref_bin = reverse $ toBin $ floatToIntConvert st_ref
                       st_ref_bin' = reverse $ take 5 st_ref_bin ++ [1] ++ drop 6 st_ref_bin
                       --new_st_ref  = fromIntegral $ toIntFromBin $ trace ("new ST val in bin = " ++ show st_ref_bin) st_ref_bin'
@@ -578,6 +579,11 @@ myHGetChar handle =  do
               Just _  -> -- eof thrown second time, error case
                   error "EOF ERROR: TODO!"
       else return nc
+
+
+unJustHandle :: Maybe Handle -> Handle
+unJustHandle (Just h) = h
+unJustHandle _ = error "TODO!!"
 
 
 printCommand :: Handle -> [Output] -> Bool -> PState ()

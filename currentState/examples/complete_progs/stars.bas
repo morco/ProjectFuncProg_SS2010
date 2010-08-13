@@ -1,7 +1,6 @@
  10 input "Geben Sie bitte Ihren Namen ein"; a$
  20 print "Guten Tag "; a$
  30 input "Wieviele Sterne möchten Sie?"; s
- 35 s$ = "" : REM Auto-Init!
  40 for i = 1 to s                                       
  50 s$ = s$ + "*"
  55 next i

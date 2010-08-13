@@ -15,6 +15,10 @@ echo "End test 1."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 2: Test \"on\" command (Jump to a line, taken from a"
 echo -e "\t list with the index given by a numerical expression)"
 ./basic_interprete examples/test_goto/test_on_com.bas &> examples/test_goto/temp

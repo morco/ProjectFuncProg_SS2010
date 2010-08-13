@@ -372,8 +372,123 @@ insertAtPos pos el (x:xs)
     | pos > 0   = x : insertAtPos (pos - 1) el xs
     | otherwise = error "Insert pos lower than 0!"
 
+{-
 getMapVal :: Maybe a -> a
 getMapVal (Just x) = x
 getMapVal _  = error "Var not found!"
+-}
+
+
+getFloatVarValue :: FloatVar -> PState Float
+getFloatVarValue (FloatVar "ST") = do
+    state <- get
+    let st_reg = case M.lookup "ST" $ floatVars state of
+                      Just x  -> x
+                      Nothing -> 0 -- ???
+    -- reset state register by every lookup, good idea??
+    updateFloatVar (FloatVar "ST") 0 
+    return st_reg
+
+getFloatVarValue (FloatVar name) = do
+    state <- get
+    case M.lookup name $ floatVars state of
+         Just x  -> return x
+         Nothing -> return 0
+
+getFloatVarValue (FloatVar_Array name idx_expr) = do
+    state <- get
+    ind   <- getIndex idx_expr
+    let key       = name
+    (dim,ar) <- case M.lookup key $ floatArrayVars state of
+                     Just x  -> return x
+                     Nothing -> do -- array is new, auto init
+                        -- updating this floatvar will create a new array
+                        updateFloatVar (FloatVar_Array name idx_expr) 0
+                        state' <- get
+                        let arr' = case M.lookup key $ floatArrayVars state' of
+                                        Just x -> x
+                                        Nothing -> error "Can not happen!"
+                        return arr'
+    if length ind == length dim && allSmaller ind dim
+      then do
+        let val   = case M.lookup ind ar of
+                         Just x  -> x
+                         Nothing -> 0 
+        return val
+      else
+        let ln_nr = curPos state
+        in printArrayIndex_error ind name dim ln_nr
+
+getStringVarValue :: StringVar -> PState String
+getStringVarValue (StringVar "TI$") = do
+    updateTimeValue
+    state <- get
+    case M.lookup "TI$" $ stringVars state of
+         Just x  -> return x
+         Nothing -> return "" -- ??
+
+getStringVarValue (StringVar name) = do
+    state <- get
+    case M.lookup name $ stringVars state of
+         Just x  -> return x
+         Nothing -> return ""
+
+getStringVarValue (StringVar_Array name idx_expr) = do
+    state <- get
+    ind   <- getIndex idx_expr
+    let key       = name
+    (dim,ar) <- case M.lookup key $ stringArrayVars state of
+                     Just x  -> return x
+                     Nothing -> do -- array is new, auto init
+                        -- updating this var will create a new array
+                        updateStringVar (StringVar_Array name idx_expr) ""
+                        state' <- get
+                        let arr' = case M.lookup key $ stringArrayVars state' of
+                                        Just x -> x
+                                        Nothing -> error "Can not happen!"
+                        return arr'
+    if length ind == length dim && allSmaller ind dim
+      then do
+        let val   = case M.lookup ind ar of
+                         Just x  -> x
+                         Nothing -> ""
+        return val
+      else
+        let ln_nr = curPos state
+        in printArrayIndex_error ind name dim ln_nr
+
+ 
+getIntVarValue :: IntVar -> PState Int
+getIntVarValue (IntVar name) = do
+    state <- get
+    case M.lookup name $ intVars state of
+         Just x  -> return x
+         Nothing -> return 0
+
+getIntVarValue (IntVar_Array name idx_expr) = do
+    state <- get
+    ind   <- getIndex idx_expr
+    let key       = name
+    (dim,ar) <- case M.lookup key $ intArrayVars state of
+                     Just x  -> return x
+                     Nothing -> do -- array is new, auto init
+                        -- updating this var will create a new array
+                        updateIntVar (IntVar_Array name idx_expr) 0
+                        state' <- get
+                        let arr' = case M.lookup key $ intArrayVars state' of
+                                        Just x -> x
+                                        Nothing -> error "Can not happen!"
+                        return arr'
+    if length ind == length dim && allSmaller ind dim
+      then do
+        let val   = case M.lookup ind ar of
+                         Just x  -> x
+                         Nothing -> 0
+        return val
+      else
+        let ln_nr = curPos state
+        in printArrayIndex_error ind name dim ln_nr
+
+ 
 
 

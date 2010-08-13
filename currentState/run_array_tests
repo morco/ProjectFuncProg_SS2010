@@ -15,6 +15,10 @@ echo "End test 1."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 2: Test matrix"
 ./basic_interprete examples/test_arrays/test_matrix.bas &> examples/test_arrays/temp
 echo "Difference between produced and exp output:"
@@ -22,6 +26,10 @@ diff examples/test_arrays/temp examples/test_arrays/test_matrix_exp_out.txt
 echo "End test 2."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test 3: Test arrays with many dimensions"
 ./basic_interprete examples/test_arrays/test_many_dimensions.bas &> examples/test_arrays/temp
@@ -31,6 +39,10 @@ echo "End test 3."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 4: Test dim command (for dimensioning an arrays == allocating memory)"
 echo -e "\t (you have to put in 2 numbers as array size)"
 ./basic_interprete examples/test_arrays/test_dim_com.bas &> examples/test_arrays/temp
@@ -39,6 +51,10 @@ diff examples/test_arrays/temp examples/test_arrays/test_dim_com_exp_out.txt
 echo "End test 4."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Now running error case tests..."
 
@@ -52,6 +68,10 @@ echo "End test 5."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 6: Test too high index (== bigger than dimension size)"
 ./basic_interprete examples/test_arrays/error_cases/test_tooHighIndex.bas &> examples/test_arrays/temp
 echo "Difference between produced and exp output:"
@@ -59,6 +79,10 @@ diff examples/test_arrays/temp examples/test_arrays/error_cases/test_tooHighInde
 echo "End test 6."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test 7: Test wrong dimension read"
 ./basic_interprete examples/test_arrays/error_cases/test_wrongDim_read.bas &> examples/test_arrays/temp
@@ -68,6 +92,10 @@ echo "End test 7."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 8: Test wrong dimension write"
 ./basic_interprete examples/test_arrays/error_cases/test_wrongDim_write.bas &> examples/test_arrays/temp
 echo "Difference between produced and exp output:"
@@ -75,6 +103,10 @@ diff examples/test_arrays/temp examples/test_arrays/error_cases/test_wrongDim_wr
 echo "End test 8."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test 9: Test dimensioning arrays smaller than standard size"
 ./basic_interprete examples/test_arrays/error_cases/test_down_dim.bas &> examples/test_arrays/temp

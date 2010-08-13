@@ -15,6 +15,10 @@ echo "End test 1."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 2: Test if without then"
 ./basic_interprete examples/test_if/test_if_withOut_then.bas &> examples/test_if/temp
 echo "Difference between produced and exp output:"

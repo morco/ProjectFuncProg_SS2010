@@ -17,6 +17,10 @@ echo "End test 1."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 2: Test more cases of for command"
 echo -e "\t -> standard for with float step"
 echo -e "\t -> for with next in one line"

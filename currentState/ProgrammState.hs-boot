@@ -21,7 +21,7 @@ import Definitions
 
 createNewRandomSequence :: Int -> PState () 
 
-getMapVal :: Maybe a -> a
+--getMapVal :: Maybe a -> a
 
 updateFloatVar :: FloatVar -> Float -> PState ()
 
@@ -29,3 +29,8 @@ updateStringVar :: StringVar -> String -> PState ()
 
 allSmaller :: (Num a,Ord a) => [a] -> [a] -> Bool
 
+getStringVarValue :: StringVar -> PState String
+
+getIntVarValue :: IntVar -> PState Int
+
+getFloatVarValue :: FloatVar -> PState Float

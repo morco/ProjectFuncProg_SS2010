@@ -114,21 +114,25 @@ evalCompFunc str arg1 arg2 ln_nr
 --  base, considering type safety it is maybe not the best way to deal 
 --   with int values
 makeFloat :: Operand -> PState Float
-makeFloat (OpVar (NumVar_Int (IntVar name))) = do
-    state <- get
-    let val = getMapVal $ M.lookup name (intVars state)
+makeFloat (OpVar (NumVar_Int intvar)) = do
+    val <- getIntVarValue intvar
+    --state <- get
+    --let val = getMapVal $ M.lookup name (intVars state)
     return $ fromIntegral val
-
+{-
 makeFloat (OpVar (NumVar_Float (FloatVar "ST"))) = do
     state <- get
     let st_reg = getMapVal $ M.lookup "ST" (floatVars state)
     updateFloatVar (FloatVar "ST") 0 -- reset state register by every lookup, good idea??
     return st_reg
+-}
 
-makeFloat (OpVar (NumVar_Float (FloatVar name))) = do
-    state <- get 
-    return $ getMapVal $ M.lookup name (floatVars state)
-
+makeFloat (OpVar (NumVar_Float floatVar)) = do
+    --state <- get 
+    val <- getFloatVarValue floatVar
+    --return $ getMapVal $ M.lookup name (floatVars state)
+    return val
+{-
 makeFloat (OpVar (NumVar_Int (IntVar_Array name ix))) = do
     state <- get
     res <- mapM evalExpression ix
@@ -156,6 +160,7 @@ makeFloat (OpVar (NumVar_Float (FloatVar_Array name ix))) = do
       else
         let ln_nr = curPos state
         in printArrayIndex_error ind name dim ln_nr
+-}
 
 makeFloat (IntConst   x) = return $ fromIntegral x
 makeFloat (FloatConst x) = return x
@@ -323,14 +328,19 @@ evalStringExpression (StringExpr (bstr1,bstr2) strOp) = do
 
 evalBasicString :: BasicString -> PState String
 evalBasicString (StringLiteral x) = return x
+{-
 evalBasicString (StringVar_BString (StringVar "TI$")) = do
     updateTimeValue 
     state <- get
     return $ getMapVal $ M.lookup "TI$" (stringVars state)
-evalBasicString (StringVar_BString (StringVar name)) = do
-    state <- get
-    return $ getMapVal $ M.lookup name (stringVars state)
+-}
+evalBasicString (StringVar_BString strVar) = do
+    val <- getStringVarValue strVar
+    return val
+  --  state <- get
+  --  return $ getMapVal $ M.lookup name (stringVars state)
 
+{-
 evalBasicString (StringVar_BString (StringVar_Array name ix)) = do
     state <- get 
     res <- mapM evalExpression ix
@@ -344,6 +354,7 @@ evalBasicString (StringVar_BString (StringVar_Array name ix)) = do
       else
         let ln_nr = curPos state
         in printArrayIndex_error ind name dim ln_nr
+-}
 
 
 evalStringOp :: Operator -> String -> String -> LineNumber -> String

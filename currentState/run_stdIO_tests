@@ -13,6 +13,10 @@ echo "End test 1."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 2: Test escape sequences"
 ./basic_interprete examples/test_stdIO/test_escape_seqs.bas 
 echo "End test 2."

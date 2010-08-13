@@ -15,6 +15,10 @@ echo "End test 1."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 2: Test get# (character input from file) with EOF checking"
 ./basic_interprete examples/test_fileIO/test_getf_withEOF.bas &> examples/test_fileIO/temp
 echo "Difference between produced and expected output:"
@@ -23,6 +27,10 @@ echo "End test 2."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 3: Test input# (some kind of line input(not exact!) from file)"
 ./basic_interprete examples/test_fileIO/test_inputf.bas &> examples/test_fileIO/temp
 echo "Difference between produced and expected output:"
@@ -30,6 +38,10 @@ diff examples/test_fileIO/temp examples/test_fileIO/test_inputf_expected_out.txt
 echo "End test 3."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test 4: Test cmd (changing std_out)"
 rm examples/test_fileIO/test_files/test_cmd.txt
@@ -44,6 +56,10 @@ echo "End test 4."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test 5: Test print# (output to file)"
 rm examples/test_fileIO/test_files/test_printf.txt
 ./basic_interprete examples/test_fileIO/test_printf.bas 
@@ -53,6 +69,10 @@ diff examples/test_fileIO/test_files/test_printf.txt examples/test_fileIO/test_p
 echo "End test 5."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test 6: Test complex example for file append "
 echo "(read a file, append some lines, read the file again, compare)"
@@ -67,6 +87,10 @@ diff examples/test_fileIO/test_files/test_append.txt examples/test_fileIO/test_a
 echo "End test 6."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test 7: Test std IO (over device numbers)"
 echo "No diff test here, because of much user interaction, test interactive..."

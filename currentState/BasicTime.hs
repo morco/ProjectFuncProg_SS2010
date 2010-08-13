@@ -46,9 +46,10 @@ getTimeCountValue = do
     -- made time register up to date
     updateTimeValue
     -- get new time register value
+    timestr <- getStringVarValue $ StringVar "TI$"
     state <- get 
-    let timestr = getMapVal $ M.lookup "TI$" $ stringVars state
-        ln_nr   = curPos state
+   -- let timestr = getMapVal $ M.lookup "TI$" $ stringVars state
+    let    ln_nr   = curPos state
     -- get current 1/100 secs 
     now     <- liftIO $ getClockTime
     now_cal <- liftIO $ toCalendarTime now
@@ -86,10 +87,13 @@ updateTimeValue = do
     now     <- liftIO $ getClockTime
     now_cal <- liftIO $ toCalendarTime now
     -- get last update time from state and the old string time value
+    let time_var    = StringVar "TI$"
+    --old_timestr <- getStringVarValue time_var -- this cannot use this method, or we have an endless loop
     state   <- get 
     let last_cal    = last_update_time state
-        time_var    = StringVar "TI$"
-        old_timestr = getMapVal $ M.lookup "TI$" $ stringVars state
+        old_timestr = case M.lookup "TI$" $ stringVars state of
+                           Just x -> x
+                           Nothing -> error "invalid time errro!!"
     updateStringVar time_var $ getNewTimeString old_timestr last_cal now_cal
 
 
