@@ -122,7 +122,7 @@ import Debug.Trace
     int                 { TokenWrap _type pos (TkConst (TkIntConst val))   }
     ti_reg              { TokenWrap _type pos TkTI_Reg                   }
     st_reg              { TokenWrap _type pos TkST_Reg                   }
-    timestr_reg              { TokenWrap _type pos TkTimeStr_Reg                   }
+    timestr_reg      { TokenWrap _type pos TkTimeStr_Reg                   }
 
 
 -- Special symbols
@@ -130,14 +130,11 @@ import Debug.Trace
 
     ";"                           { TokenWrap _type pos TkStringConcat     }
     ":"                { TokenWrap _type pos TkSingleLineCommandCombinator }
-    ","         { TokenWrap _type pos TkKomma } -- <--- TODO!!! use bei print
+    ","         { TokenWrap _type pos TkKomma } 
 
     "("                           { TokenWrap _type pos TkBracketOpen      }
     ")"                           { TokenWrap _type pos TkBracketClose     }
       
-
-
-
 
 
     
@@ -236,10 +233,10 @@ DimIndex            : Operand                { [$1] }
                     | Operand "," DimIndex   { $1 : $3 }
                    
 
-
-DimVar              : stringVar              { StringVar_Var $ StringVar $ getTkStrVal $1 }
-                    | intVar                 { NumVar_Var $ NumVar_Int $ IntVar $ getTkStrVal $1 }
-                    | floatVar_or_datastring { NumVar_Var $ NumVar_Float $ FloatVar $ getTkStrVal $1 }
+-- no array vars here, thats the difference to normal variables
+DimVar : stringVar              { StringVar_Var $ StringVar $ getTkStrVal $1 }
+ | intVar                 { NumVar_Var $ NumVar_Int $ IntVar $ getTkStrVal $1 }
+ | floatVar_or_datastring { NumVar_Var $ NumVar_Float $ FloatVar $ getTkStrVal $1 }
 
 
 
@@ -247,15 +244,17 @@ Assignment          : NumVar "=" NumExpr           { ArithAssignment $1 $3  }
                     | StringVar "=" StringExpr { StringAssignment $1 $3 }
 
 
+-- Numerical Expressions
+
 StringExpr          : BasicString                  { $1                     }
                     | StringExpr "+" StringExpr    { StringExpr ($1,$3) "+" } 
 
 
 StringFunction      : chrfunc "(" NumExpr ")"      { ChrFunc $3             }
                     | strfunc "(" NumExpr ")"      { StrFunc $3             }
-    | leftfunc "(" StringExpr "," NumExpr ")"      { LeftFunc  $3 $5        }
- | midfunc "(" StringExpr "," NumExpr "," NumExpr ")"  { MidFunc $3 $5 $7   }
-    | rightfunc "(" StringExpr "," NumExpr ")"     { RightFunc $3 $5        }
+ | leftfunc   "(" StringExpr "," NumExpr ")"       { LeftFunc  $3 $5        }
+ | midfunc   "(" StringExpr "," NumExpr "," NumExpr ")"  { MidFunc $3 $5 $7 }
+ | rightfunc "(" StringExpr "," NumExpr ")"        { RightFunc $3 $5        }
 
 
 BasicString         : stringLiteral     { let str = getTkStrVal $1
@@ -324,7 +323,7 @@ Operand             : NumVar                       { OpVar $1               }
 
 
 
-ControlStruct                   : if IfExpr IfBody           { If $2 $3               }
+ControlStruct                   : if IfExpr IfBody { If $2 $3               }
  
  | for FloatVar "=" Operand to Operand step Operand 
                                              {% do
@@ -360,7 +359,7 @@ IfExpr              : NumExpr                      { Expr_Num $1 }
 
 IfBody              : then int            { let nr  = getTkIntVal $2
                                             in [ControlStructure $ Goto nr] }
-                    | then Commands   {$2} --  <--- verursacht shift/red conflicts
+                    | then Commands   {$2} --  <--- shift/red conflicts
                     | goto int            { let nr  = getTkIntVal $2
                                             in [ControlStructure $ Goto nr] }
 
@@ -384,10 +383,10 @@ CmdBody   : int                       { Cmd (getTkIntVal $1) Nothing }
           | int stringLiteral         { Cmd (getTkIntVal $1) $ Just $ getTkStrVal $2 }
 
 OpenBody            : int                { (getTkIntVal $1,Nothing,Nothing,Nothing) }
-                    | int "," int  { (getTkIntVal $1,Just $ getTkIntVal $3,Nothing,Nothing) }
-                    | int "," int "," int { (getTkIntVal $1,Just $ getTkIntVal $3,Just $ getTkIntVal $5,Nothing) }
-                    | int "," stringLiteral { (getTkIntVal $1,Nothing,Nothing,Just $ getTkStrVal $3) }
-         | int "," int "," stringLiteral { (getTkIntVal $1,Just $ getTkIntVal $3,Nothing,Just $ getTkStrVal $5) }
+       | int "," int  { (getTkIntVal $1,Just $ getTkIntVal $3,Nothing,Nothing) }
+      | int "," int "," int { (getTkIntVal $1,Just $ getTkIntVal $3,Just $ getTkIntVal $5,Nothing) }
+      | int "," stringLiteral { (getTkIntVal $1,Nothing,Nothing,Just $ getTkStrVal $3) }
+ | int "," int "," stringLiteral { (getTkIntVal $1,Just $ getTkIntVal $3,Nothing,Just $ getTkStrVal $5) }
 | int "," int "," int "," stringLiteral { (getTkIntVal $1,Just $ getTkIntVal $3,Just $ getTkIntVal $5,Just $ getTkStrVal $7) }
 
 
@@ -420,15 +419,15 @@ NumVar              : IntVar                       { NumVar_Int   $1        }
 
 
 StringVar           : stringVar                 { StringVar $ getTkStrVal $1 }   
-                    | stringVar "(" ArrayIndex ")"  { StringVar_Array (getTkStrVal $1) $3 }
+       | stringVar "(" ArrayIndex ")"  { StringVar_Array (getTkStrVal $1) $3 }
                     | timestr_reg               { TimeStr_Reg          }
 
 IntVar              : intVar                       { IntVar $ getTkStrVal $1 }
-                    | intVar "(" ArrayIndex ")"  { IntVar_Array (getTkStrVal $1) $3 }
+             | intVar "(" ArrayIndex ")"  { IntVar_Array (getTkStrVal $1) $3 }
 
 
 FloatVar            : floatVar_or_datastring     { FloatVar $ getTkStrVal $1 }
-                    | floatVar_or_datastring "(" ArrayIndex ")" { FloatVar_Array (getTkStrVal $1) $3 }
+ | floatVar_or_datastring "(" ArrayIndex ")" { FloatVar_Array (getTkStrVal $1) $3 }
 
 
 ArrayIndex          : NumExpr                    { [$1] }
