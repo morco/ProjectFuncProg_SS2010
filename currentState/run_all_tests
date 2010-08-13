@@ -13,11 +13,19 @@ echo "End test suite 1."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test Suite 2: Test if"
 ./run_if_tests
 echo "End test suite 2."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test Suite 3: Test for"
 ./run_for_tests
@@ -25,11 +33,19 @@ echo "End test suite 3."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test Suite 4: Test goto"
 ./run_goto_tests
 echo "End test suite 4."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test Suite 5: Test expressions"
 ./run_expression_tests
@@ -37,17 +53,29 @@ echo "End test suite 5."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test Suite 6: Test arrays"
 ./run_array_tests
 echo "End test suite 6."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
 echo "Test Suite 7: Test data"
 ./run_data_tests
 echo "End test suite 7."
 
 echo
+
+echo "Start next test with ENTER"
+read bla
+
 
 echo "Test Suite 8: Test file IO"
 ./run_file_tests
