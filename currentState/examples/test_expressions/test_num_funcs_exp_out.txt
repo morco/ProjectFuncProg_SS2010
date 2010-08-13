@@ -1,16 +1,16 @@
 Test abs
 Put number ? <User INPUT>
-ABS(N * 5 - 3 + N/4 - N * 20) = 11.75
-<INPUT DEPENDED>
+ABS(N * 5 - 3 + N/4 - N * 20) = <INPUT DEPENDEND>
+<INPUT DEPENDEND>
 
 Test asc
 The Ascii Val of A = 65
 give a char: ? 
-Now given through var = <INPUT DEPENDED>
+Now given through var = <INPUT DEPENDEND>
 
 Test atn
 Atan von 0 = 0
-PI=3.14:X=ATN(N)*180/PI => <INPUT DEPENDED>
+PI=3.14:X=ATN(N)*180/PI => <INPUT DEPENDEND>
 
 Chr from 65 = A
 Chr from 13 = 

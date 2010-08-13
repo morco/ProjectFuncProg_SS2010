@@ -1,10 +1,5 @@
 module BinaryOps(evalLogicExpression,toBin,toIntFromBin) where
 
-------------------------------------------------- <Imports> ------------------------------------------------------
-
-
-------------------------------------------------- </Imports> -----------------------------------------------------
-
 
 binaryFormatSize :: Int
 binaryFormatSize = 16 -- c64 standard

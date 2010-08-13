@@ -1,0 +1,131 @@
+#! /bin/bash
+
+echo "Running all others tests (time register, assigment, auto-init) basic progs "
+echo "(a diff will be done comparing exp with produced output)"
+echo "all used files are in the sub dir examples/test_other, "
+echo "if you want to look at them..."
+
+echo 
+
+echo "Test 1: Test (Numerical) assigment"
+./basic_interprete examples/test_others/test_assigment.bas &> examples/test_others/temp
+echo "Difference between produced and exp output:"
+diff examples/test_others/temp examples/test_others/test_assigment_exp_out.txt
+echo "End test 1."
+
+echo
+
+echo "Start next test with ENTER"
+read bla
+
+
+echo "Test 2: Test auto initiation "
+echo -e "\t (read of non inititated var delivers 0 or \"\" )" 
+./basic_interprete examples/test_others/test_auto_init.bas &> examples/test_others/temp
+echo "Difference between produced and exp output:"
+diff examples/test_others/temp examples/test_others/test_auto_init_exp_out.txt
+echo "End test 2."
+
+echo
+
+echo "Start next test with ENTER"
+read bla
+
+
+echo "Test 3: Test Time registers "
+echo -e "\t (modifyable string time reg and only readable counter time reg)"
+./basic_interprete examples/test_others/test_time.bas &> examples/test_others/temp
+echo "Difference between produced and exp output:"
+diff examples/test_others/temp examples/test_others/test_time_exp_out.txt
+echo "End test 3."
+
+echo
+
+echo "Start next test with ENTER"
+read bla
+
+
+echo "Now running error case tests..."
+
+echo
+
+echo "Test 4: Test auto initiated array with index too high (> default size 11)"
+./basic_interprete examples/test_others/error_cases/test_auto_init_array_tooHighIndex.bas &> examples/test_others/temp
+echo "Difference between produced and exp output:"
+diff examples/test_others/temp examples/test_others/error_cases/test_auto_init_array_tooHighIndex_exp_out.txt
+echo "End test 4."
+
+echo
+
+echo "Start next test with ENTER"
+read bla
+
+
+echo "Test 5: Test writing invalid time value (empty string)"
+./basic_interprete examples/test_others/error_cases/test_time_write_empty.bas &> examples/test_others/temp
+echo "Difference between produced and exp output:"
+diff examples/test_others/temp examples/test_others/error_cases/test_time_write_empty_exp_out.txt
+echo "End test 5."
+
+echo
+
+echo "Start next test with ENTER"
+read bla
+
+
+echo "Test 6: Test writing invalid time value (non number signs)"
+./basic_interprete examples/test_others/error_cases/test_time_write_chars.bas &> examples/test_others/temp
+echo "Difference between produced and exp output:"
+diff examples/test_others/temp examples/test_others/error_cases/test_time_write_chars_exp_out.txt
+echo "End test 6."
+
+echo
+
+echo "Start next test with ENTER"
+read bla
+
+
+echo "Test 7: Test writing invalid time value (wrong length)"
+./basic_interprete examples/test_others/error_cases/test_time_write_tooLong.bas &> examples/test_others/temp
+echo "Difference between produced and exp output:"
+diff examples/test_others/temp examples/test_others/error_cases/test_time_write_tooLong_exp_out.txt
+echo "End test 7."
+
+echo
+
+echo "Start next test with ENTER"
+read bla
+
+
+echo "Test 8: Test writing invalid time value (invalid hour value)"
+./basic_interprete examples/test_others/error_cases/test_time_write_numberNoTimeHours.bas &> examples/test_others/temp
+echo "Difference between produced and exp output:"
+diff examples/test_others/temp examples/test_others/error_cases/test_time_write_numberNoTimeHours_exp_out.txt
+echo "End test 8."
+
+echo
+
+echo "Start next test with ENTER"
+read bla
+
+
+echo "Test 9: Test writing invalid time value (invalid minute value)"
+./basic_interprete examples/test_others/error_cases/test_time_write_numberNoTimeMins.bas &> examples/test_others/temp
+echo "Difference between produced and exp output:"
+diff examples/test_others/temp examples/test_others/error_cases/test_time_write_numberNoTimeMins_exp_out.txt
+echo "End test 9."
+
+echo
+
+echo "Start next test with ENTER"
+read bla
+
+
+echo "Test 10: Test writing invalid time value (invalid seconds value)"
+./basic_interprete examples/test_others/error_cases/test_time_write_numberNoTimeSecs.bas &> examples/test_others/temp
+echo "Difference between produced and exp output:"
+diff examples/test_others/temp examples/test_others/error_cases/test_time_write_numberNoTimeSecs_exp_out.txt
+echo "End test 10."
+
+rm examples/test_others/temp 
+

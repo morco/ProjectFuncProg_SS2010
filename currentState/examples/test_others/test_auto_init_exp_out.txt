@@ -1,0 +1,6 @@
+Diese FloatVar wurde nicht initialisiert: 0
+Diese FloatArrayVar wurde nicht initialisiert: 0
+Diese IntVar wurde nicht initialisiert: 0
+Diese IntArrayVar wurde nicht initialisiert: 0
+Diese StringVar wurde nicht initialisiert: 
+Diese StringArrayVar wurde nicht initialisiert: 

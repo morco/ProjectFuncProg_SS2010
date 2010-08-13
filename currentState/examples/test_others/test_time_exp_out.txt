@@ -1,0 +1,5 @@
+Current time in basic system time(1/60 secs since morning): <TIME DEPENDEND>
+Current time as formatted string: <TIME DEPENDEND>
+Current time resetted as formatted string: 233014
+Current time resetted2 as formatted string: <SPEED DEPENDEND>
+Current time in basic system time(1/60 secs since morning): <SPEED DEPENDEND>

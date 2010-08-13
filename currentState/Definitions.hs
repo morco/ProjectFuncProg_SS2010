@@ -167,6 +167,8 @@ printError err comment nr =
 
 ----------------------------- </Error definitions> ------------------------
 
+showST_Reg = "ST"
+showTimeStrReg = "TI$"
 
 -- This type is for recording the state of the programm, which means 
 --  currently the values of the variables, the whole program as list 

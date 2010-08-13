@@ -83,3 +83,13 @@ echo "End test suite 8."
 
 echo
 
+echo "Start next test with ENTER"
+read bla
+
+
+echo "Test Suite 9: Test others"
+./run_others_tests
+echo "End test suite 9."
+
+echo
+

@@ -41,6 +41,8 @@ data RuleType
     | NOT_IMPLEMENTED
 
     | COMMAND_GETF
+    | CONSTANT_TI_REGISTER
+    | CONSTANT_ST_REGISTER
     deriving (Ord, Show, Eq)
 
 
@@ -50,11 +52,11 @@ tokenToRuleType TkGetF  = COMMAND_GETF
 tokenToRuleType (TkLineNumber _) = LINE_NUMBER
 tokenToRuleType (TkStringVar _) = STRING_VARIABLE
 tokenToRuleType (TkIntVar _) = INT_VARIABLE
---tokenToRuleType (TkFloatVar _) = FLOAT_VARIABLE
-tokenToRuleType (TkFloatVar_Or_DataString _) = FLOAT_VARIABLE -- TODO!!!
+tokenToRuleType (TkFloatVar_Or_DataString _) = FLOAT_VARIABLE 
 tokenToRuleType (TkStringConcat) = STRING_NL_SURPRESSOR ";"
 tokenToRuleType (TkString _) = STRING_LITERAL
---tokenToRuleType other = error ("not implement token: " ++ show other)
+tokenToRuleType (TkTI_Reg) = CONSTANT_TI_REGISTER
+tokenToRuleType (TkST_Reg) = CONSTANT_ST_REGISTER
 tokenToRuleType _ = NOT_IMPLEMENTED
 
 

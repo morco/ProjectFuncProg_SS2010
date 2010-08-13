@@ -39,7 +39,6 @@ import BinaryOps
 
 import BasicTime
 
---import Debug.Trace(trace)
 
 -------------------------------- </Imports> --------------------------------
 
@@ -116,58 +115,18 @@ evalCompFunc str arg1 arg2 ln_nr
 makeFloat :: Operand -> PState Float
 makeFloat (OpVar (NumVar_Int intvar)) = do
     val <- getIntVarValue intvar
-    --state <- get
-    --let val = getMapVal $ M.lookup name (intVars state)
     return $ fromIntegral val
-{-
-makeFloat (OpVar (NumVar_Float (FloatVar "ST"))) = do
-    state <- get
-    let st_reg = getMapVal $ M.lookup "ST" (floatVars state)
-    updateFloatVar (FloatVar "ST") 0 -- reset state register by every lookup, good idea??
-    return st_reg
--}
-
 makeFloat (OpVar (NumVar_Float floatVar)) = do
-    --state <- get 
     val <- getFloatVarValue floatVar
-    --return $ getMapVal $ M.lookup name (floatVars state)
     return val
-{-
-makeFloat (OpVar (NumVar_Int (IntVar_Array name ix))) = do
-    state <- get
-    res <- mapM evalExpression ix
-    let key       = name
-        ind       = map floatToIntConvert res
-        (dim,ar)  = getMapVal $ M.lookup key (intArrayVars state)
-    if length ind == length dim && allSmaller ind dim
-      then do
-        let val   = getMapVal $ M.lookup ind ar
-        return $ fromIntegral val
-      else
-        let ln_nr = curPos state
-        in printArrayIndex_error ind name dim ln_nr
-
-makeFloat (OpVar (NumVar_Float (FloatVar_Array name ix))) = do
-    state <- get 
-    res <- mapM evalExpression ix
-    let key       = name
-        ind       = map floatToIntConvert res
-        (dim,ar)  = getMapVal $ M.lookup key (floatArrayVars state)
-    if length ind == length dim && allSmaller ind dim
-      then do
-        let val   = getMapVal $ M.lookup ind ar
-        return val
-      else
-        let ln_nr = curPos state
-        in printArrayIndex_error ind name dim ln_nr
--}
-
 makeFloat (IntConst   x) = return $ fromIntegral x
 makeFloat (FloatConst x) = return x
 makeFloat TI_Reg         = do
     curtime <- getTimeCountValue
     return curtime
-
+makeFloat ST_Reg         = do
+    val <- getFloatVarValue (FloatVar showST_Reg)
+    return val
 
 
 evalNumFunc :: NumFunction -> PState Float
@@ -280,7 +239,6 @@ evalNumFunc (Fnxx name numExpr) = do
 
          Nothing -> undeffn_error [] $ curPos state
 
---evalNumFunc fnc = error $ "Evaluation error: Unsupported numerical function '" ++ show fnc ++ "'"
 
 evalArithFunc :: Operator -> Float -> Float -> LineNumber -> Float
 evalArithFunc str arg1 arg2 ln_nr 
@@ -328,33 +286,9 @@ evalStringExpression (StringExpr (bstr1,bstr2) strOp) = do
 
 evalBasicString :: BasicString -> PState String
 evalBasicString (StringLiteral x) = return x
-{-
-evalBasicString (StringVar_BString (StringVar "TI$")) = do
-    updateTimeValue 
-    state <- get
-    return $ getMapVal $ M.lookup "TI$" (stringVars state)
--}
 evalBasicString (StringVar_BString strVar) = do
     val <- getStringVarValue strVar
     return val
-  --  state <- get
-  --  return $ getMapVal $ M.lookup name (stringVars state)
-
-{-
-evalBasicString (StringVar_BString (StringVar_Array name ix)) = do
-    state <- get 
-    res <- mapM evalExpression ix
-    let key       = name
-        ind       = map floatToIntConvert res
-        (dim,ar)  = getMapVal $ M.lookup key (stringArrayVars state)
-    if length ind == length dim && allSmaller ind dim
-      then do
-        let val   = getMapVal $ M.lookup ind ar
-        return val
-      else
-        let ln_nr = curPos state
-        in printArrayIndex_error ind name dim ln_nr
--}
 
 
 evalStringOp :: Operator -> String -> String -> LineNumber -> String
@@ -445,7 +379,6 @@ evalBoolExpression (Expr_Num numExpr) = do
     val <- evalExpression numExpr
     return $ intToBool $ floatToIntConvert val
     
-
 
 
 stringToBool :: String -> Bool

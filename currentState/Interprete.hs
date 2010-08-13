@@ -18,6 +18,7 @@ import Parser.ParserTypes hiding (
 import Expressions
 import ProgrammState
 import Definitions
+import Basic_IO
 
 import BinaryOps
 
@@ -25,16 +26,9 @@ import Debug.Trace(trace)
 
 --------------------------------- </Imports> -------------------------------
 
---data HandleWrapper 
- --   = HandleWrapper Handle
- --   deriving (Eq,Ord)
-     
 
 --------------------------------- <Main> -----------------------------------
 
--- TODO: 
---    -> Speed it up, awfully slow even for very small examples
---    -> Handle types!!! (Vars, Constants (only one type of constant!!))
 
 -- main principle:
 --            -> get basic programm file path from arguments
@@ -93,14 +87,6 @@ doOn numExpr constr linenums = do
           else return ()
 
 
--- A simple wrapper for inserting vars from IO actions. Simple said it
---  generalize the lift operation
---insertIOValue :: Var -> IO String -> PState ()
---insertIOValue var ioAct = insertValue var (liftIO $ ioAct) id read read
-insertIOValue :: Var -> PState String -> PState ()
-insertIOValue var ioAct = insertValue var ioAct id read read
-
-
 -- With this function a program jump is executed by taking the whole
 --  program (== List) and dropping all lines at the beginning up to the
 --   the line to which we want to jump
@@ -144,8 +130,6 @@ interpret ((lnNr,commands):xs) = do
 
 -- This Function handles the hole work, it evaluates all commands in 
 --  their right manner
--- TODO: 
---     -> action is very, very ugly!!! (Generalizing things seems possible
 evalCommand :: Command -> PState ()
 evalCommand (IO_Com (Input ((InputStuff lsComment vars), printLn))) = do
     state <- get
@@ -161,7 +145,6 @@ evalCommand (IO_Com (Input ((InputStuff lsComment vars), printLn))) = do
                _   -> let ermsg = "Comment of INPUT command" 
                                   ++ " can only be a single STRING"
                       in interprete_error ermsg $ curPos state
-    --mapM_ (flip insertIOValue (liftIO $ (putStr "? " >> getLine))) vars
     mapM_ (flip insertIOValue (pre_liner >> getfileInput stdin)) vars
 
 -- The easiest way to get input chars and strings together is to make
@@ -170,36 +153,11 @@ evalCommand (IO_Com (Get vars)) = do
     state <- get
     let out_h = Just $ basic_stdout state
     getCommand stdin out_h vars
-   -- let get_act = putStr "? " >> getChar >>= (return . flip (:) [])
-  --  mapM_ (flip insertIOValue get_act) vars
 
 evalCommand (IO_Com (Print (list, printLn))) = do 
     state <- get
     let out_h = basic_stdout state
     printCommand out_h list printLn 
-{-    outStr <- mapM outputToString list
-    let printStr = foldl (++) "" $ outStr
-    liftIO $ if printLn
-               then
-                 putStrLn printStr
-               else
-                 putStr printStr
-  where
-    outputToString :: Output -> PState String 
-    outputToString (OutStringExpr x) = evalStringExpression x 
-    outputToString (OutNumExpr    x) = do
-        res <- evalExpression x 
-        let str = if isIntValue res
-                    then show $ truncate res
-                    else show res
-        return str
-  
-    isIntValue :: Float -> Bool 
-    isIntValue flnr = 
-        let coma_part = flnr - (fromIntegral $ truncate flnr)
-        in if coma_part == 0
-             then True
-             else False-}
 
 evalCommand NOOP = return ()            
 
@@ -275,8 +233,7 @@ evalCommand (Next (For (FloatVar name) (start,step,end))) = do
     end'  <- makeFloat end  
     let var    = FloatVar name
     i     <- getFloatVarValue var
-    let -- flvars = floatVars state
-        i'     = i + step'
+    let i'     = i + step'
         fors   = for_lines state
     if i' > end'
       then -- for is completed
@@ -342,52 +299,6 @@ evalCommand (ControlStructure (On_Gosub numExpr linenums)) =
     doOn numExpr GoSub linenums
 
 evalCommand (Dim myvars) = mapM_ dimArray myvars  
-  {-where
-        dimArray :: (Var,[Operand]) -> PState ()
-        dimArray (var,dim'') = do
-            state <- get
-            dim'  <- mapM makeFloat dim''
-            -- +1 because in c64 basic dimension gives the highest index!
-            let dim      = map (((+) 1) . floatToIntConvert) dim'
-                ins_func = \ _ -> Just (dim,M.empty)
-                ln_nr    = curPos state
-                test_dim = filter ((<=) 1) dim
-            if dim == test_dim
-              then
-                case var of 
-                     StringVar_Var (StringVar name )            -> 
-                          -- Check if array was dimensioned already
-                          case M.lookup name $ stringArrayVars state of
-                               Just _  -> redim_error [] ln_nr
-                               Nothing -> do
-                                  let map    = stringArrayVars state
-                                      newars = M.alter ins_func name map
-                                  put $ state { stringArrayVars = newars }
-                     NumVar_Var (NumVar_Int (IntVar name ))     -> 
-                          -- Check if array was dimensioned already
-                          case M.lookup name $ intArrayVars state of
-                               Just _  -> redim_error [] ln_nr
-                               Nothing -> do
-                                  let map    = intArrayVars state
-                                      newars = M.alter ins_func name map
-                                  put $ state { intArrayVars = newars }
-                     NumVar_Var (NumVar_Float (FloatVar name )) -> 
-                          -- Check if array was dimensioned already
-                          case M.lookup name $ floatArrayVars state of
-                               Just _  -> redim_error [] ln_nr
-                               Nothing -> do
-                                  let map    = floatArrayVars state
-                                      newars = M.alter ins_func name map
-                                  put $ state { floatArrayVars = newars }
-                     other -> do
-                          let ermsg = "Dimensioning of non array"
-                                      ++ " variable '" ++ show other 
-                                      ++ "' tried" 
-                          interprete_error ermsg ln_nr
-              else do
-                let ermsg = "Tried Dimensioning '" ++ show dim 
-                            ++ "' contains 0 or negative value" 
-                illqua_error ermsg ln_nr    -}
 
 evalCommand (IO_Com (Open fileID devID secID path_mode)) = do
     state <- get
@@ -397,91 +308,10 @@ evalCommand (IO_Com (Open fileID devID secID path_mode)) = do
       then do
         let devID' = getDevID devID ln_nr 
         handleDevices fileID devID' secID path_mode     
-        {-let devID' = getDevID devID ln_nr
-        if devID' == devID_monitor && secID == Nothing
-          -- standard output
-          then insertFileHandle fileID stdout            
-          -- currently have to be device == filesys, now we need a 
-          --  valid second id
-          else if devID' == devID_filesys
-                 then do
-            {-
-            -- sec id needed???
-            let secID' = case secID of
-                              Nothing             -> defaultSecondID 
-                              Just secID_read     -> secID_read
-                              Just secID_write    -> secID_write
-                              -- eof is written automatically every time
-                              Just secID_writeEOF -> secID_write 
-                              Just other          -> do
-                                    let ermsg = "Unsupported SecondID '" 
-                                                ++ show other ++ "'"
-                                    io_error ermsg ln_nr
-             -}
-                -- middle args ftype needed for something??
-                   let (path,_,mode) = case path_mode of 
-                                            Nothing -> 
-                                               let ermsg = "You have to give a " 
-                                                           ++ "path/mode for "
-                                                           ++ "file system IO"
-                                               in io_error ermsg ln_nr
-                                            Just x  -> 
-                                               splitpath_mode x ln_nr
-                   handle <- liftIO $ openFile path mode
-                   insertFileHandle fileID handle
-                 else io_error "Invalid OPEN configuration" ln_nr
-         -}
       else do
         let ermsg = "FileID '" ++ show fileID ++ "' is not in valid range " 
                     ++ show file_id_range
         io_error ermsg ln_nr
- 
-   where
-     handleDevices :: Int -> Int -> Maybe Int -> Maybe String -> PState () 
-     handleDevices fileID devID secID path_mode
-      | devID == devID_monitor  = 
-           if secID == Nothing
-             -- standard output
-             then insertFileHandle fileID stdout
-             else do 
-               state <- get
-               io_error "Invalid OPEN configuration" $ curPos state
-      | devID == devID_filesys  = do
-           state <- get
-           let ln_nr = curPos state
-            {-
-            -- sec id needed???
-            let secID' = case secID of
-                              Nothing             -> defaultSecondID 
-                              Just secID_read     -> secID_read
-                              Just secID_write    -> secID_write
-                              -- eof is written automatically every time
-                              Just secID_writeEOF -> secID_write 
-                              Just other          -> do
-                                    let ermsg = "Unsupported SecondID '" 
-                                                ++ show other ++ "'"
-                                    io_error ermsg ln_nr
-             -}
-           -- middle args ftype needed for something??
-           let (path,_,mode) = case path_mode of 
-                                    Nothing -> 
-                                       let ermsg = "You have to give a " 
-                                                   ++ "path/mode for "
-                                                   ++ "file system IO"
-                                        in io_error ermsg ln_nr
-                                    Just x  -> splitpath_mode x ln_nr
-           handle <- liftIO $ openFile path mode
-           insertFileHandle fileID handle
-      | devID == devID_keyboard = do
-           if secID == Nothing
-             -- standard input
-             then insertFileHandle fileID stdin
-             else do 
-               state <- get
-               io_error "Invalid OPEN configuration" $ curPos state
-      | otherwise               = do
-           state <- get
-           io_error "Invalid OPEN configuration" $ curPos state
 
 evalCommand (IO_Com (Close fileID)) = do
     state <- get
@@ -528,109 +358,3 @@ evalCommand com = do
     let ln_nr = curPos state
     interprete_error ("Unknown command '" ++ show com ++ "'") ln_nr 
 
-
-getfileInput :: Handle -> PState String
-getfileInput handleIn = do
-    inp <- myHGetChar handleIn
-    if inp == io_sep || inp == '\n'
-      then return [] -- seperator case, stop parsing, ignore separator sign
-      else do
-        rst <- getfileInput handleIn
-        return (inp : rst)
-
-getCommand :: Handle -> Maybe Handle -> [Var] -> PState ()
-getCommand handleIn handleOut vars = do
-    let pre_liner = case handleOut of
-                         Just h  -> liftIO $ hPutStr h "? "
-                         Nothing -> return ()
-        get       = myHGetChar handleIn
-        get_act   = pre_liner >> get >>= (return . flip (:) [])
-    mapM_ (flip insertIOValue get_act) vars
-
-
---hgetCharEOF :: Handle -> IO Char
-hGetCharEOF handle =  (hGetChar handle) `catch` eofHandler 
-  where
-    eofHandler e = if isEOFError e 
-                     then return '\0' -- safe way ??
-                     else error "getCHar error; TODO!!!"
-
-myHGetChar :: Handle -> PState Char
-myHGetChar handle =  do
-    nc <- liftIO $ hGetCharEOF handle
-    if nc == '\0'
-      then do -- EOF case
-         state1 <- get
-         case M.lookup (show handle) $ eof_reached state1 of
-              Nothing -> do -- all ok, set the register flag
-                  st_ref <- getFloatVarValue $ FloatVar "ST" 
-                  state <- get 
-                  let eofs = eof_reached state
-                  let new_eofs = M.insert (show handle) True eofs
-                      st_ref_bin = reverse $ toBin $ floatToIntConvert st_ref
-                      st_ref_bin' = reverse $ take 5 st_ref_bin ++ [1] ++ drop 6 st_ref_bin
-                      --new_st_ref  = fromIntegral $ toIntFromBin $ trace ("new ST val in bin = " ++ show st_ref_bin) st_ref_bin'
-                      new_st_ref  = fromIntegral $ toIntFromBin $ st_ref_bin'
-                  --trace ("updating ST var to: " ++ show new_st_ref) $ updateFloatVar (FloatVar "ST") new_st_ref
-                  updateFloatVar (FloatVar "ST") new_st_ref
-                  state' <- get
-                  put $ state' { eof_reached = new_eofs } 
-                  return '\n'
-              Just _  -> -- eof thrown second time, error case
-                  error "EOF ERROR: TODO!"
-      else return nc
-
-
-unJustHandle :: Maybe Handle -> Handle
-unJustHandle (Just h) = h
-unJustHandle _ = error "TODO!!"
-
-
-printCommand :: Handle -> [Output] -> Bool -> PState ()
-printCommand handleOut output printLn = do
-    outStr <- mapM outputToString output
-    let printStr = foldl (++) "" $ outStr
-    liftIO $ if printLn
-               then
-                 hPutStrLn handleOut printStr
-               else
-                 hPutStr handleOut printStr
-  where
-    outputToString :: Output -> PState String 
-    outputToString (OutStringExpr x) = evalStringExpression x 
-    outputToString (OutNumExpr    x) = do
-        res <- evalExpression x 
-        let str = if isIntValue res
-                    then show $ truncate res
-                    else show res
-        return str
-{-  
-    isIntValue :: Float -> Bool 
-    isIntValue flnr = 
-        let coma_part = flnr - (fromIntegral $ truncate flnr)
-        in if coma_part == 0
-             then True
-             else False
--}
-
-splitpath_mode :: String -> LineNumber -> (String,String,IOMode)
-splitpath_mode str ln_nr =
-    let seps = findIndices ((==) io_sep) str
-    in case length seps of
-            0 -> (str,default_type,default_mode)
-            1 -> let (path,ftype) = splitAt (head seps) str
-                     nm_ftype     = getType $ map toLower ftype
-                 in (path,nm_ftype,default_mode)
-            2 -> let (path,rst)   = splitAt (head seps) str
-                     rst'         = tail rst -- first sign is the first comma!
-	             newIdx       = findIndices ((==) io_sep) rst'
-                     (ftype,mode) = splitAt (head newIdx) rst'
-                     nm_ftype     = getType $ map toLower ftype
-                     nm_mode      = basicToHaskellMode $ tail mode -- s.a.
-                 in (path,nm_ftype,nm_mode)
-            x -> let ermsg = "Invalid path/mode format string '" 
-                             ++ str ++ "', correct format is: "
-                             ++ "\"<path>[,<type>][,<mode>]\""
-                 in io_error ermsg ln_nr
-                    
- 

@@ -120,7 +120,9 @@ import Debug.Trace
     stringLiteral                 { TokenWrap _type pos (TkString val)     }
     float               { TokenWrap _type pos (TkConst (TkFloatConst val)) }
     int                 { TokenWrap _type pos (TkConst (TkIntConst val))   }
-    ti_reg              { TokenWrap _type pos (TkTI_Reg)                   }
+    ti_reg              { TokenWrap _type pos TkTI_Reg                   }
+    st_reg              { TokenWrap _type pos TkST_Reg                   }
+    timestr_reg              { TokenWrap _type pos TkTimeStr_Reg                   }
 
 
 -- Special symbols
@@ -421,6 +423,7 @@ NumVar              : IntVar                       { NumVar_Int   $1        }
 
 StringVar           : stringVar                 { StringVar $ getTkStrVal $1 }   
                     | stringVar "(" ArrayIndex ")"  { StringVar_Array (getTkStrVal $1) $3 }
+                    | timestr_reg               { TimeStr_Reg          }
 
 IntVar              : intVar                       { IntVar $ getTkStrVal $1 }
                     | intVar "(" ArrayIndex ")"  { IntVar_Array (getTkStrVal $1) $3 }
@@ -439,6 +442,7 @@ Constant            : int                        { let int = getTkIntVal $1
                     | float                      { let flt = getTkFltVal $1
                                                    in FloatConst flt        }
                     | ti_reg                     { TI_Reg                   }
+                    | st_reg                     { ST_Reg                   }
 
 
 {

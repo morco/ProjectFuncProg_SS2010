@@ -118,6 +118,8 @@ data Token
      | TkIntVar                   String 
      | TkFloatVar_Or_DataString   String
      | TkTI_Reg 
+     | TkST_Reg 
+     | TkTimeStr_Reg 
 
 ----- </Variables, Strings, Numbers> -----
 
@@ -296,6 +298,7 @@ data Operand
     | IntConst     Int
     | FloatConst   Float
     | TI_Reg
+    | ST_Reg
     deriving (Show,Eq,Ord)
 
 data NumVar
@@ -311,6 +314,7 @@ data Var
 data StringVar
     = StringVar         String
     | StringVar_Array   String  [NumExpr]
+    | TimeStr_Reg
     deriving (Eq, Show, Ord)
 
 data IntVar

@@ -149,6 +149,8 @@ buildResWord str' =
     in buildResWord' nmstr
   where
         buildResWord' str
+            | str == "st"       = [ TkST_Reg    ]
+            | str == "ti$"      = [ TkTimeStr_Reg    ]
             | str == "open"     = [ TkOpen      ]
             | str == "cmd"      = [ TkCmd       ]
             | str == "close"    = [ TkClose     ]

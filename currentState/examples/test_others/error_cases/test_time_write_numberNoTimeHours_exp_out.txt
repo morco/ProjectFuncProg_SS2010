@@ -1,0 +1,2 @@
+basic_interprete: ?ILLEGAL QUANTIFY ERROR in line 10: 
+			Invalid time string format '441530', correct format is [hhmmss] !

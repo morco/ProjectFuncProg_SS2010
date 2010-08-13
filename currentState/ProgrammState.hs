@@ -1,11 +1,17 @@
 module ProgrammState where
 
------------------------------- <Imports> ------------------------------------
+------------------------------ <Imports> -----------------------------------
 
 import Random(randoms, mkStdGen)
-import qualified Data.Map as M
+import qualified Data.Map as M (lookup,alter,empty)
 import Control.Monad.State
-import System.Time(getClockTime,toCalendarTime,CalendarTime(..),Month(May),Day(Sunday))
+import System.Time(
+                   getClockTime,
+                   toCalendarTime,
+                   CalendarTime(..),
+                   Month(May),
+                   Day(Sunday)
+                  )
 import IO(Handle,stdout)
 
 import Parser.ParserTypes( 
@@ -22,14 +28,33 @@ import Parser.ParserTypes(
                          )
 
 import Definitions
-import Expressions
+import Expressions(evalExpression,makeFloat)
 import BasicTime
 
------------------------------- </Imports> -----------------------------------
+------------------------------ </Imports> ----------------------------------
 
 
+-------------------------------- <Little Helpers> --------------------------
 
--- TODO: make Seed variable
+allSmaller :: (Num a,Ord a) => [a] -> [a] -> Bool
+allSmaller []     []  = True
+allSmaller (_:_) []   = error "lists have different size!"
+allSmaller [] (_:_)   = error "lists have different size!"
+allSmaller (x:xs) (y:ys)
+    | x < y && x >= 0 = allSmaller xs ys
+    | otherwise = False
+
+insertAtPos :: Int -> a -> [a] -> [a]
+insertAtPos pos el  []   
+    | pos == 0  = el : []
+    | otherwise = error "position is bigger than list"
+insertAtPos pos el (x:xs) 
+    | pos == 0  = el : xs
+    | pos > 0   = x : insertAtPos (pos - 1) el xs
+    | otherwise = error "Insert pos lower than 0!"
+
+-------------------------------- </Little Helpers> -------------------------
+
 
 ---------------------------- <Init functions> ------------------------------
 
@@ -86,12 +111,12 @@ initState = do
     -- set the time
     now     <- liftIO $ getClockTime
     now_cal <- liftIO $ toCalendarTime now
-    updateStringVar (StringVar "TI$") $ calendarTimeToTimeString now_cal
+    updateStringVar TimeStr_Reg $ calendarTimeToTimeString now_cal
     -- create the random numbers depending on current time
     curtime <- makeFloat $ TI_Reg
     createNewRandomSequence $ floatToIntConvert $ curtime 
     -- init ST (should not be necessary with auto init)
-    updateFloatVar (FloatVar "ST") 0
+    updateFloatVar (FloatVar showST_Reg) 0
 
 ---------------------------- </Init functions> -----------------------------
 
@@ -245,22 +270,25 @@ updateIntVar (IntVar_Array name idx_exp) val = do
         in printArrayIndex_error index name dim ln_nr 
 
 updateStringVar :: StringVar -> String -> PState ()
-updateStringVar (StringVar "TI$") val = do
+updateStringVar TimeStr_Reg val = do
+    state <- get
     if isValidTimeString val 
       then do
         -- get the current real time
         now     <- liftIO $ getClockTime
         now_cal <- liftIO $ toCalendarTime now
         -- standard insert
-        state <- get
-        let key      = "TI$"
+        let key      = showTimeStrReg
             upd_func = \ _ -> Just val
         put $ state { 
                 stringVars = M.alter upd_func key $ stringVars state,
                 last_update_time = now_cal 
               }
-      else
-        error $ "invalid t string: TODO! == " ++ val
+      else do
+        let ermsg = "Invalid time string format '" ++ val 
+                    ++ "', correct format is [hhmmss]"
+        illqua_error ermsg $ curPos state
+
 updateStringVar (StringVar name) val = do
     state <- get
     let key      = name
@@ -314,6 +342,126 @@ insertValue var getValAct toStringFunc toIntFunc toFloatFunc = do
 --------------------- </Update and Insertion of variables> -----------------
 
 
+--------------------------- <Lookup of variables> --------------------------
+
+getFloatVarValue :: FloatVar -> PState Float
+getFloatVarValue (FloatVar name) 
+    | name == showST_Reg = do
+         state <- get
+         let st_reg = case M.lookup showST_Reg $ floatVars state of
+                           Just x  -> x
+                           Nothing -> 0 -- ???
+         -- reset state register by every lookup, good idea??
+         updateFloatVar (FloatVar showST_Reg) 0 
+         return st_reg
+    | otherwise          = do
+         state <- get
+         case M.lookup name $ floatVars state of
+              Just x  -> return x
+              Nothing -> return 0
+
+getFloatVarValue (FloatVar_Array name idx_expr) = do
+    state <- get
+    ind   <- getIndex idx_expr
+    let key       = name
+    (dim,ar) <- case M.lookup key $ floatArrayVars state of
+                     Just x  -> return x
+                     Nothing -> do -- array is new, auto init
+                        -- updating this floatvar will create a new array
+                        updateFloatVar (FloatVar_Array name idx_expr) 0
+                        state' <- get
+                        let flvars = floatArrayVars state'
+                        let arr' = case M.lookup key flvars  of
+                                        Just x -> x
+                                        Nothing -> error "Can not happen!"
+                        return arr'
+    if length ind == length dim && allSmaller ind dim
+      then do
+        let val   = case M.lookup ind ar of
+                         Just x  -> x
+                         Nothing -> 0 
+        return val
+      else
+        let ln_nr = curPos state
+        in printArrayIndex_error ind name dim ln_nr
+
+getStringVarValue :: StringVar -> PState String
+getStringVarValue TimeStr_Reg = do
+    updateTimeValue
+    state <- get
+    case M.lookup showTimeStrReg $ stringVars state of
+         Just x  -> return x
+         Nothing -> return "" -- ??
+
+getStringVarValue (StringVar name) = do
+    state <- get
+    case M.lookup name $ stringVars state of
+         Just x  -> return x
+         Nothing -> return ""
+
+getStringVarValue (StringVar_Array name idx_expr) = do
+    state <- get
+    ind   <- getIndex idx_expr
+    let key       = name
+    (dim,ar) <- case M.lookup key $ stringArrayVars state of
+                     Just x  -> return x
+                     Nothing -> do -- array is new, auto init
+                        -- updating this var will create a new array
+                        updateStringVar (StringVar_Array name idx_expr) ""
+                        state' <- get
+                        let strvars = stringArrayVars state'
+                        let arr' = case M.lookup key strvars of
+                                        Just x -> x
+                                        Nothing -> error "Can not happen!"
+                        return arr'
+    if length ind == length dim && allSmaller ind dim
+      then do
+        let val   = case M.lookup ind ar of
+                         Just x  -> x
+                         Nothing -> ""
+        return val
+      else
+        let ln_nr = curPos state
+        in printArrayIndex_error ind name dim ln_nr
+
+ 
+getIntVarValue :: IntVar -> PState Int
+getIntVarValue (IntVar name) = do
+    state <- get
+    case M.lookup name $ intVars state of
+         Just x  -> return x
+         Nothing -> return 0
+
+getIntVarValue (IntVar_Array name idx_expr) = do
+    state <- get
+    ind   <- getIndex idx_expr
+    let key       = name
+    (dim,ar) <- case M.lookup key $ intArrayVars state of
+                     Just x  -> return x
+                     Nothing -> do -- array is new, auto init
+                        -- updating this var will create a new array
+                        updateIntVar (IntVar_Array name idx_expr) 0
+                        state' <- get
+                        let intvars = intArrayVars state'
+                        let arr' = case M.lookup key intvars of
+                                        Just x -> x
+                                        Nothing -> error "Can not happen!"
+                        return arr'
+    if length ind == length dim && allSmaller ind dim
+      then do
+        let val   = case M.lookup ind ar of
+                         Just x  -> x
+                         Nothing -> 0
+        return val
+      else
+        let ln_nr = curPos state
+        in printArrayIndex_error ind name dim ln_nr
+
+ 
+--------------------------- </Lookup of variables> -------------------------
+
+
+
 -------------------------------- <DATA functions> --------------------------
 
 getNextDataElement :: PState DataContent
@@ -352,143 +500,5 @@ getDataFloat other         ln_nr =
     in type_error ermsg ln_nr
 
 -------------------------------- </DATA functions> -------------------------
-
-
---allSmaller :: (Ord a) => [a] -> [a] -> Bool
-allSmaller :: (Num a,Ord a) => [a] -> [a] -> Bool
-allSmaller []     []   = True
-allSmaller (_:_) []   = error "lists have different size!"
-allSmaller [] (_:_)   = error "lists have different size!"
-allSmaller (x:xs) (y:ys)
-    | x < y && x >= 0 = allSmaller xs ys
-    | otherwise = False
-
-insertAtPos :: Int -> a -> [a] -> [a]
-insertAtPos pos el  []   
-    | pos == 0  = el : []
-    | otherwise = error "position is bigger than list"
-insertAtPos pos el (x:xs) 
-    | pos == 0  = el : xs
-    | pos > 0   = x : insertAtPos (pos - 1) el xs
-    | otherwise = error "Insert pos lower than 0!"
-
-{-
-getMapVal :: Maybe a -> a
-getMapVal (Just x) = x
-getMapVal _  = error "Var not found!"
--}
-
-
-getFloatVarValue :: FloatVar -> PState Float
-getFloatVarValue (FloatVar "ST") = do
-    state <- get
-    let st_reg = case M.lookup "ST" $ floatVars state of
-                      Just x  -> x
-                      Nothing -> 0 -- ???
-    -- reset state register by every lookup, good idea??
-    updateFloatVar (FloatVar "ST") 0 
-    return st_reg
-
-getFloatVarValue (FloatVar name) = do
-    state <- get
-    case M.lookup name $ floatVars state of
-         Just x  -> return x
-         Nothing -> return 0
-
-getFloatVarValue (FloatVar_Array name idx_expr) = do
-    state <- get
-    ind   <- getIndex idx_expr
-    let key       = name
-    (dim,ar) <- case M.lookup key $ floatArrayVars state of
-                     Just x  -> return x
-                     Nothing -> do -- array is new, auto init
-                        -- updating this floatvar will create a new array
-                        updateFloatVar (FloatVar_Array name idx_expr) 0
-                        state' <- get
-                        let arr' = case M.lookup key $ floatArrayVars state' of
-                                        Just x -> x
-                                        Nothing -> error "Can not happen!"
-                        return arr'
-    if length ind == length dim && allSmaller ind dim
-      then do
-        let val   = case M.lookup ind ar of
-                         Just x  -> x
-                         Nothing -> 0 
-        return val
-      else
-        let ln_nr = curPos state
-        in printArrayIndex_error ind name dim ln_nr
-
-getStringVarValue :: StringVar -> PState String
-getStringVarValue (StringVar "TI$") = do
-    updateTimeValue
-    state <- get
-    case M.lookup "TI$" $ stringVars state of
-         Just x  -> return x
-         Nothing -> return "" -- ??
-
-getStringVarValue (StringVar name) = do
-    state <- get
-    case M.lookup name $ stringVars state of
-         Just x  -> return x
-         Nothing -> return ""
-
-getStringVarValue (StringVar_Array name idx_expr) = do
-    state <- get
-    ind   <- getIndex idx_expr
-    let key       = name
-    (dim,ar) <- case M.lookup key $ stringArrayVars state of
-                     Just x  -> return x
-                     Nothing -> do -- array is new, auto init
-                        -- updating this var will create a new array
-                        updateStringVar (StringVar_Array name idx_expr) ""
-                        state' <- get
-                        let arr' = case M.lookup key $ stringArrayVars state' of
-                                        Just x -> x
-                                        Nothing -> error "Can not happen!"
-                        return arr'
-    if length ind == length dim && allSmaller ind dim
-      then do
-        let val   = case M.lookup ind ar of
-                         Just x  -> x
-                         Nothing -> ""
-        return val
-      else
-        let ln_nr = curPos state
-        in printArrayIndex_error ind name dim ln_nr
-
- 
-getIntVarValue :: IntVar -> PState Int
-getIntVarValue (IntVar name) = do
-    state <- get
-    case M.lookup name $ intVars state of
-         Just x  -> return x
-         Nothing -> return 0
-
-getIntVarValue (IntVar_Array name idx_expr) = do
-    state <- get
-    ind   <- getIndex idx_expr
-    let key       = name
-    (dim,ar) <- case M.lookup key $ intArrayVars state of
-                     Just x  -> return x
-                     Nothing -> do -- array is new, auto init
-                        -- updating this var will create a new array
-                        updateIntVar (IntVar_Array name idx_expr) 0
-                        state' <- get
-                        let arr' = case M.lookup key $ intArrayVars state' of
-                                        Just x -> x
-                                        Nothing -> error "Can not happen!"
-                        return arr'
-    if length ind == length dim && allSmaller ind dim
-      then do
-        let val   = case M.lookup ind ar of
-                         Just x  -> x
-                         Nothing -> 0
-        return val
-      else
-        let ln_nr = curPos state
-        in printArrayIndex_error ind name dim ln_nr
-
- 
 
 
