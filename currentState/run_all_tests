@@ -1,0 +1,57 @@
+#! /bin/bash
+
+echo "Running all tests basic progs "
+echo "(most of the time a diff will be done comparing exp with produced output)"
+echo "all used files are in the sub dir examples/ "
+echo "if you want to look at them..."
+
+echo 
+
+echo "Test Suite 1: Test std IO"
+./run_stdIO_tests
+echo "End test suite 1."
+
+echo
+
+echo "Test Suite 2: Test if"
+./run_if_tests
+echo "End test suite 2."
+
+echo
+
+echo "Test Suite 3: Test for"
+./run_for_tests
+echo "End test suite 3."
+
+echo
+
+echo "Test Suite 4: Test goto"
+./run_goto_tests
+echo "End test suite 4."
+
+echo
+
+echo "Test Suite 5: Test expressions"
+./run_expression_tests
+echo "End test suite 5."
+
+echo
+
+echo "Test Suite 6: Test arrays"
+./run_array_tests
+echo "End test suite 6."
+
+echo
+
+echo "Test Suite 7: Test data"
+./run_data_tests
+echo "End test suite 7."
+
+echo
+
+echo "Test Suite 8: Test file IO"
+./run_file_tests
+echo "End test suite 8."
+
+echo
+

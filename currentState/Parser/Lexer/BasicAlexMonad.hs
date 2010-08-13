@@ -229,6 +229,7 @@ buildEscapedSeq :: String -> Token
 buildEscapedSeq str 
     | str == "n"   = TkString "\n"
     | str == "\""  = TkString "\""
+    | str == "\\"  = TkString "\\"
 
 -- The idea for this function is simple, first check against all reserved 
 --  words, if the input is one of them, if not successful, it should be a 

@@ -1,0 +1,21 @@
+#! /bin/bash
+
+echo "Running all stdIO tests basic progs "
+echo "(because they are all massively interactive, they are also only tested interactive)"
+echo "all used files are in the sub dir examples/test_stdIO, "
+echo "if you want to look at them..."
+
+echo 
+
+echo "Test 1: Test standard IO "
+./basic_interprete examples/test_stdIO/test_stdIO.bas 
+echo "End test 1."
+
+echo
+
+echo "Test 2: Test escape sequences"
+./basic_interprete examples/test_stdIO/test_escape_seqs.bas 
+echo "End test 2."
+
+echo
+
