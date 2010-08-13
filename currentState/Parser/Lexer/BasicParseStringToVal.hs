@@ -242,8 +242,6 @@ uneither (Left x) = error x
 getNumberParseablePart :: String -> Float
 getNumberParseablePart str = uneither $ scanner str
 
--- only for testing
--- main = interact (flip (++) "\n" . show . getNumberParseablePart)
 
 alex_action_1 = \(_,_,inp) len -> return $ read $ "0" ++ (take len inp)
 alex_action_2 = \(_,_,inp) len -> do 

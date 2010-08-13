@@ -221,7 +221,7 @@ alex_deflt :: Array Int Int
 alex_deflt = listArray (0,54) [-1,38,-1,36,-1,-1,7,7,-1,-1,-1,-1,13,13,13,13,13,13,-1,-1,21,21,-1,24,24,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,36,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
 alex_accept = listArray (0::Int,54) [[],[],[],[(AlexAcc (alex_action_14))],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAcc (alex_action_7))],[],[],[],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_3))],[(AlexAcc (alex_action_10))],[(AlexAcc (alex_action_10))],[(AlexAccSkip)],[(AlexAccSkip)],[],[(AlexAccSkip)],[(AlexAccSkip)],[(AlexAcc (alex_action_28))],[(AlexAcc (alex_action_6))],[(AlexAcc (alex_action_8))],[(AlexAcc (alex_action_9))],[],[(AlexAcc (alex_action_10))],[(AlexAcc (alex_action_10))],[(AlexAcc (alex_action_10))],[(AlexAcc (alex_action_11))],[(AlexAcc (alex_action_12))],[(AlexAcc (alex_action_13))],[(AlexAcc (alex_action_14))],[(AlexAcc (alex_action_15))],[(AlexAcc (alex_action_16))],[(AlexAcc (alex_action_17))],[(AlexAcc (alex_action_18))],[(AlexAcc (alex_action_19))],[(AlexAcc (alex_action_20))],[(AlexAcc (alex_action_21))],[(AlexAcc (alex_action_22))],[(AlexAcc (alex_action_23))],[(AlexAcc (alex_action_24))],[(AlexAcc (alex_action_25))],[(AlexAcc (alex_action_26))],[(AlexAcc (alex_action_27))],[(AlexAcc (alex_action_29))],[(AlexAcc (alex_action_30))],[(AlexAcc (alex_action_31))],[(AlexAcc (alex_action_32))],[(AlexAcc (alex_action_33))]]
-{-# LINE 117 "BasicAlexMonad.x" #-}
+{-# LINE 111 "BasicAlexMonad.x" #-}
 
 
 
@@ -339,7 +339,6 @@ scanner :: String -> Either String [TokenWrap]
 scanner str = runAlex str $ do
   let loop i = do tok' <- alexMonadScan;
                   tok <- filterToks tok'
-                  --let tok = tok'
                   if tok == TkEOF -- || tok == "error."
                     then return i 
                     else do let i' = i ++ [tok] in i' `seq` loop i'

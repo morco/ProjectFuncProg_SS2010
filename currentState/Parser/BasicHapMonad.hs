@@ -4477,9 +4477,7 @@ happyReduction_92 ((HappyAbsSyn22  happy_var_6) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do
                                     st <- get
-                                    -- let myvar =  (FloatVar $ getTkStrVal happy_var_2)
                                     let com = For happy_var_2 (happy_var_4,(IntConst 1),happy_var_6)
-                                 --   put $ st { last_for = trace ("myfors: " ++ show (com : (last_for st))) $ com : (last_for st) }
                                     put $ st { last_for = com : (last_for st) }
                                     return com)
 	) (\r -> happyReturn (HappyAbsSyn23 r))
@@ -5082,15 +5080,6 @@ getParseTree str =
                           cur_basline = -1
                      } 
         (a,s) = runState (basicParse $ tokens) initstate 
-
-     {-   (a,s) = (runState $! ((\ tk -> do
-                              psTree <- basicParse tk
-                              checkAllExpectedLineNumbersGot
-                              return psTree
-                          )tokens)) initState -}
-    -- in trace ("the end state: " ++ (intercalate "," s)) a
-    -- in map (id $!) a
-    -- in reverse $! (evalListStrict id a [] )
     in ParseTree { program = a, pdata = data_temp s}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
