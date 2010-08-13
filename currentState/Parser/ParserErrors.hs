@@ -1,7 +1,6 @@
 module Parser.ParserErrors where
 
 import Parser.ParserTypes(Token(..),
-                         -- Constant(..),
                          TokenWrap(..),ParserState(..),getTkIntVal)
 
 import qualified Data.Map as M
@@ -115,7 +114,6 @@ getExpectingMessage errortok = do
      getContext [] _ = ""
      getContext (x:xs) newKey =
          let newKey' = newKey ++ [x]
-             -- cxt = trace (show newKey') $ M.lookup newKey' context
              cxt = M.lookup newKey' context
          in case cxt of
                  Just y -> y
@@ -133,7 +131,6 @@ buildLineNumber :: TokenWrap -> State ParserState Int
 buildLineNumber tkWrap = do
     state <- get
     let lnNrs = lineNumbers state
-    -- let nr = (trace $! (show $ getTkIntVal tkWrap)) $! (getTkIntVal tkWrap)
     let nr = getTkIntVal tkWrap
     if elem nr lnNrs
       then do
@@ -149,26 +146,15 @@ buildLineNumber tkWrap = do
           return nr
 
 
-{- checkAllExpectedLineNumbersGot :: a -> State ParserState a
-checkAllExpectedLineNumbersGot = do
-    state <- get
-    if (null $ expectedLineNumbers state)
-      then
-        return ()
-      else
-        error ("Missing lines: " ++ (show $ expectedLineNumbers state))
--}
 
 
 
 parseError :: [TokenWrap] -> State ParserState a
 parseError ls = do
     (expect,coxt) <- getExpectingMessage (head ls)
-    -- error ("Parse error on: " ++ (show ls))
     let (ln,col) = pos $ head ls
     let posText = "Line " ++ (show ln) ++ "," ++ "Column " ++ (show col) ++ ": "
     let erTk = (", but was: " ++ (show $ tokenToRuleType $ _token $ head ls))
-    -- error ("Used rules(" ++ (show $ length readStr) ++ "): " ++ (foldl (\s y -> s ++ " " ++ y) "" readStr) ++ erTk)
     let cxt = "\n        Context seems to be: " ++ coxt
     error (posText ++ expect ++ erTk ++ cxt)
 

@@ -53,7 +53,5 @@ uneither (Left x) = error x
 getNumberParseablePart :: String -> Float
 getNumberParseablePart str = uneither $ scanner str
 
--- only for testing
--- main = interact (flip (++) "\n" . show . getNumberParseablePart)
 }
 

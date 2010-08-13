@@ -40,7 +40,6 @@ tokens :-
   <normal> [$white # \n]+	         ;  
   <0> [$white]+			         ;
   <0>  $digit+ $white* @comment.*	 ;  -- Commentary (whole line)
-  -- <normal> @comment.*	                 ;  -- Commentary (line part)
   <normal> @comment.*	      {\inp len -> wrapMonadic inp len (\s -> TkComment) "COMMENT"}  -- Commentary (line part)
   <0> "--".*                             ;  -- Unoff comments (for debugging)
   <normal> "--".*                        ;  -- Unoff comments (for debugging)
@@ -59,14 +58,11 @@ tokens :-
 
 ---------------- <Strings, Number, Vars and Reserved Words> -----------------
   <normal> $digit+             {\inp len -> wrapMonadic inp len (TkConst . TkIntConst . read) "INT_CSTANT"}
- -- <normal> ~$digit \. $digit+  {\inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read. (++) "0") "Float_CSTANT"}
- -- <normal> $digit+ \. $digit+  {\inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read) "Float_CSTANT"}
   <normal> $digit* \. $digit+  {\inp len -> wrapMonadic inp len (TkConst . TkFloatConst . read . (++) "0") "Float_CSTANT"}
   
   <normal> @varOrResWord       {\inp len -> wrapMonadic inp len buildVarOrResWord "FLOAT_VAR or RESERVED_WORD" }
 
   <normal> @intVar            {\inp len -> wrapMonadic inp len TkIntVar "INT_VAR"}
---  <normal> @stringVar         {\inp len -> wrapMonadic inp len TkStringVar "STRING_VAR"}
   <normal> @stringVar         {\inp len -> wrapMonadic inp len buildVarOrResWord "STRING_VAR or chr"}
 
 
@@ -75,9 +71,7 @@ tokens :-
 
   <normal>   \"             {andBegin (\inp len -> wrapMonadic inp len (\_ -> TkStringStart)  "bli") string} 
   <string>   [^\\\"]*       {\inp len -> wrapMonadic inp len TkString "bli" }   -- "
---  <string>   \\             {andBegin (\inp len -> wrapMonadic inp len TkString "bli") escaped} 
   <string>   \\             {begin escaped} 
---  <string>   \\ .            {\inp len -> wrapMonadic inp len TkString "bli" } 
   <escaped>  .              {andBegin (\inp len -> wrapMonadic inp len buildEscapedSeq "bli")  string}
   <string>   \"             {andBegin (\inp len -> wrapMonadic inp len (\s -> TkStringEnd ) "bli") normal}  
 
@@ -231,7 +225,6 @@ scanner :: String -> Either String [TokenWrap]
 scanner str = runAlex str $ do
   let loop i = do tok' <- alexMonadScan;
                   tok <- filterToks tok'
-                  --let tok = tok'
                   if tok == TkEOF -- || tok == "error."
                     then return i 
                     else do let i' = i ++ [tok] in i' `seq` loop i'

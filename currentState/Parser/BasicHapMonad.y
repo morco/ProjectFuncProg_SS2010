@@ -337,9 +337,7 @@ ControlStruct                   : if IfExpr IfBody           { If $2 $3         
  | for FloatVar "=" Operand to Operand 
                                              {% do
                                     st <- get
-                                    -- let myvar =  (FloatVar $ getTkStrVal $2)
                                     let com = For $2 ($4,(IntConst 1),$6)
-                                 --   put $ st { last_for = trace ("myfors: " ++ show (com : (last_for st))) $ com : (last_for st) }
                                     put $ st { last_for = com : (last_for st) }
                                     return com }
  
@@ -470,15 +468,6 @@ getParseTree str =
                           cur_basline = -1
                      } 
         (a,s) = runState (basicParse $ tokens) initstate 
-
-     {-   (a,s) = (runState $! ((\ tk -> do
-                              psTree <- basicParse tk
-                              checkAllExpectedLineNumbersGot
-                              return psTree
-                          )tokens)) initState -}
-    -- in trace ("the end state: " ++ (intercalate "," s)) a
-    -- in map (id $!) a
-    -- in reverse $! (evalListStrict id a [] )
     in ParseTree { program = a, pdata = data_temp s}
 
 
